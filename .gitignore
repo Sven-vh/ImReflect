@@ -36,3 +36,6 @@
 
 *.filters
 *.user
+
+*/out
+*/out-int
