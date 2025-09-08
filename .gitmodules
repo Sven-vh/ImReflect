@@ -1,3 +1,6 @@
 [submodule "extern/imgui"]
 	path = extern/imgui
 	url = https://github.com/ocornut/imgui
+[submodule "extern/svh-include"]
+	path = extern/svh-include
+	url = https://github.com/Sven-vh/svh-include
