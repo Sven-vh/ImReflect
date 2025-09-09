@@ -12,6 +12,8 @@
 #include <d3d9.h>
 #include <tchar.h>
 
+#include "include/imgui_app.hpp"
+
 // Data
 static LPDIRECT3D9              g_pD3D = nullptr;
 static LPDIRECT3DDEVICE9        g_pd3dDevice = nullptr;
@@ -25,8 +27,7 @@ void CleanupDeviceD3D();
 void ResetDevice();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
-void draw_imgui();
-
+#pragma region
 // Main code
 int main(int, char**) {
 	// Make process DPI aware and obtain main monitor scale
@@ -90,6 +91,8 @@ int main(int, char**) {
 	bool show_another_window = false;
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+	svh::imgui_app app;
+
 	// Main loop
 	bool done = false;
 	while (!done) {
@@ -130,7 +133,7 @@ int main(int, char**) {
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 
-		draw_imgui();
+		app.render();
 
 		// 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
 		if (show_demo_window)
@@ -260,7 +263,4 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) {
 	}
 	return ::DefWindowProcW(hWnd, msg, wParam, lParam);
 }
-
-void draw_imgui() {
-
-}
+#pragma endregion

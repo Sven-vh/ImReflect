@@ -46,7 +46,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)out\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)out-int\$(Configuration)-$(Platform)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\extern;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\extern;$(SolutionDir);$(SolutionDir)\include;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(ProjectDir)out\$(Configuration)-$(Platform)\</OutDir>
