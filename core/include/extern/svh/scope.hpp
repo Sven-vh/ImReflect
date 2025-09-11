@@ -1,5 +1,6 @@
 #pragma once
 #include <unordered_map>
+#include <map>
 #include <typeindex>
 #include <iostream>
 #include <stdexcept>
@@ -38,6 +39,8 @@ struct type_settings;
 namespace svh {
 
 	struct scope {
+		struct member_id; // Forward declare
+
 		virtual ~scope() = default; // Needed for dynamic_cast
 		scope() = default;
 
@@ -105,9 +108,10 @@ namespace svh {
 			using MemberType = typename traits::member_type;
 			using ClassType = typename traits::class_type;
 
-			const std::type_index type_key = std::type_index{ typeid(ClassType) };
+			const std::type_index struct_type = get_type_key<ClassType>();
+			const std::type_index member_type = get_type_key<MemberType>();
 			const std::size_t member_offset = get_member_offset<member>();
-			const auto key = std::make_pair(type_key, member_offset);
+			const auto key = member_id{ struct_type, member_type, member_offset };
 
 			// Check if already exists in current scope
 			auto it = member_children.find(key);
@@ -128,6 +132,7 @@ namespace svh {
 					child->parent = this;
 					child->children.clear(); // Clear inherited children
 					child->member_children.clear(); // Clear inherited member children
+					child->active_member = key;
 					member_children.emplace(key, std::move(child));
 					return ref;
 				}
@@ -137,6 +142,9 @@ namespace svh {
 			auto child = std::make_unique<type_settings<MemberType>>();
 			auto& ref = *child;
 			child->parent = this;
+			child->children.clear(); // Clear inherited children
+			child->member_children.clear(); // Clear inherited member children
+			child->active_member = key;
 			member_children.emplace(key, std::move(child));
 			return ref;
 		}
@@ -238,8 +246,10 @@ namespace svh {
 		/// <returns>Pointer to the found scope or nullptr if not found</returns>
 		/// <exception cref="std::runtime_error">If an existing child has an unexpected type</exception>
 		template <class T>
-		type_settings<T>* find() const {
+		type_settings<T>* find(const member_id& child_member_id = {}) const {
 			const std::type_index key = get_type_key<T>();
+
+			/* Check current map */
 			auto it = children.find(key);
 			if (it != children.end()) {
 				auto* found = dynamic_cast<type_settings<T>*>(it->second.get());
@@ -248,8 +258,33 @@ namespace svh {
 				}
 				return found;
 			}
+
+			/* Check member map */
+			if (child_member_id.is_valid()) {
+				auto mit = member_children.find(child_member_id);
+				if (mit != member_children.end()) {
+					auto* found = dynamic_cast<type_settings<T>*>(mit->second.get());
+					if (!found) {
+						throw std::runtime_error("Existing member child has unexpected type");
+					}
+					return found;
+				}
+			}
+			//for (const auto& item : member_children) {
+			//	const auto& member_key = item.first;
+			//	const auto& child = item.second;
+			//	if (member_key.member_type == key) {
+			//		auto* found = dynamic_cast<type_settings<T>*>(child.get());
+			//		if (!found) {
+			//			throw std::runtime_error("Existing member child has unexpected type");
+			//		}
+			//		return found;
+			//	}
+			//}
+
+			/* Recurse to parent */
 			if (has_parent()) {
-				return parent->find<T>();
+				return parent->find<T>(active_member);
 			}
 			return nullptr; // Not found
 		}
@@ -265,9 +300,10 @@ namespace svh {
 			using MemberType = typename traits::member_type;
 			using ClassType = typename traits::class_type;
 
-			const std::type_index type_key = std::type_index{ typeid(ClassType) };
+			const std::type_index struct_type = get_type_key<ClassType>();
+			const std::type_index member_type = get_type_key<MemberType>();
 			const std::size_t member_offset = get_member_offset<member>();
-			const auto key = std::make_pair(type_key, member_offset);
+			const auto key = member_id{ struct_type, member_type, member_offset };
 
 			/* Check member map */
 			auto it = member_children.find(key);
@@ -280,7 +316,7 @@ namespace svh {
 			}
 
 			/* Check in children of type ClassType */
-			auto class_it = children.find(type_key);
+			auto class_it = children.find(struct_type);
 			if (class_it != children.end()) {
 				auto* class_scope = dynamic_cast<type_settings<ClassType>*>(class_it->second.get());
 				if (!class_scope) {
@@ -320,8 +356,9 @@ namespace svh {
 			}
 
 			const std::size_t member_offset = static_cast<std::size_t>(member_addr - instance_addr);
-			const std::type_index type_key = std::type_index{ typeid(T) };
-			const auto key = std::make_pair(type_key, member_offset);
+			const std::type_index struct_type = get_type_key<T>();
+			const std::type_index member_type = get_type_key<M>();
+			const auto key = member_id{ struct_type, member_type, member_offset };
 
 			/* Check member map */
 			auto it = member_children.find(key);
@@ -334,7 +371,7 @@ namespace svh {
 			}
 
 			/* Check in children of type T */
-			auto class_it = children.find(type_key);
+			auto class_it = children.find(struct_type);
 			if (class_it != children.end()) {
 				auto* class_scope = dynamic_cast<type_settings<T>*>(class_it->second.get());
 				if (!class_scope) {
@@ -374,8 +411,9 @@ namespace svh {
 				const char* instance_addr = reinterpret_cast<const char*>(&instance);
 				const char* member_addr = reinterpret_cast<const char*>(&member);
 				const std::size_t member_offset = static_cast<std::size_t>(member_addr - instance_addr);
-				const std::type_index type_key = std::type_index{ typeid(T) };
-				const auto key = std::make_pair(type_key, member_offset);
+				const std::type_index struct_type = get_type_key<T>();
+				const std::type_index member_type = get_type_key<M>();
+				const auto key = member_id{ struct_type, member_type, member_offset };
 
 				auto child = std::make_unique<type_settings<M>>();
 				auto& ref = *child;
@@ -421,18 +459,40 @@ namespace svh {
 			for (const auto& item : member_children) {
 				const auto& key = item.first;
 				const auto& child = item.second;
-				const auto& type_name = key.first.name();
-				const auto& offset = key.second;
-				std::cout << prefix << type_name << " (offset " << offset << ")\n";
+				const auto& struct_name = key.struct_type.name();
+				const auto& member_name = key.member_type.name();
+				std::cout << prefix << struct_name << "::(offset " << key.offset << ") -> " << member_name << "\n";
 				child->debug_log(indent + 2);
 			}
 		}
+	private:
+		struct member_id {
+			std::type_index struct_type = typeid(void);
+			std::type_index member_type = typeid(void);
+			std::size_t offset = std::numeric_limits<std::size_t>::max();
 
+			bool is_valid() const {
+				return struct_type != typeid(void) && member_type != typeid(void) && offset != std::numeric_limits<std::size_t>::max();
+			}
+
+			bool operator==(const member_id& other) const {
+				return struct_type == other.struct_type && member_type == other.member_type && offset == other.offset;
+			}
+		};
+		struct member_key_hash {
+			std::size_t operator()(const member_id& k) const {
+				return std::hash<std::type_index>()(k.struct_type) ^ std::hash<std::type_index>()(k.member_type) ^ std::hash<std::size_t>()(k.offset);
+			}
+		};
 	private:
 		scope* parent = nullptr; /* Root level */
+
+		/* type -> scope */
 		std::unordered_map<std::type_index, std::shared_ptr<scope>> children; /* shared since we need to copy the base*/
-		/* (type_index + offset) -> scope */
-		std::map<std::pair<std::type_index, std::size_t>, std::shared_ptr<scope>> member_children;
+		/* (struct type + member type + offset) -> scope */
+		std::unordered_map<member_id, std::shared_ptr<scope>, member_key_hash> member_children;
+
+		member_id active_member;
 
 		bool is_root() const { return parent == nullptr; }
 		bool has_parent() const { return parent != nullptr; }
@@ -446,6 +506,8 @@ namespace svh {
 			auto child = std::make_unique<type_settings<T>>();
 			auto& ref = *child;
 			child->parent = this;
+			child->children.clear(); /* Clear children, we only create the base settings */
+			child->member_children.clear(); /* Clear member children, we only create the base settings */
 			children.emplace(key, std::move(child));
 			return ref;
 		}
@@ -473,6 +535,7 @@ namespace svh {
 					auto& ref = *child;
 					child->parent = this;
 					child->children.clear(); /* Clear children, we only copy the base settings */
+					child->member_children.clear(); /* Clear member children, we only copy the base settings */
 					children.emplace(key, std::move(child));
 					return ref;
 				}
@@ -491,7 +554,7 @@ namespace svh {
 				return *found;
 			}
 
-			if (is_root() && SVH_AUTO_INSERT) {
+			if (SVH_AUTO_INSERT) {
 				return emplace_new<T>();
 			}
 

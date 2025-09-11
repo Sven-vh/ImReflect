@@ -1,37 +1,30 @@
 #include "imgui_app.hpp"
 #include <imgui/imgui.h>
-#include <svh/imgui_reflect.hpp>
+
+#include <imgui_reflect.hpp>
 
 struct MyStruct {
 	int a;
-	float b;
-	bool c;
+	int b;
 };
 
-template<>
-struct type_settings<int> : svh::scope {
-	int _min = 0;
-	int _max = 100;
-
-	type_settings& min(const int v) { _min = v; return *this; }
-	type_settings& max(const int v) { _max = v; return *this; }
-
-	int get_min() const { return _min; }
-	int get_max() const { return _max; }
-};
+IMGUI_REFLECT(MyStruct, a, b)
 
 namespace svh {
 	void imgui_app::render() {
 
-		static MyStruct s{ 1, 2.0f, true };
+		static MyStruct s{ 1, 2 };
 
-		auto& settings = svh::scope()
-			.push<int>()
-			____.min(10)
-			____.max(50)
+		auto settings = ImSettings();
+		settings.push_member<&MyStruct::a>()
+			    .min(0)
+			    .max(50)
+			.pop()
+			.push_member<&MyStruct::b>()
+			    .min(-10)
+			    .max(10)
 			.pop();
 
-		ImGui::Reflect::Input("Test", s, settings);
-
+		ImResponse response = ImGui::Reflect::Input("Test", s, settings);
 	}
 }
