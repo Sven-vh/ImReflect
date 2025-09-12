@@ -32,14 +32,13 @@ namespace svh {
 	}
 }
 
-// Forward declare
-template<class T>
-struct type_settings;
-
 namespace svh {
 
+	template<template<class> class BaseTemplate>
 	struct scope {
+	private:
 		struct member_id; // Forward declare
+	public:
 
 		virtual ~scope() = default; // Needed for dynamic_cast
 		scope() = default;
@@ -53,7 +52,7 @@ namespace svh {
 		/// <returns>Reference to the pushed scope</returns>
 		/// <exception cref="std::runtime_error">If an existing child has an unexpected type</exception>
 		template<class T>
-		type_settings<T>& push() {
+		BaseTemplate<T>& push() {
 			return _push<T>();
 		}
 
@@ -79,17 +78,17 @@ namespace svh {
 		/// <returns>Reference to the pushed scope</returns>
 		/// <exception cref="std::runtime_error">If an existing child has an unexpected type</exception>
 		template<class T>
-		type_settings<T>& push_default() {
+		BaseTemplate<T>& push_default() {
 			const std::type_index key = get_type_key<T>();
 
 			/* reset if present */
 			auto it = children.find(key);
 			if (it != children.end()) {
-				auto* found = dynamic_cast<type_settings<T>*>(it->second.get());
+				auto* found = dynamic_cast<BaseTemplate<T>*>(it->second.get());
 				if (!found) {
 					throw std::runtime_error("Existing child has unexpected type");
 				}
-				*found = type_settings<T>{}; // Reset to default
+				*found = BaseTemplate<T>{}; // Reset to default
 				return *found;
 			}
 
@@ -116,7 +115,7 @@ namespace svh {
 			// Check if already exists in current scope
 			auto it = member_children.find(key);
 			if (it != member_children.end()) {
-				auto* found = dynamic_cast<type_settings<MemberType>*>(it->second.get());
+				auto* found = dynamic_cast<BaseTemplate<MemberType>*>(it->second.get());
 				if (!found) {
 					throw std::runtime_error("Existing member child has unexpected type");
 				}
@@ -127,7 +126,7 @@ namespace svh {
 			if (has_parent()) {
 				auto* found = find_member<member>();
 				if (found) {
-					auto child = std::make_unique<type_settings<MemberType>>(*found);
+					auto child = std::make_unique<BaseTemplate<MemberType>>(*found);
 					auto& ref = *child;
 					child->parent = this;
 					child->children.clear(); // Clear inherited children
@@ -139,7 +138,7 @@ namespace svh {
 			}
 
 			// Create new
-			auto child = std::make_unique<type_settings<MemberType>>();
+			auto child = std::make_unique<BaseTemplate<MemberType>>();
 			auto& ref = *child;
 			child->parent = this;
 			child->children.clear(); // Clear inherited children
@@ -173,7 +172,7 @@ namespace svh {
 		/// <returns>Reference to the found scope</returns>
 		/// <exception cref="std::runtime_error">If not found and at root and ``SVH_AUTO_INSERT`` is false</exception>
 		template <class T>
-		type_settings<T>& get() {
+		BaseTemplate<T>& get() {
 			return _get<T>();
 		}
 
@@ -193,7 +192,7 @@ namespace svh {
 		/// <returns>Reference to the found scope</returns>
 		/// <exception cref="std::runtime_error">If not found</exception>
 		template <class T>
-		const type_settings<T>& get() const {
+		const BaseTemplate<T>& get() const {
 			return _get<T>();
 		}
 
@@ -246,13 +245,13 @@ namespace svh {
 		/// <returns>Pointer to the found scope or nullptr if not found</returns>
 		/// <exception cref="std::runtime_error">If an existing child has an unexpected type</exception>
 		template <class T>
-		type_settings<T>* find(const member_id& child_member_id = {}) const {
+		BaseTemplate<T>* find(const member_id& child_member_id = {}) const {
 			const std::type_index key = get_type_key<T>();
 
 			/* Check current map */
 			auto it = children.find(key);
 			if (it != children.end()) {
-				auto* found = dynamic_cast<type_settings<T>*>(it->second.get());
+				auto* found = dynamic_cast<BaseTemplate<T>*>(it->second.get());
 				if (!found) {
 					throw std::runtime_error("Existing child has unexpected type");
 				}
@@ -263,24 +262,13 @@ namespace svh {
 			if (child_member_id.is_valid()) {
 				auto mit = member_children.find(child_member_id);
 				if (mit != member_children.end()) {
-					auto* found = dynamic_cast<type_settings<T>*>(mit->second.get());
+					auto* found = dynamic_cast<BaseTemplate<T>*>(mit->second.get());
 					if (!found) {
 						throw std::runtime_error("Existing member child has unexpected type");
 					}
 					return found;
 				}
 			}
-			//for (const auto& item : member_children) {
-			//	const auto& member_key = item.first;
-			//	const auto& child = item.second;
-			//	if (member_key.member_type == key) {
-			//		auto* found = dynamic_cast<type_settings<T>*>(child.get());
-			//		if (!found) {
-			//			throw std::runtime_error("Existing member child has unexpected type");
-			//		}
-			//		return found;
-			//	}
-			//}
 
 			/* Recurse to parent */
 			if (has_parent()) {
@@ -308,7 +296,7 @@ namespace svh {
 			/* Check member map */
 			auto it = member_children.find(key);
 			if (it != member_children.end()) {
-				auto* found = dynamic_cast<type_settings<MemberType>*>(it->second.get());
+				auto* found = dynamic_cast<BaseTemplate<MemberType>*>(it->second.get());
 				if (!found) {
 					throw std::runtime_error("Existing member child has unexpected type");
 				}
@@ -318,7 +306,7 @@ namespace svh {
 			/* Check in children of type ClassType */
 			auto class_it = children.find(struct_type);
 			if (class_it != children.end()) {
-				auto* class_scope = dynamic_cast<type_settings<ClassType>*>(class_it->second.get());
+				auto* class_scope = dynamic_cast<BaseTemplate<ClassType>*>(class_it->second.get());
 				if (!class_scope) {
 					throw std::runtime_error("Existing child has unexpected type");
 				}
@@ -333,7 +321,7 @@ namespace svh {
 				return parent->find_member<member>();
 			}
 
-			return static_cast<type_settings<MemberType>*>(nullptr);
+			return static_cast<BaseTemplate<MemberType>*>(nullptr);
 		}
 
 		/// <summary>
@@ -345,7 +333,7 @@ namespace svh {
 		/// <param name="member">Reference to the specific member</param>
 		/// <returns>Pointer to member settings or nullptr if not found</returns>
 		template<class T, class M>
-		type_settings<M>* find_member_runtime(const T& instance, const M& member) const {
+		BaseTemplate<M>* find_member_runtime(const T& instance, const M& member) const {
 			// Calculate offset using pointer arithmetic
 			const char* instance_addr = reinterpret_cast<const char*>(&instance);
 			const char* member_addr = reinterpret_cast<const char*>(&member);
@@ -363,7 +351,7 @@ namespace svh {
 			/* Check member map */
 			auto it = member_children.find(key);
 			if (it != member_children.end()) {
-				auto* found = dynamic_cast<type_settings<M>*>(it->second.get());
+				auto* found = dynamic_cast<BaseTemplate<M>*>(it->second.get());
 				if (!found) {
 					throw std::runtime_error("Existing member child has unexpected type");
 				}
@@ -373,7 +361,7 @@ namespace svh {
 			/* Check in children of type T */
 			auto class_it = children.find(struct_type);
 			if (class_it != children.end()) {
-				auto* class_scope = dynamic_cast<type_settings<T>*>(class_it->second.get());
+				auto* class_scope = dynamic_cast<BaseTemplate<T>*>(class_it->second.get());
 				if (!class_scope) {
 					throw std::runtime_error("Existing child has unexpected type");
 				}
@@ -400,7 +388,7 @@ namespace svh {
 		/// <param name="member">Reference to the specific member</param>
 		/// <returns>Reference to member settings</returns>
 		template<class T, class M>
-		type_settings<M>& get_member(const T& instance, const M& member) {
+		BaseTemplate<M>& get_member(const T& instance, const M& member) {
 			auto* found = find_member_runtime(instance, member);
 			if (found) {
 				return *found;
@@ -415,7 +403,7 @@ namespace svh {
 				const std::type_index member_type = get_type_key<M>();
 				const auto key = member_id{ struct_type, member_type, member_offset };
 
-				auto child = std::make_unique<type_settings<M>>();
+				auto child = std::make_unique<BaseTemplate<M>>();
 				auto& ref = *child;
 				child->parent = this;
 				member_children.emplace(key, std::move(child));
@@ -434,7 +422,7 @@ namespace svh {
 		/// <param name="member">Reference to the specific member</param>
 		/// <returns>Const reference to member settings</returns>
 		template<class T, class M>
-		const type_settings<M>& get_member(const T& instance, const M& member) const {
+		const BaseTemplate<M>& get_member(const T& instance, const M& member) const {
 			auto* found = find_member_runtime(instance, member);
 			if (found) {
 				return *found;
@@ -501,9 +489,9 @@ namespace svh {
 		constexpr std::type_index get_type_key() const { return std::type_index{ typeid(std::decay_t<T>) }; }
 
 		template<class T>
-		type_settings<T>& emplace_new() {
+		BaseTemplate<T>& emplace_new() {
 			const std::type_index key = get_type_key<T>();
-			auto child = std::make_unique<type_settings<T>>();
+			auto child = std::make_unique<BaseTemplate<T>>();
 			auto& ref = *child;
 			child->parent = this;
 			child->children.clear(); /* Clear children, we only create the base settings */
@@ -514,13 +502,13 @@ namespace svh {
 
 		/* Actual implementation fo push */
 		template<class T>
-		type_settings<T>& _push() {
+		BaseTemplate<T>& _push() {
 			const std::type_index key = get_type_key<T>();
 
 			/* Reuse if present */
 			auto it = children.find(key);
 			if (it != children.end()) {
-				auto* found = dynamic_cast<type_settings<T>*>(it->second.get());
+				auto* found = dynamic_cast<BaseTemplate<T>*>(it->second.get());
 				if (!found) {
 					throw std::runtime_error("Existing child has unexpected type");
 				}
@@ -531,7 +519,7 @@ namespace svh {
 			if (has_parent()) {
 				auto* found = find<T>();
 				if (found) {
-					auto child = std::make_unique<type_settings<T>>(*found); /* Copy */
+					auto child = std::make_unique<BaseTemplate<T>>(*found); /* Copy */
 					auto& ref = *child;
 					child->parent = this;
 					child->children.clear(); /* Clear children, we only copy the base settings */
@@ -547,7 +535,7 @@ namespace svh {
 
 
 		template<class T>
-		type_settings<T>& _get() {
+		BaseTemplate<T>& _get() {
 
 			auto* found = find<T>();
 			if (found) {
@@ -562,7 +550,7 @@ namespace svh {
 		}
 
 		template<class T>
-		const type_settings<T>& _get() const {
+		const BaseTemplate<T>& _get() const {
 			auto* found = find<T>();
 			if (found) {
 				return *found;
@@ -571,9 +559,6 @@ namespace svh {
 		}
 	};
 } // namespace svh
-
-template<class T>
-struct type_settings : svh::scope {};
 
 /* Macros for indenting */
 #define ____
