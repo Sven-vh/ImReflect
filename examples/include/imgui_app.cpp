@@ -3,8 +3,10 @@
 
 #include <imgui_reflect.hpp>
 
+typedef uint32_t my_special_int;
+
 struct MyStruct {
-	int a;
+	my_special_int a;
 	int b;
 };
 
@@ -17,12 +19,11 @@ namespace svh {
 
 		auto settings = ImSettings();
 		settings.push_member<&MyStruct::a>()
-			    .min(0)
-			    .max(50)
+			.min(0)
 			.pop()
 			.push_member<&MyStruct::b>()
-			    .min(-10)
-			    .max(10)
+			//.min(-10)
+			//.max(10)
 			.pop();
 
 		ImResponse response = ImGui::Reflect::Input("Test", s, settings);
