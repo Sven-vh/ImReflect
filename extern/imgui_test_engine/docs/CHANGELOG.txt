@@ -1,0 +1,523 @@
+Dear ImGui Test Engine
+CHANGELOG
+
+** Test Engine is regularly updated to support recent Dear ImGui version, when a change is required.
+   Those changes are not all listed here.
+** For a while this is going to ONLY INCLUDE BREAKING CHANGES.
+
+2025/09/09:
+- TestEngine: fixed ctx->ComboXXX functions for cases where the Combo selectables are
+  using ImGuiSelectableFlags_NoAutoClosePopups or setting ImGuiItemFlags_AutoClosePopups=false.
+
+2025/08/22:
+- TestEngine: fixed issues interaction with clipped table headers.
+- TestEngine: added ctx->ScrollToPos(), ScrollToPosX(), ScrollToPosY() helpers.
+
+2025/08/11:
+- TestEngine: error when it is detected that main imgui library has not been
+  compiled with IMGUI_ENABLE_TEST_ENGINE. (#80)
+- TestEngine: detect mismatching build issue when ImGui compiled struct layout does not
+  match one seen by test engine.
+
+2025/04/24:
+- TestEngine: fixed crash/issue in capture tool.
+
+2025/03/17:
+- TestEngine: *BREAKING* reworked ImGuiTestEngine_GetResult() as ImGuiTestEngine_GetResultSummary()
+  outputting a structure where we can add more fields.
+    Prev:  void ImGuiTestEngine_GetResult(ImGuiTestEngine* engine, int& count_tested, int& count_success);
+    Now:   void ImGuiTestEngine_GetResultSummary(ImGuiTestEngine* engine, ImGuiTestEngineResultSummary* out_result);
+  New structure include the number of tests remaining in queue (for when aborting or crashing).
+- TestEngine: helper crash handler installed by ImGuiTestEngine_InstallDefaultCrashHandler()
+  always print a crash string and extra info, even if result export settings are set to None.
+
+2025/03/11:
+- TestEngine: fixes various small issues compiling on game consoles.
+
+2025/03/05:
+- TestEngine: fixes for internal changes in 1.91.9 related to menu window mangling.
+
+2025/02/07:
+- TestEngine: fixes for internal changes in 1.91.9.
+
+2025/01/29:
+- TestEngine: fixed issue using MenuXXX() functions with a relative path
+  when current SetRef() value is empty.
+- TestEngine: fix for menu-bar changes in 1.91.8 wip.
+
+2025/01/20:
+- TestEngine: added ItemReadAsString() function helpers to facilitate
+  retrieving value from a text editable field. (#26, #66)
+- TestEngine: *BREAKING* renamed ItemSelectAndReadValue() functions
+  to ItemReadAsInt(), ItemReadAsFloat(), ItemReadAsScalar(), simplified
+  their use and signatures.
+- TestEngine: added ImGuiTestEngine_UnregisterAllTests() helper function.
+- TestEngine: UI: better highlight when using "right-click->View Source".
+- TestEngine: UI: registering/unregistered tests during runtime ensure
+  their source line ranges is up to date.
+
+2024/12/20:
+- TestEngine: fixed error recovery mis-asserting after a GuiFunc triggered
+  a failed error (when a test fail, error recover runs but shouldn't assert).
+- TestEngine: ComboClickAll() supports when item doesn't close combo
+  + remove initial extraneous click.
+
+2024/12/19:
+- TestEngine: ctx->SetVarsDataType() created blocks are zero-cleared before
+  construction.
+
+2024/12/18:
+- TestEngine: fixed an issue accessing items when parent window is too small
+  to have a visible scrolling layer.
+
+2024/12/04:
+- TestEngine: fixed an issue with v1.91.1 where ImGuiPlatformMonitor array
+  pointer was invalidated at end of a test, which would affect code taking
+  pointers to Monitors[].
+
+2024/11/27:
+- TestEngine: updated for internal changes in v1.91.6.
+
+2024/10/17:
+- TestEngine: updated for various internal changes in v1.91.4.
+- TestEngine: *BREAKING* renamed ImGuiTestItemInfo's InFlags to ItemFlags.
+  (it's unlikely to have been used by end-user or tests. Please let us know if you did!).
+
+2024/10/02:
+- TestEngine: moved processing of TestFunc from being done post-NewFrame to being done pre-EndFrame.
+  This makes all the timing/order matches between tests using GuiFunc and tests relying on gui code
+  submitted independently.
+    Prev: NewFrame -> test's GuiFunc -> test's TestFunc -> other UI -> EndFrame
+    Now:  NewFrame -> test's GuiFunc -> other UI -> test's TestFunc -> EndFrame
+  This doesn't make a difference for TestSuite.
+  This _should_ not make a difference for end-user, other than making all timing/order matches
+  between TestSuite and user apps not using test's GuiFunc. Different order means that subtle
+  ordering issues applying to user not using GuiFunc would have been uncaught.
+
+2024/09/27:
+- TestEngine: updated for support for error handling/recovery mechanism from v1.91.3.
+- TestEngine: fixed issues dealing with covered ImGuiWindowFlags_NoBringToFrontOnFocus windows.
+
+2024/09/17:
+- TestEngine: now knows how mouse aim at windows with the ImGuiWindowFlags_NoBringToFrontOnFocus
+  flag when they are covered by other windows (when clicking or Ctrl+tabbing doesn't work).
+- TestEngine: opening source file default to use shell open if io.SrcFileOpenFunc is not set. (#56)
+- TestEngine: UI: opening source file prints filename/line_no in debug output to facilitate
+  double-clicking in IDE. (#56) [@learn-more]
+
+2024/09/16:
+- TestEngine: Added ViewportPlatform_SetWindowPos() and ViewportPlatform_SetWindowSize()
+  functions to enforce or simulate platform move/resize.
+
+2024/09/12:
+- TestEngine: fixed a crash when item/window stops being submitted (or test is aborted)
+  in the middle of a MouseMove() action performing a long scroll.
+
+2024/09/10:
+- TestEngine: CaptureTool: rename ImGuiCaptureFlags_IncludeTooltipsAndPopups to
+  ImGuiCaptureFlags_IncludePopups, as tooltips are always included by default in the capture.
+
+2024/08/22
+- TestEngine: fixes for internal changes and ImGuiPlatformIO use in 1.91.1 WIP.
+
+2024/07/08:
+- TestEngine: fixes an issue browsing menus inside a popup not inside a menu-bar. (#43) [@peterigz]
+
+2024/07/02:
+- TestEngine: fixes for 1.91.0 WIP changes.
+
+2024/07/01:
+- TestEngine: added helper IM_CHECK_FLOAT_NE_EPS() macro.
+
+2024/06/06:
+- TestEngine: WindowInfo() with ImGuiTestOpFlags_NoError doesn't spew error
+  messages in log. (#52)
+
+2024/06/04:
+- TestEngine: UI: Added "Capture on error" checkbox to top bar.
+- TestEngine: UI: Reworded "Refocus" to "KeepFocus" (inverted value) in top bar
+  for consistency with other options.
+
+2024/05/29:
+- TestEngine: UI: Hovering 0xXXXXXXXX identifiers in test log attempts
+  to visually locate them and provide options to Debug Break in the call
+  emitting this item, similar to Dear ImGui Debug Log window.
+  (require latest Dear ImGui version).
+- TestEngine: Improved/standardized display of ImGuiTestRef in log.
+  (e.g. computed ImGuiID more consistency printed).
+- TestEngine: Fixed an issue using ctx->MenuXXX functions successively
+  on the same menu. In some situation a second access would erroneously
+  think the previous menu was still open.
+- TestEngine: Fixed an issue where calling ItemDragAndDrop() would erroneously
+  manipulate mouse threshold, creating inconsistency with normal use when using
+  box-select and drag'n drop together.
+
+2024/05/28:
+- TestEngine: Fixes/support for 1.90.8 WIP changes.
+- TestEngine: Fixed edge case calling ScrollTo() in non-Fast mode trying to
+  access window scrollbar on the same frame where it disappears.
+
+2024/05/24:
+- TestEngine: ctx->WindowResize() knows how to work with child windows
+  using resize borders only, and which don't have a resize corners.
+
+2024/05/21:
+- TestEngine: *BREAKING* obsoleted ctx->YieldUntil(int frame_count) which
+  seems mostly unused, misleading, and can be replaced by 2 lines of code.
+  Kept redirecting inline helper (will obsolete).
+
+2024/05/17:
+- TestEngine: Fixes calling ImGuiTestEngine_QueueTests() with NULL filter.
+
+2024/05/16:
+- TestEngine: Fixes/support for 1.90.7 swapping Ctrl<>Cmd on Mac OSX,
+  and ImGuiMod_Shortcut being made obsolete/unnecessary.
+- TestEngine: Added debugger detection support on Mac OSX (disable watchdog,
+  enable asserts on failure or other options).
+
+2024/05/14:
+- TestEngine: IM_TEST_ENGINE_ASSERT() doesn't crash if called prior to test engine
+  initialization.
+
+2024/04/22:
+- TestEngine: *EXCEPTIONALLY BREAKING CHANGE*
+  Changed ItemInfo(), WindowInfo() and variants signatures to return
+    a full ImGuiTestItemInfo struct instead of a pointer.
+    Before:
+      ImGuiTestItemInfo*  ItemInfo(ImGuiTestRef ref, ....);
+      ImGuiTestItemInfo*  WindowInfo(ImGuiTestRef window_ref, ...);
+    After:
+      ImGuiTestItemInfo   ItemInfo(ImGuiTestRef ref, ....);
+      ImGuiTestItemInfo   WindowInfo(ImGuiTestRef window_ref, ...);
+  - The initial design suggested that the data could be updated on subsequent
+    frames, but it technically required to manipulate the RefCount field and it was
+    very easy to get wrong and mistakes were difficult to notice and debug,
+    occasionally leading to dangling pointers.
+  - We are instead returning a copy of the value at the current time.
+    You may call ItemInfo()/WindowInfo() again if you need refreshed values.
+       item = ItemInfo(item.ID); // refresh values
+  - If you were using info->RefCount++/info->RefCount-- is likely means that
+    you wanted to reuse an ItemInfo pointers accross frames and might
+    want to request the refreshed data.
+  - Removed the ImGuiTestItemInfo::RefCount field since it is now unused,
+    and its removal makes it easier to spot cases that might need fixing.
+  APOLOGIES FOR THE BREAKING CHANGE.
+  PLEASE CONTACT US IF YOU HAVE ISSUES OR FEEDBACK OR ANY QUESTION.
+- TestEngine: Fixed a bug and potential crash in ItemDragAndDrop(). (#49)
+
+2024/04/23:
+- TestEngine: Added ItemSelectAndReadValue() helper to read a field from TestFunc
+  by selecting it and copying its value into clipboard. We will later introduce
+  more general alternatives but this is a simple and helpful tool.
+
+2024/04/15:
+- TestEngine: Added ImGuiTestEngine_UnregisterTest().
+- TestEngine: Fixed directory creation for capture save when using IMGUI_USE_WCHAR32.
+
+2024/04/11:
+- TestEngine: Better assert on misusage of ComboClick().
+
+2024/03/05:
+- TestEngine: Fixed an issue with using DockInto() from one viewport to another.
+
+2024/02/27:
+- TestEngine: Added ImGuiTestOpFlags_NoYield support to MouseTeleportToPos(), useful in
+  situations where very precise timings are required (e.g. successive frames teleports).
+
+2024/02/26:
+- TestEngine: *BREAKING* fixed GetWindowByRef() behaving inconsistently by ignoring
+  current SetRef() base reference when non-empty. Most functions expected on windows
+  parts, such as WindowMove(), WindowResize(), WindowFocus(), WindowBringToFront(),
+  ScrollToXXX(), etc. were affected:
+     ctx->SetRef("Window 1"); + ctx->WindowFocus("");          // OK
+     ctx->SetRef("Window 1"); + ctx->WindowFocus("//Window1"); // OK
+     ctx->SetRef("window 1"); + ctx->WindowFocus("Window1");   // Not OK, previously worked.
+
+2024/02/22:
+- TestEngine: fixed MenuCheckAll(), MenuUncheckAll(), MenuActionAll() from trying to
+  perform actions on disabled menu items.
+
+2024/02/07:
+- TestEngine: fixed ImBuildFindGitBranchName() helper and auto-filling of io.GitBranchName
+  when using a detached head. (#42)
+
+2024/01/25:
+- TestEngine: Submitting a ImGuiKey_LeftAlt/ImGuiKey_RightAlt, ImGuiKey_LeftShift/ImGuiKey_RightShift,
+  ImGuiKey_LeftCtrl/ImGuiKey_RightCtrl, ImGuiKey_LeftSuper/ImGuiKey_RightSuper key interaction
+  will submit the equivalent ImGuiMod_XXX mod, as what would happen in a real backend.
+- TestEngine: ...also done in the opposite direction: submitting e.g. ImGuiMod_XXX automatically
+  adds ImGuiKey_LeftXXX.
+
+2024/01/16:
+- TestEngine: Fixes crash when running an ImGui instanced compiled with IMGUI_ENABLE_TEST_ENGINE
+  but before a test engine has been attached to the ImGuiContext.
+
+2024/01/15:
+- TestEngine: Fixes for GetKeyChordName() api changes.
+
+2024/01/09:
+- TestEngine: Added ImGuiTestContext::KeySetEx() to manipulate keys with precise timings.
+  (most other functions add yields to accomodate for common use cases).
+- app_minimal: Added a building batch file to provide an alternative building reference.
+- app_minimal: Removed misleading optional dependency on implot.
+- app_minimal, imgui_app: Fixed building in MBCS (non-Unicode) mode.
+
+2024/01/08:
+- TestEngine: Avoid allocations in IM_CHECK_XX macros.
+
+2023/12/05:
+- TestEngine: Made it possible to use ctx->RunChildTest() along with ctx->Finish(ImGuiTestStatus_Unknown)
+  to setup test dependencies without marking dependent tests as errored when the dependance is errored.
+
+2023/11/30:
+- TestEngine: Added ImGuiTestContext::RunChildTest() [Experimental].
+- TestEngine: Added ImGuiTestRunFlags_ShareVars and ImGuiTestRunFlags_ShareTestContext for RunChildTest().
+- TestEngine: Refactor ImGuiTest to isolate output (test status, log, start/end times) into
+  a dedicated ImguiTestOutput structure. 'test->Status' and 'test->TestLog' respectively
+  become 'test->Output.Status' and 'test->Output.Log'.
+
+2023/11/15:
+- TestEngine: UI: display failed counter in colored button while running (since tooltip is
+  likely not accessible while running tests).
+
+2023/11/14:
+- TestEngine: Update for BeginChild() internal naming changes in IMGUI_VERSION_NUM >= 18999.
+
+2023/10/20:
+- TestEngine: Support for BeginChild() internal naming changes in IMGUI_VERSION_NUM >= 18996.
+
+2023/10/05:
+- TestEngine: Capture: Fixed an issue capturing docked windows. (#34)
+
+2023/09/28:
+- TestEngine: Capture: Fixed use of ImGuiCaptureFlags_StitchAll when io.ConfigWindowsMoveFromTitleBarOnly
+  option is set. (#33)
+
+2023/09/20:
+- TestEngine: Fixed an aiming issue with DockInto() when src/dst window is in a nested node.
+- TestEngine: "KeepGUI" option and IM_SUSPEND_TESTFUNC()/SuspendTestFunc() sets OS mouse
+  cursor to TestEngine mouse cursor, allowing user to more easily understand the failing state.
+  (require IMGUI_VERSION_NUM >= 18992).
+- TestEngine: Renamed io.ConfigTakeFocusBackAfterTests to io.ConfigRestoreFocusAfterTests
+  and fixed to restore previous focus instead of always focus Test Engine UI window.
+
+2023/09/06:
+- TestEngine: WindowResize() can be used to auto-resize a window.
+
+2023/09/05:
+- TestEngine: Running a test in GuiFunc mode only provide access to backend clipboard
+  instead of redirecting it to a jailed clipboard.
+
+2023/08/15:
+- TestSuite: Added -list option (e.g. 'test_suite.exe -list "^table"').
+- TestEngine: Added ImGuiTestEngine_GetTestList(), ImGuiTestEngine_GetTestQueue().
+- TestEngine: Added IO.CheckDrawDataIntegrity helper (mostly for use by test suite).
+
+2023/07/11:
+- TestEngine: Fixed an issue accessing tabs in a TabBar without scrolling policy.
+
+2023/06/23:
+- TestEngine: Fixed two case where DockInto() would fail if one or both windows are already docked.
+
+2023/06/22:
+- TestEngine: Fixed WindowClose() support when window Docked.
+
+2023/06/21:
+- TestEngine: in helper ImGuiTestGenericItemStatus storage struct,
+  renamed 'bool Ret' to 'bool RetValue' as it is less ambiguous.
+- TestEngine: Added ViewportPlatform_CloseWindow() function to simulate platform closure
+  (e.g. ALT+F4 on Windows with viewport enabled and OS decoration enabled) for the purpose
+  of testing viewport-specific features. Probably of little use to regular end-user.
+
+2023/06/14
+- TestEngine: ItemInfoOpenFullPath() can focus/select inactive docked windows.
+  (similar to e.g. opening an intermediary tree node).
+
+2023/06/08
+- TestEngine: Made failed IM_CHECK() with io.ConfigBreakOnError enabled call IM_DEBUG_BREAK()
+  directly instead of calling IM_ASSERT(0).
+- TestEngine: Moved suggested IM_ASSERT() override out of test engine's imconfig.h and
+  into our TestSuite's imconfig.h.
+
+2023/05/31
+- TestEngine: Added ctx->ItemIsChecked() and ctx->ItemIsOpened() helpers.
+
+2023/05/30:
+- TestEngine: Attempt to resize host window when aiming at a clipped item within menu layer.
+  (which is non-scrolling).
+- TestEngine: Mock viewport emulation transfer platform focus when a viewport is destroyed.
+
+2023/05/09:
+- TestEngine: Added IsWarmUpGuiFrame() query to avoid polling frame-count.
+
+2023/04/26:
+- TestEngine: Reworked mouse actions to avoid unnecessarily focusing windows if not necessary.
+  If an item is visible and within a window not inhibited by a popup, we don't need to focus
+  the target window before clicking.
+  This reduces the amount of inconsistency between TestEngine and user actions.
+
+2023/04/24:
+- TestEngine: Fixed IM_CHECK_STR_xxx() macros not honoring io.ConfigBreakOnError.
+- TestEngine: Added result check in WindowFocus().
+- TestEngine: Removed unnecessary bool return value from WindowBringToFront().
+- TestEngine: Added ImGuiTestOpFlags_NoFocusWindow support in WindowBringToFront(). (#24)
+
+2023/04/06;
+- TestEngine: Made simulated mouse-clicks activate platform-level focus when changing viewports.
+  As platform-level focus signal leads to reactions at Dear ImGui this is desirable.
+- TestEngine: MouseMoveToVoid(), MouseClickOnVoid(), GetPosOnVoid() now take an optional
+  viewport, and default to mouse current viewport if not specified.
+
+2023/04/05:
+- TestEngine: Added ViewportPlatform_SetWindowXXX() function to inject Platform-altering actions,
+  mostly for the purpose of testing viewport-specific features.
+
+2023/03/28:
+- TestEngine: Added ItemExists() helper.
+
+2023/03/14:
+- TestEngine: Fixed GatherItems() max-depth test being off-by-1 (regression in 2023/03/06 update).
+
+2023/03/06:
+- TestEngine: Made GatherItems() calls find items in child windows.
+- TestEngine: Do not attempt Open/Close/Check/Uncheck actions on Disabled items.
+
+2023/02/23:
+- TestEngine: Fixed ItemDragAndDrop() to latch references in order to avoid breaking when
+  using "//$FOCUSED" in references, because focus is changed during the call.
+
+2023/02/10:
+- TestEngine: renamed 'ImGuiTestFlags_NoWarmUp' to 'ImGuiTestFlags_NoGuiWarmUp' (rarely used).
+
+2023/02/09:
+- TestEngine: Alter visibility checks to reduce unnecessary scrolling when items
+  are mostly visible. Bias toward reducing amount of horizontal scroll.
+- TestEngine: Allow for extra frames when necessary to validates hovering.
+  e.g. blocking popups may be closed by external logic.
+
+2023/02/03
+- TestEngine: Update/fixes for Tables-related changes in main lib.
+
+2023/01/20:
+- TestEngine: Added a `ImGuiTestContext* ctx` parameter to the optional "pre-run" constructor
+  declared in ImGuiTest::SetVarsDataType<>:
+     before:   test->SetVarsDataType<MyVars>([](MyVars& vars) { ... })
+     after:    test->SetVarsDataType<MyVars>([](ImGuiTestContext* ctx, MyVars& vars) { ... })
+  This feature is useful to share GuiFunc/TestFunc accross multiple tests while needing
+  specific state initialized before the first run of GuiFunc. It is convenient because
+  the custom initialization code can be specified while registering the test.
+  (vs. t is also possible to set `test->ArgVariant` and run initialization code in the
+  first-frame of the GuiFunc, but this seems the init code is located in a same location).
+
+2023/01/10
+- TestEngine: Filtering can be done on Category string as well.
+
+2023/01/02:
+- TestEngine: Amend license to 1.02 (clarify/widen audience of free version).
+
+2022/11/30
+- TestEngine: Support ImGuiMod_Shortcut being an independent value.
+
+2022/11/24
+- TestEngine: Update/fixes for Docking node access.
+
+2022/11/04
+- TestEngine: UI: Added CTRL+R shortcut when focused.
+- TestEngine: Fixed MenuCheckAll()/MenuUncheckAll() from trying to access non-checkable items.
+- TestEngine: Added ImGuiTestOpFlags_NoError support in ItemAction() + ItemInfoOpenFullPath().
+
+2022/10/24:
+- TestEngine: DockInto() unmangle path references + verify result.
+
+2022/10/03
+- TestEngine: Added missing ImGuiTestOpFlags_NoError support in ItemAction()/ItemClick() family of
+  functions + in ItemInfoOpenFullPath() function.
+- TestEngine: Fixed MenuCheckAll()/MenuUncheckAll() from trying to access non-checkable items.
+
+2022/10/12
+- TestEngine: WindowInfo() support when child is not in root of parent window.
+- TestEngine: Removed legacy GetChildWindowID() in favor of easier to use and more featured WindowInfo().
+   e.g. ctx->GetChildWindowID(ImGuiTestRef("Parent"), "Child") --> ctx->WindowInfo("Parent/Child")->ID.
+   Note that 'WindowInfo("Parent/Child")->Window' is also frequently useful.
+
+2022/10/11
+- TestEngine: literals can now easily be encoded in decorated path strings using "$$xxxx",
+  making it easier to access items for which the ID stack used PushID(int) or PushID(void*).
+     ItemClick("list/$$1/button") : match id for PushID("list"), PushID(1), Item("button");
+- TestEngine: removed 'ImGuiTestContext::GetIDByInt(int n)'' in favor of using "$$123" syntax.
+- TestEngine: removed 'ImGuiTestContext::GetIDByPtr(void* ptr)'' in favor of using "$$(ptr)0xFFFFFFFF" syntax.
+
+2022/09/26
+- TestEngine: simplified merged Key functions following simplification in core lib.
+     ctx->KeyDown(ImGuiKey key, ImGuiKeyChord mods = 0);                 -> KeyDown(ImGuiKeyChord key_chord);
+     ctx->KeyPress(ImGuiKey key, ImGuiKeyChord mods = 0, int count = 1); -> KeyPress(ImGuiKeyChord key_chord, int count = 1);
+     ctx->KeyModPress(ImGuiModFlags mods);                               -> KeyPress(ImGuiKeyChord key_chord, int count = 1);
+  ImGuiKeyChord = ImGuiKey_XXX or ImGuiMod_XXX or ImGuiKey_XXX | ImGuiMod_XXX.
+  Same for all ctx->KeyXXX functions.
+- TestEngine: following on core lib, renamed/merged mod enums and flags into same value:
+     ImGuiKey_ModXXX   -> ImGuiMod_XXX
+     ImGuiModFlags_XXX -> ImGuiMod_XXX
+  See main library changelog for details.
+
+2022/09/05
+- TestEngine: renamed ImGuiTestEngine_UseSimulatedInputs() to ImGuiTestEngine_IsUsingSimulatedInputs().
+
+2022/09/02
+- TestEngine: removed ImGuiTestContext::NavCancel(): same as ->KeyPress(ImGuiKey_Escape);
+  Follow on core lib which is moving away from the NavInput_ semantic, in favor of using ImGuiKey enum
+  for both keys and gamepads actions.
+- TestEngine: removed ImGuiTestContext::NavEnableForWindow() which was a workaround/kludge.
+
+2022/08/25:
+- TestEngine: Changed ItemInfo() functions to never return a NULL pointer anymore.
+  If you were testing for NULL pointer, the right test to do now is 'info->ID != 0'.
+  This change reduce the likehood of failing test code crashing the application.
+- TestEngine: Changed signatured of ItemAction() from:
+    void ItemAction(ImGuiTestAction action, ImGuiTestRef ref, void* action_arg = NULL, ImGuiTestOpFlags flags = 0)
+  to
+    void ItemAction(ImGuiTestAction action, ImGuiTestRef ref, ImGuiTestOpFlags flags = 0, void* action_arg = NULL)
+  As action_arg is rarely used and may be removed.
+
+
+2022/07/19
+- TestEngine: The syntax "/someidentifier" to ignore the current SetRef() value has been changed
+  to "//someidentifier".
+    - "//" ref prefix now resets ID seed to 0 (old behavior)
+    - "/" ref prefix now refers to "current window" id.s
+      - In GuiFunc, "/" refers to current window we are Begin()-ing into.
+      - In TestFunc, "/" refers to the window set by SetRef().
+    - This change is to be consistent with core Dear ImGui adding ways to compute ID given a path,
+      and both "/" and "//" are desirable features.
+
+2022/05/10
+- TestEngine: Installation of a crash handler is now explicit and optional. Do one of the following:
+  - Call ImGuiTestEngine_InstallDefaultCrashHandler() to install default crash handler.
+  - Call ImGuiTestEngine_CrashHandler() from your own custom crash handler if such exists.
+
+2022/04/08
+- TestEngine: fix ItemAction() or ItemInfo() with leading **/ wildcard from not reporting any error on failure.
+
+2022/04/07
+- TestEngine: added more filtering options to ImGuiTestEngine_QueueTests() and command-line suppot.
+  - "all"   : all tests, no matter what group they are in.
+  - "tests" : all tests in the ImGuiTestGroup_Tests group.
+  - "perfs" : all tests in the ImGuiTestGroup_Perfs group.
+  - "^nav_" : all tests with name starting with "nav_".
+  - "-xxxx" : no tests will be matched because query does not include any.
+  - "tests,-scroll,-^nav_" : all tests that do not contain "scroll" in their name and does not start with "nav_".
+
+2022/03/28
+- TestEngine: Capture: Removed requirement to store/pass a ImGuiCaptureArgs in ctx->CaptureXXX functions.
+  General tidying up of the capture API.
+
+2022/03/23
+- TestEngine: Renamed ImGuiTestEngineIO::VideoCaptureFFMPEGPath to ::VideoCaptureEncoderPath.
+
+2022/03/15
+- TestEngine: Moved the ImGuiContext* parameter from ImGuiTestEngine_CreateContext() to ImGuiTestEngine_Start().
+- TestEngine: Renamed bool ImGuiTestEngineIO::RunningTest to bool ::IsRunningTests.
+- TestEngine: Renamed bool ImGuiTestEngineIO::RenderWantMaxSpeed to ::IsRequestingMaxAppSpeed.
+
+2022/02/15
+- TestEngine: Capture: rename ImGuiCaptureArgs::InOutputFileTemplate to InOutputFile (it was only
+  used as template by the capture tool UI, which now manages its own data correctly).

@@ -1,0 +1,62 @@
+## Build scripts artifacts
+build_scripts/tools/
+build_scripts/*.zip
+build_scripts/output/
+
+## Build scripts config
+build_scripts/config/build_config.bat
+
+## Application artifacts
+output/
+imgui_test_suite/output/
+imgui.ini
+
+## Build artifacts
+*.o
+*.obj
+*.exe
+app_minimal/build/*
+app_minimal/Debug/*
+app_minimal/Release/*
+app_minimal/x64/*
+imgui_test_engine/build/*
+imgui_test_engine/Debug/*
+imgui_test_engine/Release/*
+imgui_test_engine/x64/*
+imgui_test_suite/build/*
+imgui_test_suite/Debug/*
+imgui_test_suite/Release/*
+imgui_test_suite/x64/*
+imgui_test_suite/imgui_test_suite
+
+## Visual Studio artifacts
+.vs/*
+*/ipch/*
+*.opensdf
+*.log
+*.pdb
+*.ilk
+*.user
+*.sdf
+*.suo
+*.VC.db
+*.VC.VC.opendb
+
+## Getting files created in JSON/Schemas/Catalog/ from a VS2022 update.
+JSON/
+
+## Xcode artifacts
+.DS_Store
+project.xcworkspace
+xcuserdata
+
+## PVS-Studio artifacts
+*.PVS-Studio.*
+
+## JetBrains artifacts
+.idea
+cmake-build-*
+
+## Emscripten artifacts
+*.out.js
+*.out.wasm

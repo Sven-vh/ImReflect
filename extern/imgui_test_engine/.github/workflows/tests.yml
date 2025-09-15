@@ -1,0 +1,374 @@
+#
+# This file describes building and testing of Dear ImGui along with variety of examples and backends.
+# Tested platforms:
+# * Windows
+# * Linux
+# * MacOS
+#
+# Tested branches:
+# * master
+# * docking
+#
+# To save time and resources only linux builds/tests run on push. MacOS and Windows builds and tests
+# are triggered daily (see scheduled.yml).
+#
+# Builds of platforms not tested by default may be requested by adding a hint to commit message.
+# String may appear anywhere in commit message, caps are important.
+# Supported build hints:
+# * [build windows]: include full Windows builds (including x86), even if they were otherwise disabled.
+# * [build linux]: include full Linux builds, even if they were otherwise disabled.
+# * [build macos]: include full MacOS builds, even if they were otherwise disabled.
+# * [full ci]: perform full CI builds/tests.
+# * [skip ci]: do not perform CI builds at all. (handled by GitHub Actions)
+#
+# Following repository secrets can be used to configure builds. These keys can contain a list of
+# windows/linux/macos values (separated by spaces or commas or slashes, it does not matter). Note that not configuring
+# these secrets will opt in for default behavior (which is described in comments, next to "Environment" step of each
+# build job). It is possible to opt out of default behavior by setting these values to _something_. For example, in
+# order to disable MacOS tests complete, we could set TEST_ALWAYS and TEST_SCHEDULED secrets to "none". Non-empty values
+# opt out from default behavior, and since "none" is not a name of any platform - no tests will be run on MacOS.
+# * BUILD_ALWAYS: platforms listed in this secret will be built on each push/pull-request.
+# * BUILD_SCHEDULED: platforms listed in this secret will be built daily, in a scheduled job.
+# * TEST_ALWAYS: platforms listed in this secret will be run tests on each push/pull-request.
+# * TEST_SCHEDULED: platforms listed in this secret will be run tests daily, in a scheduled job.
+#
+name: tests
+
+on:
+  push:
+  pull_request:
+  workflow_run:
+    # Use a workflow as a trigger of scheduled builds. Forked repositories can disable scheduled builds by disabling
+    # "scheduled" workflow, while maintaining ability to perform local CI builds.
+    workflows:
+      - scheduled
+    branches:
+      - main
+    types:
+      - requested
+
+jobs:
+  Linux:
+    runs-on: ubuntu-latest
+    env:
+      SHOULD_BUILD_EXTENDED: ${{ github.event_name == 'workflow_run' || contains(github.event.head_commit.message, '[full ci]') }}
+      BUILD_ALWAYS: ${{ secrets.BUILD_ALWAYS }}
+      BUILD_SCHEDULED: ${{ secrets.BUILD_SCHEDULED }}
+      TEST_ALWAYS: ${{ secrets.TEST_ALWAYS }}
+      TEST_SCHEDULED: ${{ secrets.TEST_SCHEDULED }}
+
+    if: |
+      ${{
+        contains(github.event.head_commit.message, '[full ci]') ||
+        contains(github.event.head_commit.message, '[build linux]') ||
+        github.event_name == 'workflow_run'
+      }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        branch:
+          - master
+          - docking
+
+    steps:
+       # FIXME: This is an ugly workaround for github actions being unable to terminate jobs from a step early without
+       # failing entire job and us having no access to matrix.branch one level above to avoid running job entirely.
+       # https://github.com/actions/runner/issues/662
+      - name: Environment
+        shell: bash
+        # Build when:
+        # * BUILD_ALWAYS and BUILD_SCHEDULED are not configured (include by default)
+        # * BUILD_ALWAYS requests linux builds
+        # * BUILD_SCHEDULED requests linux builds and build is scheduled by "scheduled" workflow
+        # * [full ci] tag is present in commit message
+        # Test when:
+        # * TEST_ALWAYS and TEST_SCHEDULED are not configured (include by default)
+        # * TEST_ALWAYS requests linux tests
+        # * TEST_SCHEDULED requests linux tests and build is scheduled by "scheduled" workflow
+        # * [full ci] tag is present in commit message
+        run: |
+          echo 'SHOULD_BUILD=${{
+            contains(github.event.head_commit.message, '[full ci]') ||
+            (env.BUILD_ALWAYS == '' && env.BUILD_SCHEDULED == '') ||
+            contains(env.BUILD_ALWAYS, 'linux') ||
+            (
+              contains(env.BUILD_SCHEDULED, 'linux') &&
+              github.event_name == 'workflow_run'
+            )
+          }}' >> $GITHUB_ENV
+          echo 'SHOULD_TEST=${{
+            contains(github.event.head_commit.message, '[full ci]') ||
+            (env.TEST_ALWAYS == '' && env.TEST_SCHEDULED == '') ||
+            contains(env.TEST_ALWAYS, 'linux') ||
+            (
+              contains(env.TEST_SCHEDULED, 'linux') &&
+              github.event_name == 'workflow_run'
+            )
+          }}' >> $GITHUB_ENV
+
+      - uses: actions/checkout@v1
+        if: env.SHOULD_BUILD == 'true'
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - uses: actions/checkout@v1
+        if: env.SHOULD_BUILD == 'true'
+        with:
+          fetch-depth: 1
+          repository: ocornut/imgui
+          ref: ${{ matrix.branch }}
+
+      - name: Install Dependencies
+        if: env.SHOULD_BUILD == 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libglfw3-dev libsdl2-dev
+
+      - name: Build (with SDL2)
+        if: env.SHOULD_BUILD == 'true' && env.SHOULD_BUILD_EXTENDED == 'true'
+        run: |
+          make -C imgui_test_suite/ clean
+          CFLAGS=-Werror make -C imgui_test_suite/ -j$(nproc) BACKEND_LIB=sdl2 IMGUI_TEST_ENGINE_ENABLE_IMPLOT=0
+
+      - name: Build (with GLFW3)
+        if: env.SHOULD_BUILD == 'true' && env.SHOULD_BUILD_EXTENDED == 'true'
+        run: |
+          make -C imgui_test_suite/ clean
+          CFLAGS=-Werror make -C imgui_test_suite/ -j$(nproc) BACKEND_LIB=glfw3 IMGUI_TEST_ENGINE_ENABLE_IMPLOT=0
+
+      - name: Build (IMGUI_TEST_ENGINE_ENABLE_IMPLOT=0 + IMGUI_TEST_ENGINE_ENABLE_STD_FUNCTION=0)
+        if: env.SHOULD_BUILD == 'true' && env.SHOULD_BUILD_EXTENDED == 'true'
+        run: |
+          mv imgui_test_suite/thirdparty/implot ./implot-hidden
+          echo '#include "imgui_test_suite_imconfig.h"'           >  imgui_test_suite/imgui_test_suite_imconfig_temp.h
+          echo '#undef  IMGUI_TEST_ENGINE_ENABLE_IMPLOT'          >> imgui_test_suite/imgui_test_suite_imconfig_temp.h
+          echo '#define IMGUI_TEST_ENGINE_ENABLE_IMPLOT 0'        >> imgui_test_suite/imgui_test_suite_imconfig_temp.h
+          echo '#undef  IMGUI_TEST_ENGINE_DISABLE_STD_FUNCTION'   >> imgui_test_suite/imgui_test_suite_imconfig_temp.h
+          echo '#define IMGUI_TEST_ENGINE_DISABLE_STD_FUNCTION 0' >> imgui_test_suite/imgui_test_suite_imconfig_temp.h
+          make -C imgui_test_suite/ clean
+          CFLAGS=-Werror make -C imgui_test_suite/ -j$(nproc) IMGUI_USER_CONFIG=imgui_test_suite/imgui_test_suite_imconfig_temp.h IMGUI_TEST_ENGINE_ENABLE_IMPLOT=0
+          mv ./implot-hidden imgui_test_suite/thirdparty/implot
+
+      - name: Build imgui_capture_tool
+        if: env.SHOULD_BUILD == 'true' && (env.SHOULD_BUILD_EXTENDED == 'true' || matrix.branch == 'master')
+        shell: bash
+        run: |
+          echo '#define IMGUI_TEST_ENGINE_ENABLE_COROUTINE_STDTHREAD_IMPL 1'  >  capture_tool_single_file.cpp
+          echo '#include "../imgui/imgui.cpp"'                                >> capture_tool_single_file.cpp
+          echo '#include "../imgui/imgui_demo.cpp"'                           >> capture_tool_single_file.cpp
+          echo '#include "../imgui/imgui_draw.cpp"'                           >> capture_tool_single_file.cpp
+          echo '#include "../imgui/imgui_tables.cpp"'                         >> capture_tool_single_file.cpp
+          echo '#include "../imgui/imgui_widgets.cpp"'                        >> capture_tool_single_file.cpp
+          echo '#include "../imgui/examples/example_null/main.cpp"'           >> capture_tool_single_file.cpp
+          echo '#include "imgui_test_engine/imgui_capture_tool.cpp"'          >> capture_tool_single_file.cpp
+          echo '#include "imgui_test_engine/imgui_te_utils.cpp"'              >> capture_tool_single_file.cpp
+          g++ -o capture_tool_single_file -I. -I../imgui capture_tool_single_file.cpp -lm -lstdc++ -lpthread
+          rm -f capture_tool_single_file capture_tool_single_file.*
+
+      - name: Build imgui_test_suite
+        if: env.SHOULD_BUILD == 'true'
+        run: |
+            make -C imgui_test_suite/ clean
+            CFLAGS=-Werror make -C imgui_test_suite/ -j$(nproc) ASAN=1 IMGUI_OPTIMIZE=1
+
+      - name: Run Tests
+        if: env.SHOULD_BUILD == 'true' && env.SHOULD_TEST == 'true'
+        # capture_implot_demo alone takes about 60s to run on CI worker therefore it is disabled to save time.
+        run: |
+          timeout 300 imgui_test_suite/imgui_test_suite -nogui -nopause -v2 -ve4 tests,-capture_implot_demo
+
+      - name: Run Viewport Tests
+        if: env.SHOULD_BUILD == 'true' && env.SHOULD_TEST == 'true' && matrix.branch == 'docking'
+        run: |
+          timeout 300 imgui_test_suite/imgui_test_suite -nogui -nopause -v2 -ve4 -viewport-mock viewport
+
+  # MacOS minutes are expensive (x10) for private repo so reduce the amount of tests running there for now.
+  # Builds are performed only for docking branch and tests are only performed daily or on request.
+  MacOS:
+    runs-on: macos-latest
+    env:
+      BUILD_ALWAYS: ${{ secrets.BUILD_ALWAYS }}
+      BUILD_SCHEDULED: ${{ secrets.BUILD_SCHEDULED }}
+
+    if: |
+      ${{
+        contains(github.event.head_commit.message, '[full ci]') ||
+        contains(github.event.head_commit.message, '[build macos]') ||
+        github.event_name == 'workflow_run'
+      }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: [docking]
+
+    steps:
+       # FIXME: This is an ugly workaround for github actions being unable to terminate jobs from a step early without
+       # failing entire job and us having no access to matrix.branch one level above to avoid running job entirely.
+       # https://github.com/actions/runner/issues/662
+      - name: Environment
+        shell: bash
+        # Build when:
+        # * BUILD_ALWAYS and BUILD_SCHEDULED are not configured (include by default)
+        # * BUILD_ALWAYS requests macos builds
+        # * BUILD_SCHEDULED requests macos builds and build is scheduled by "scheduled" workflow
+        # * [full ci] tag is present in commit message
+        # Test when:
+        # * TEST_ALWAYS requests macos tests
+        # * TEST_SCHEDULED requests macos tests and build is scheduled by "scheduled" workflow
+        # * [full ci] tag is present in commit message
+        run: |
+          echo 'SHOULD_BUILD=${{
+            contains(github.event.head_commit.message, '[full ci]') ||
+            (env.BUILD_ALWAYS == '' && env.BUILD_SCHEDULED == '') ||
+            contains(env.BUILD_ALWAYS, 'macos') ||
+            (
+              contains(env.BUILD_SCHEDULED, 'macos') &&
+              github.event_name == 'workflow_run'
+            )
+          }}' >> $GITHUB_ENV
+          echo 'SHOULD_TEST=${{
+            contains(github.event.head_commit.message, '[full ci]') ||
+            contains(env.TEST_ALWAYS, 'macos') ||
+            (
+              contains(env.TEST_SCHEDULED, 'macos') &&
+              github.event_name == 'workflow_run'
+            )
+          }}' >> $GITHUB_ENV
+
+      - uses: actions/checkout@v1
+        if: env.SHOULD_BUILD == 'true'
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - uses: actions/checkout@v1
+        if: env.SHOULD_BUILD == 'true'
+        with:
+          fetch-depth: 1
+          repository: ocornut/imgui
+          ref: ${{ matrix.branch }}
+
+      - name: Build
+        if: env.SHOULD_BUILD == 'true'
+        run: |
+          CFLAGS=-Werror make -C imgui_test_suite/ -j$(sysctl -n hw.ncpu) ASAN=1
+
+      - name: Run Tests
+        if: env.SHOULD_BUILD == 'true' && env.SHOULD_TEST == 'true'
+        run: |
+          imgui_test_suite/imgui_test_suite -nogui -nopause -v2 -ve4 tests
+
+      - name: Run Viewport Tests
+        if: env.SHOULD_BUILD == 'true' && env.SHOULD_TEST == 'true' && matrix.branch == 'docking'
+        run: |
+          imgui_test_suite/imgui_test_suite -nogui -nopause -v2 -ve4 -viewport-mock viewport
+
+  # Windows minutes are a little expensive (x2) for private repo so reduce the amount of tests running there for now.
+  # Builds and tests are performed only for docking branch and x64 arch. Daily builds also include x86.
+  Windows:
+    runs-on: windows-2022
+    env:
+      VS_PATH: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\
+      MSBUILD_PATH: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\MSBuild\Current\Bin\
+      BUILD_ALWAYS: ${{ secrets.BUILD_ALWAYS }}
+      BUILD_SCHEDULED: ${{ secrets.BUILD_SCHEDULED }}
+
+    if: |
+      ${{
+        contains(github.event.head_commit.message, '[build windows]') ||
+        contains(github.event.head_commit.message, '[full ci]') ||
+        github.event_name == 'workflow_run'
+      }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: [docking]
+        arch: [Win32, x64]
+
+    steps:
+       # FIXME: This is an ugly workaround for github actions being unable to terminate jobs from a step early without
+       # failing entire job and us having no access to matrix.branch one level above to avoid running job entirely.
+       # https://github.com/actions/runner/issues/662
+      - name: Environment
+        shell: bash
+        # Build when:
+        # * BUILD_ALWAYS and BUILD_SCHEDULED are not configured (include by default, only x64 builds on push/pull_request, all archs on scheduled build)
+        # * BUILD_ALWAYS requests windows builds
+        # * BUILD_SCHEDULED requests windows builds and build is scheduled by "scheduled" workflow
+        # Test when:
+        # * TEST_ALWAYS and TEST_SCHEDULED are not configured (include by default)
+        # * TEST_ALWAYS requests windows tests
+        # * TEST_SCHEDULED requests windows tests and build is scheduled by "scheduled" workflow
+        # * [full ci] tag is present in commit message
+        run: |
+          echo 'SHOULD_BUILD=${{
+            (
+              contains(github.event.head_commit.message, '[full ci]') ||
+              (
+                env.BUILD_ALWAYS == '' && env.BUILD_SCHEDULED == '' &&
+                (
+                  github.event_name == 'workflow_run' ||
+                  matrix.arch == 'x64'
+                )
+              ) ||
+              contains(env.BUILD_ALWAYS, 'windows') ||
+              (
+                github.event_name == 'workflow_run' &&
+                contains(env.BUILD_SCHEDULED, 'windows')
+              )
+            )
+          }}' >> $GITHUB_ENV
+          echo 'SHOULD_TEST=${{
+            contains(github.event.head_commit.message, '[full ci]') ||
+            contains(env.TEST_ALWAYS, 'windows') ||
+            (
+              contains(env.TEST_SCHEDULED, 'windows') &&
+              github.event_name == 'workflow_run'
+            )
+          }}' >> $GITHUB_ENV
+
+      - uses: actions/checkout@v1
+        if: env.SHOULD_BUILD == 'true'
+        with:
+          fetch-depth: 1
+          submodules: recursive
+
+      - uses: actions/checkout@v1
+        if: env.SHOULD_BUILD == 'true'
+        with:
+          fetch-depth: 1
+          repository: ocornut/imgui
+          ref: ${{ matrix.branch }}
+
+      - name: Fix Projects
+        if: env.SHOULD_BUILD == 'true'
+        shell: powershell
+        run: |
+          # WARNING: This will need updating if toolset/sdk change in project files!
+          gci -recurse -filter "*.vcxproj" | ForEach-Object {
+            # Fix SDK and toolset for most samples.
+            (Get-Content $_.FullName) -Replace "<PlatformToolset>v110</PlatformToolset>","<PlatformToolset>v142</PlatformToolset>" | Set-Content -Path $_.FullName
+            (Get-Content $_.FullName) -Replace "<WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>","<WindowsTargetPlatformVersion>10.0.20348.0</WindowsTargetPlatformVersion>" | Set-Content -Path $_.FullName
+            # Fix SDK and toolset for samples that require newer SDK/toolset. At the moment it is only dx12.
+            (Get-Content $_.FullName) -Replace "<PlatformToolset>v140</PlatformToolset>","<PlatformToolset>v142</PlatformToolset>" | Set-Content -Path $_.FullName
+            (Get-Content $_.FullName) -Replace "<WindowsTargetPlatformVersion>10.0.14393.0</WindowsTargetPlatformVersion>","<WindowsTargetPlatformVersion>10.0.20348.0</WindowsTargetPlatformVersion>" | Set-Content -Path $_.FullName
+          }
+
+      - name: Build ${{ matrix.arch }} imgui_test_suite
+        if: env.SHOULD_BUILD == 'true'
+        shell: cmd
+        run: '"%MSBUILD_PATH%\MSBuild.exe" imgui_test_suite/imgui_test_suite.vcxproj /p:Platform=${{ matrix.arch }} /p:Configuration=Release /p:ClFlags=/WX -maxcpucount:%NUMBER_OF_PROCESSORS%'
+
+      - name: Run Tests
+        if: env.SHOULD_BUILD == 'true' && env.SHOULD_TEST == 'true'
+        run: |
+          imgui_test_suite/Release/imgui_test_suite.exe -nogui -nopause -v2 -ve4 tests
+
+      - name: Run Viewport Tests
+        if: env.SHOULD_BUILD == 'true' && env.SHOULD_TEST == 'true' && matrix.branch == 'docking'
+        run: |
+          imgui_test_suite/Release/imgui_test_suite.exe -nogui -nopause -v2 -ve4 -viewport-mock viewport
