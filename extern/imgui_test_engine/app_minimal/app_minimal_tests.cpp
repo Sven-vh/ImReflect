@@ -292,7 +292,6 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         ImGui::Begin("Test Window", nullptr, ImGuiWindowFlags_NoSavedSettings);
         ImSettings settings;
         settings.push<int>()
-
             .as_hex(true)
             .pop();
         ImGui::Reflect::Input("Value", value, settings);
@@ -322,7 +321,6 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         ImGui::Begin("Test Window", nullptr, ImGuiWindowFlags_NoSavedSettings);
         ImSettings settings;
         settings.push<int>()
-
             .as_octal()
             .pop();
         ImGui::Reflect::Input("Value", value, settings);
@@ -352,7 +350,6 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         ImGui::Begin("Test Window", nullptr, ImGuiWindowFlags_NoSavedSettings);
         ImSettings settings;
         settings.push<float>()
-
             .as_float(2)  // 2 decimal places
             .pop();
         ImGui::Reflect::Input("Value", value, settings);
@@ -382,7 +379,6 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         ImGui::Begin("Test Window", nullptr, ImGuiWindowFlags_NoSavedSettings);
         ImSettings settings;
         settings.push<double>()
-
             .as_scientific(3)
             .pop();
         ImGui::Reflect::Input("Value", value, settings);
@@ -412,7 +408,6 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         ImGui::Begin("Test Window", nullptr, ImGuiWindowFlags_NoSavedSettings);
         ImSettings settings;
         settings.push<int>()
-
             .always_show_sign()
             .pop();
         ImGui::Reflect::Input("Value", value, settings);
@@ -442,7 +437,6 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         ImGui::Begin("Test Window", nullptr, ImGuiWindowFlags_NoSavedSettings);
         ImSettings settings;
         settings.push<int>()
-
             .zero_pad(6)
             .pop();
         ImGui::Reflect::Input("Value", value, settings);
@@ -501,7 +495,6 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         ImGui::Begin("Test Window", nullptr, ImGuiWindowFlags_NoSavedSettings);
         ImSettings settings;
         settings.push<int>()
-
             .as_hex()
             .prefix("0x")
             .as_drag()
@@ -539,7 +532,6 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
 
         ImSettings hex_settings;
         hex_settings.push<int>()
-
             .as_hex()
             .prefix("0x")
             .as_drag()
@@ -548,14 +540,12 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
 
         ImSettings percent_settings;
         percent_settings.push<float>()
-
             .as_percentage(2)
             .pop();
         ImGui::Reflect::Input("PercentValue", data.percent_val, percent_settings);
 
         ImSettings sci_settings;
         sci_settings.push<double>()
-
             .as_scientific(2)
             .pop();
         ImGui::Reflect::Input("SciValue", data.sci_val, sci_settings);
@@ -591,7 +581,6 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         ImGui::Begin("Test Window", nullptr, ImGuiWindowFlags_NoSavedSettings);
         ImSettings settings;
         settings.push<char>()
-
             .as_char()
             .pop();
         ImGui::Reflect::Input("Value", value, settings);
