@@ -200,12 +200,14 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
     t->TestFunc = [](ImGuiTestContext* ctx) {
         MyStruct& vars = ctx->GetVars<MyStruct>();
         ctx->SetRef("Test Window");
+
         IM_CHECK_EQ(vars.MyInt, 0);
         ctx->MouseMove("MyInt", ImGuiTestOpFlags_MoveToEdgeL);
         ctx->MouseDown(0);
         ctx->MouseMove("MyInt", ImGuiTestOpFlags_MoveToEdgeR);
         ctx->MouseUp(0);
         IM_CHECK_EQ(vars.MyInt, 100); // Clamped
+
         IM_CHECK_EQ(vars.MyFloat, 0.0f);
         ctx->MouseMove("MyFloat", ImGuiTestOpFlags_MoveToEdgeL);
         ctx->MouseDown(0);
@@ -250,10 +252,10 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         IM_CHECK_EQ(vars.MyFloat, FLT_MAX / 2); // Clamped
         };
     //-----------------------------------------------------------------
-// ## format_settings - Hexadecimal Input
+// ## imgui_reflect - Hexadecimal Input
 //  - Test hex input parsing with as_hex()
 //-----------------------------------------------------------------
-    t = IM_REGISTER_TEST(e, "format_settings", "hexadecimal input");
+    t = IM_REGISTER_TEST(e, "imgui_reflect", "hexadecimal input");
     t->SetVarsDataType<int>();
     t->GuiFunc = [](ImGuiTestContext* ctx) {
         int& value = ctx->GetVars<int>();
@@ -281,10 +283,10 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         };
 
     //-----------------------------------------------------------------
-    // ## format_settings - Hexadecimal Uppercase Input
+    // ## imgui_reflect - Hexadecimal Uppercase Input
     //  - Test hex uppercase input parsing
     //-----------------------------------------------------------------
-    t = IM_REGISTER_TEST(e, "format_settings", "hexadecimal uppercase input");
+    t = IM_REGISTER_TEST(e, "imgui_reflect", "hexadecimal uppercase input");
     t->SetVarsDataType<int>();
     t->GuiFunc = [](ImGuiTestContext* ctx) {
         int& value = ctx->GetVars<int>();
@@ -310,10 +312,10 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         };
 
     //-----------------------------------------------------------------
-    // ## format_settings - Octal Input
+    // ## imgui_reflect - Octal Input
     //  - Test octal input parsing with as_octal()
     //-----------------------------------------------------------------
-    t = IM_REGISTER_TEST(e, "format_settings", "octal input");
+    t = IM_REGISTER_TEST(e, "imgui_reflect", "octal input");
     t->SetVarsDataType<int>();
     t->GuiFunc = [](ImGuiTestContext* ctx) {
         int& value = ctx->GetVars<int>();
@@ -339,10 +341,10 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         };
 
     //-----------------------------------------------------------------
-    // ## format_settings - Float Precision Input
+    // ## imgui_reflect - Float Precision Input
     //  - Test float input with different precisions
     //-----------------------------------------------------------------
-    t = IM_REGISTER_TEST(e, "format_settings", "float precision input");
+    t = IM_REGISTER_TEST(e, "imgui_reflect", "float precision input");
     t->SetVarsDataType<float>();
     t->GuiFunc = [](ImGuiTestContext* ctx) {
         float& value = ctx->GetVars<float>();
@@ -368,10 +370,10 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         };
 
     //-----------------------------------------------------------------
-    // ## format_settings - Scientific Notation Input
+    // ## imgui_reflect - Scientific Notation Input
     //  - Test scientific notation input parsing
     //-----------------------------------------------------------------
-    t = IM_REGISTER_TEST(e, "format_settings", "scientific notation input");
+    t = IM_REGISTER_TEST(e, "imgui_reflect", "scientific notation input");
     t->SetVarsDataType<double>();
     t->GuiFunc = [](ImGuiTestContext* ctx) {
         double& value = ctx->GetVars<double>();
@@ -397,10 +399,10 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         };
 
     //-----------------------------------------------------------------
-    // ## format_settings - Decimal Input with Sign Display
+    // ## imgui_reflect - Decimal Input with Sign Display
     //  - Test that sign formatting doesn't affect input parsing
     //-----------------------------------------------------------------
-    t = IM_REGISTER_TEST(e, "format_settings", "signed decimal input");
+    t = IM_REGISTER_TEST(e, "imgui_reflect", "signed decimal input");
     t->SetVarsDataType<int>();
     t->GuiFunc = [](ImGuiTestContext* ctx) {
         int& value = ctx->GetVars<int>();
@@ -426,10 +428,10 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         };
 
     //-----------------------------------------------------------------
-    // ## format_settings - Zero Padded Input
+    // ## imgui_reflect - Zero Padded Input
     //  - Test that zero padding doesn't affect input parsing
     //-----------------------------------------------------------------
-    t = IM_REGISTER_TEST(e, "format_settings", "zero padded input");
+    t = IM_REGISTER_TEST(e, "imgui_reflect", "zero padded input");
     t->SetVarsDataType<int>();
     t->GuiFunc = [](ImGuiTestContext* ctx) {
         int& value = ctx->GetVars<int>();
@@ -455,10 +457,10 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         };
 
     //-----------------------------------------------------------------
-    // ## format_settings - Prefix/Suffix Input
+    // ## imgui_reflect - Prefix/Suffix Input
     //  - Test that prefix/suffix doesn't interfere with input parsing
     //-----------------------------------------------------------------
-    t = IM_REGISTER_TEST(e, "format_settings", "prefix suffix input");
+    t = IM_REGISTER_TEST(e, "imgui_reflect", "prefix suffix input");
     t->SetVarsDataType<int>();
     t->GuiFunc = [](ImGuiTestContext* ctx) {
         int& value = ctx->GetVars<int>();
@@ -484,10 +486,10 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         };
 
     //-----------------------------------------------------------------
-    // ## format_settings - Hex with Prefix Input
+    // ## imgui_reflect - Hex with Prefix Input
     //  - Test hex input with "0x" prefix
     //-----------------------------------------------------------------
-    t = IM_REGISTER_TEST(e, "format_settings", "hex with prefix input");
+    t = IM_REGISTER_TEST(e, "imgui_reflect", "hex with prefix input");
     t->SetVarsDataType<int>();
     t->GuiFunc = [](ImGuiTestContext* ctx) {
         int& value = ctx->GetVars<int>();
@@ -515,10 +517,10 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         };
 
     //-----------------------------------------------------------------
-    // ## format_settings - Mixed Format Complex Input
+    // ## imgui_reflect - Mixed Format Complex Input
     //  - Test complex input with multiple format settings
     //-----------------------------------------------------------------
-    t = IM_REGISTER_TEST(e, "format_settings", "complex format input");
+    t = IM_REGISTER_TEST(e, "imgui_reflect", "complex format input");
     struct ComplexData {
         int hex_val = 0;
         float percent_val = 0.0f;
@@ -570,10 +572,10 @@ void RegisterAppMinimalTests(ImGuiTestEngine* e) {
         };
 
     //-----------------------------------------------------------------
-    // ## format_settings - Character Input
+    // ## imgui_reflect - Character Input
     //  - Test character input and display
     //-----------------------------------------------------------------
-    t = IM_REGISTER_TEST(e, "format_settings", "character input");
+    t = IM_REGISTER_TEST(e, "imgui_reflect", "character input");
     t->SetVarsDataType<char>();
     t->GuiFunc = [](ImGuiTestContext* ctx) {
         char& value = ctx->GetVars<char>();
