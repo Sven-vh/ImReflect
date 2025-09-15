@@ -1,5 +1,6 @@
 #pragma once
-#include <imgui/imgui.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 #include "imgui_input.hpp"
 
 #include <string>
@@ -99,43 +100,140 @@ namespace ImGui::Reflect::Detail {
 	};
 
 	/* format settings for input widgets */
+/* Comprehensive format settings for ImGui input widgets */
 	template<typename T>
 	struct format_settings {
 	private:
-		constexpr std::string get_default_format() const {
-			if constexpr (std::is_integral_v<T>) return "%d";
-			else if constexpr (std::is_floating_point_v<T>) return "%.3f";
-			else return "%s";
+		std::string get_default_format() const {
+			constexpr auto data_type = imgui_data_type_trait<T>::value;
+			const ImGuiDataTypeInfo* data_type_info = ImGui::DataTypeGetInfo(data_type);
+			if (data_type_info && data_type_info->PrintFmt) {
+				return std::string(data_type_info->PrintFmt);
+			}
+
+			// Fallbacks based on type
+			if constexpr (std::is_integral_v<T>) {
+				if constexpr (std::is_signed_v<T>) return "%d";
+				else return "%u";
+			} else if constexpr (std::is_floating_point_v<T>) {
+				return "%.3f";
+			}
+			return "%d"; // Final fallback
 		}
 
 		std::string _prefix = "";
-		std::string _format = get_default_format();
+		std::string _format = "";
 		std::string _suffix = "";
 
 	public:
+		/*
+		* NOTE: Prefix does not work if using a input widget. Only works with sliders and draggers.
+		* See https://github.com/ocornut/imgui/issues/6829
+		*/
 		type_settings<T>& prefix(const std::string& val) { _prefix = val; RETURN_THIS; }
-		type_settings<T>& format(const std::string& val) { _format = val; RETURN_THIS; }
+		type_settings<T>& format(const std::string& val) { _format = val;  RETURN_THIS; }
 		type_settings<T>& suffix(const std::string& val) { _suffix = val; RETURN_THIS; }
 
-		type_settings<T>& as_int(const int digits = 0) { _format = "%0" + std::to_string(digits) + "d"; RETURN_THIS; }
-		type_settings<T>& as_float(const int precision = 2) { _format = "%." + std::to_string(precision) + "f"; RETURN_THIS; }
-		type_settings<T>& as_double(const int precision = 2) { _format = "%." + std::to_string(precision) + "lf"; RETURN_THIS; }
-		type_settings<T>& as_sci(const int precision = 2) { _format = "%." + std::to_string(precision) + "e"; RETURN_THIS; }
+		// Integer formats
+		type_settings<T>& as_decimal() { _format = "%d";  RETURN_THIS; }
+		type_settings<T>& as_unsigned() { _format = "%u";  RETURN_THIS; }
+		type_settings<T>& as_hex(bool uppercase = false) { _format = uppercase ? "%X" : "%x"; RETURN_THIS; }
+		type_settings<T>& as_octal() { _format = "%o";  RETURN_THIS; }
 
-		type_settings<T>& as_decimal() { _format = "%d"; RETURN_THIS; }
-		type_settings<T>& as_hex() { _format = "%x"; RETURN_THIS; }
-		type_settings<T>& as_hex_upper() { _format = "%X"; RETURN_THIS; }
-		type_settings<T>& as_octal() { _format = "%o"; RETURN_THIS; }
-		type_settings<T>& as_binary() { _format = "%b"; RETURN_THIS; } // Note: %b is not standard in printf, may need custom handling
+		// Integer with width/padding
+		type_settings<T>& as_int_padded(int width, char pad_char = '0') { _format = "%" + std::string(1, pad_char) + std::to_string(width) + "d"; RETURN_THIS; }
 
+		// Floating point formats
+		type_settings<T>& as_float(int precision = 3) { _format = "%." + std::to_string(precision) + "f"; RETURN_THIS; }
+		type_settings<T>& as_double(int precision = 6) { _format = "%." + std::to_string(precision) + "lf"; RETURN_THIS; }
+		type_settings<T>& as_scientific(int precision = 2, bool uppercase = false) { _format = "%." + std::to_string(precision) + (uppercase ? "E" : "e"); RETURN_THIS; }
+		type_settings<T>& as_general(int precision = 6, bool uppercase = false) { _format = "%." + std::to_string(precision) + (uppercase ? "G" : "g"); RETURN_THIS; }
+
+		// Width and alignment
+		type_settings<T>& width(int w) {
+			if (_format.empty()) _format = get_base_format();
+			_format = insert_width(_format, w, false);
+			RETURN_THIS;
+		}
+
+		type_settings<T>& width_left_aligned(int w) {
+			if (_format.empty()) _format = get_base_format();
+			_format = insert_width(_format, w, true);
+			RETURN_THIS;
+		}
+
+		// Sign options
+		type_settings<T>& always_show_sign() {
+			if (_format.empty()) _format = get_base_format();
+			_format = insert_flag(_format, '+');
+			RETURN_THIS;
+		}
+
+		type_settings<T>& space_for_positive() {
+			if (_format.empty()) _format = get_base_format();
+			_format = insert_flag(_format, ' ');
+			RETURN_THIS;
+		}
+
+		// Padding options
+		type_settings<T>& zero_pad(int width) { _format = "%0" + std::to_string(width) + get_type_specifier(); RETURN_THIS; }
+
+		// Character and percentage
+		type_settings<T>& as_char() { _format = "%c";  RETURN_THIS; }
+		type_settings<T>& as_percentage(int precision = 1) { _format = "%." + std::to_string(precision) + "f%%"; RETURN_THIS; }
+
+		// Utility methods
 		type_settings<T>& clear_format() { _format = ""; RETURN_THIS; }
-		type_settings<T>& default_format() { _format = get_default_format(); RETURN_THIS; }
+		type_settings<T>& reset() {
+			_prefix.clear();
+			_format.clear();
+			_suffix.clear();
+			RETURN_THIS;
+		}
 
+		// Get final format string
 		std::string get_format() const {
-			if (_format.empty()) {
-				return _prefix + get_default_format() + _suffix;
+			std::string core_format = _format.empty() ? get_default_format() : _format;
+			if (core_format.empty()) core_format = get_default_format();
+			return _prefix + core_format + _suffix;
+		}
+
+	private:
+		std::string get_base_format() const {
+			if constexpr (std::is_integral_v<T>) {
+				return std::is_signed_v<T> ? "%d" : "%u";
+			} else if constexpr (std::is_floating_point_v<T>) {
+				return "%.3f";
 			}
-			return _prefix + _format + _suffix;
+			return "%d";
+		}
+
+		std::string get_type_specifier() const {
+			if constexpr (std::is_integral_v<T>) {
+				return std::is_signed_v<T> ? "d" : "u";
+			} else if constexpr (std::is_floating_point_v<T>) {
+				return "f";
+			}
+			return "d";
+		}
+
+		std::string insert_width(const std::string& fmt, int width, bool left_align) const {
+			size_t percent_pos = fmt.find('%');
+			if (percent_pos == std::string::npos) return fmt;
+
+			std::string result = fmt;
+			std::string width_str = (left_align ? "-" : "") + std::to_string(width);
+			result.insert(percent_pos + 1, width_str);
+			return result;
+		}
+
+		std::string insert_flag(const std::string& fmt, char flag) const {
+			size_t percent_pos = fmt.find('%');
+			if (percent_pos == std::string::npos) return fmt;
+
+			std::string result = fmt;
+			result.insert(percent_pos + 1, 1, flag);
+			return result;
 		}
 	};
 
@@ -229,7 +327,9 @@ namespace ImGui::Reflect {
 			if (value > max) value = max;
 		}
 
-		if (changed) num_response.changed();
+		if (changed) {
+			num_response.changed();
+		}
 		ImGui::Reflect::Detail::check_input_states(num_response);
 	}
 }
