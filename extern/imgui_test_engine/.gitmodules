@@ -1,0 +1,3 @@
+[submodule "imgui_test_suite/thirdparty/implot"]
+	path = imgui_test_suite/thirdparty/implot
+	url = https://github.com/epezent/implot.git

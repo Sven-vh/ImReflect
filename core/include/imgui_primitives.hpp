@@ -1,5 +1,6 @@
 #pragma once
-#include <imgui/imgui.h>
+#include <imgui.h>
+#include <imgui_internal.h>
 #include "imgui_input.hpp"
 
 #include <string>
@@ -99,49 +100,208 @@ namespace ImGui::Reflect::Detail {
 	};
 
 	/* format settings for input widgets */
+/* Comprehensive format settings for ImGui input widgets */
 	template<typename T>
 	struct format_settings {
 	private:
-		constexpr std::string get_default_format() const {
-			if constexpr (std::is_integral_v<T>) return "%d";
-			else if constexpr (std::is_floating_point_v<T>) return "%.3f";
-			else return "%s";
+		std::string get_default_format() const {
+			constexpr auto data_type = imgui_data_type_trait<T>::value;
+			const ImGuiDataTypeInfo* data_type_info = ImGui::DataTypeGetInfo(data_type);
+			if (data_type_info && data_type_info->PrintFmt) {
+				return std::string(data_type_info->PrintFmt);
+			}
+
+			// Fallbacks based on type
+			if constexpr (std::is_integral_v<T>) {
+				if constexpr (std::is_signed_v<T>) return "%d";
+				else return "%u";
+			} else if constexpr (std::is_floating_point_v<T>) {
+				return "%.3f";
+			}
+			return "%d"; // Final fallback
 		}
 
 		std::string _prefix = "";
-		std::string _format = get_default_format();
+		std::string _format = "";
 		std::string _suffix = "";
 
 	public:
+		/*
+		* NOTE: Prefix does not work if using a input widget. Only works with sliders and draggers.
+		* See https://github.com/ocornut/imgui/issues/6829
+		*/
 		type_settings<T>& prefix(const std::string& val) { _prefix = val; RETURN_THIS; }
-		type_settings<T>& format(const std::string& val) { _format = val; RETURN_THIS; }
+		type_settings<T>& format(const std::string& val) { _format = val;  RETURN_THIS; }
 		type_settings<T>& suffix(const std::string& val) { _suffix = val; RETURN_THIS; }
 
-		type_settings<T>& as_int(const int digits = 0) { _format = "%0" + std::to_string(digits) + "d"; RETURN_THIS; }
-		type_settings<T>& as_float(const int precision = 2) { _format = "%." + std::to_string(precision) + "f"; RETURN_THIS; }
-		type_settings<T>& as_double(const int precision = 2) { _format = "%." + std::to_string(precision) + "lf"; RETURN_THIS; }
-		type_settings<T>& as_sci(const int precision = 2) { _format = "%." + std::to_string(precision) + "e"; RETURN_THIS; }
+		// Integer formats
+		type_settings<T>& as_decimal() { _format = "%d";  RETURN_THIS; }
+		type_settings<T>& as_unsigned() { _format = "%u";  RETURN_THIS; }
+		type_settings<T>& as_hex(bool uppercase = false) { _format = uppercase ? "%X" : "%x"; RETURN_THIS; }
+		type_settings<T>& as_octal() { _format = "%o";  RETURN_THIS; }
 
-		type_settings<T>& as_decimal() { _format = "%d"; RETURN_THIS; }
-		type_settings<T>& as_hex() { _format = "%x"; RETURN_THIS; }
-		type_settings<T>& as_hex_upper() { _format = "%X"; RETURN_THIS; }
-		type_settings<T>& as_octal() { _format = "%o"; RETURN_THIS; }
-		type_settings<T>& as_binary() { _format = "%b"; RETURN_THIS; } // Note: %b is not standard in printf, may need custom handling
+		// Integer with width/padding
+		type_settings<T>& as_int_padded(int width, char pad_char = '0') { _format = "%" + std::string(1, pad_char) + std::to_string(width) + "d"; RETURN_THIS; }
 
-		type_settings<T>& clear_format() { _format = ""; RETURN_THIS; }
-		type_settings<T>& default_format() { _format = get_default_format(); RETURN_THIS; }
+		// Floating point formats
+		type_settings<T>& as_float(int precision = 3) { _format = "%." + std::to_string(precision) + "f"; RETURN_THIS; }
+		type_settings<T>& as_double(int precision = 6) { _format = "%." + std::to_string(precision) + "lf"; RETURN_THIS; }
+		type_settings<T>& as_scientific(int precision = 2, bool uppercase = false) { _format = "%." + std::to_string(precision) + (uppercase ? "E" : "e"); RETURN_THIS; }
+		type_settings<T>& as_general(int precision = 6, bool uppercase = false) { _format = "%." + std::to_string(precision) + (uppercase ? "G" : "g"); RETURN_THIS; }
 
-		std::string get_format() const {
-			if (_format.empty()) {
-				return _prefix + get_default_format() + _suffix;
-			}
-			return _prefix + _format + _suffix;
+		// Width and alignment
+		type_settings<T>& width(int w) {
+			if (_format.empty()) _format = get_base_format();
+			_format = insert_width(_format, w, false);
+			RETURN_THIS;
 		}
+
+		type_settings<T>& width_left_aligned(int w) {
+			if (_format.empty()) _format = get_base_format();
+			_format = insert_width(_format, w, true);
+			RETURN_THIS;
+		}
+
+		// Sign options
+		type_settings<T>& always_show_sign() {
+			if (_format.empty()) _format = get_base_format();
+			_format = insert_flag(_format, '+');
+			RETURN_THIS;
+		}
+
+		type_settings<T>& space_for_positive() {
+			if (_format.empty()) _format = get_base_format();
+			_format = insert_flag(_format, ' ');
+			RETURN_THIS;
+		}
+
+		// Padding options
+		type_settings<T>& zero_pad(int width) { _format = "%0" + std::to_string(width) + get_type_specifier(); RETURN_THIS; }
+
+		// Character and percentage
+		type_settings<T>& as_char() { _format = "%c";  RETURN_THIS; }
+		type_settings<T>& as_percentage(int precision = 1) { _format = "%." + std::to_string(precision) + "f%%"; RETURN_THIS; }
+
+		// Utility methods
+		type_settings<T>& clear_format() { _format = ""; RETURN_THIS; }
+		type_settings<T>& reset() {
+			_prefix.clear();
+			_format.clear();
+			_suffix.clear();
+			RETURN_THIS;
+		}
+
+		// Get final format string
+		std::string get_format() const {
+			std::string core_format = _format.empty() ? get_default_format() : _format;
+			if (core_format.empty()) core_format = get_default_format();
+			return _prefix + core_format + _suffix;
+		}
+
+	private:
+		std::string get_base_format() const {
+			if constexpr (std::is_integral_v<T>) {
+				return std::is_signed_v<T> ? "%d" : "%u";
+			} else if constexpr (std::is_floating_point_v<T>) {
+				return "%.3f";
+			}
+			return "%d";
+		}
+
+		std::string get_type_specifier() const {
+			if constexpr (std::is_integral_v<T>) {
+				return std::is_signed_v<T> ? "d" : "u";
+			} else if constexpr (std::is_floating_point_v<T>) {
+				return "f";
+			}
+			return "d";
+		}
+
+		std::string insert_width(const std::string& fmt, int width, bool left_align) const {
+			size_t percent_pos = fmt.find('%');
+			if (percent_pos == std::string::npos) return fmt;
+
+			std::string result = fmt;
+			std::string width_str = (left_align ? "-" : "") + std::to_string(width);
+			result.insert(percent_pos + 1, width_str);
+			return result;
+		}
+
+		std::string insert_flag(const std::string& fmt, char flag) const {
+			size_t percent_pos = fmt.find('%');
+			if (percent_pos == std::string::npos) return fmt;
+
+			std::string result = fmt;
+			result.insert(percent_pos + 1, 1, flag);
+			return result;
+		}
+	};
+
+	/* Slider flag settings */
+	template<typename T>
+	struct slider_flags {
+	private:
+		ImGuiSliderFlags _flags = ImGuiSliderFlags_None;
+
+		inline void set_flag(const ImGuiSliderFlags flag, const bool enabled) {
+			if (enabled) _flags = static_cast<ImGuiSliderFlags>(_flags | flag);
+			else _flags = static_cast<ImGuiSliderFlags>(_flags & ~flag);
+		}
+	public:
+		type_settings<T>& logarithmic(const bool v = true) { set_flag(ImGuiSliderFlags_Logarithmic, v); RETURN_THIS; }
+		type_settings<T>& no_round_to_format(const bool v = true) { set_flag(ImGuiSliderFlags_NoRoundToFormat, v); RETURN_THIS; }
+		type_settings<T>& no_input(const bool v = true) { set_flag(ImGuiSliderFlags_NoInput, v); RETURN_THIS; }
+		type_settings<T>& wrap_around(const bool v = true) { set_flag(ImGuiSliderFlags_WrapAround, v); RETURN_THIS; }
+		type_settings<T>& clamp_on_input(const bool v = true) { set_flag(ImGuiSliderFlags_ClampOnInput, v); RETURN_THIS; }
+		type_settings<T>& clamp_zero_range(const bool v = true) { set_flag(ImGuiSliderFlags_ClampZeroRange, v); RETURN_THIS; }
+		type_settings<T>& no_speed_tweaks(const bool v = true) { set_flag(ImGuiSliderFlags_NoSpeedTweaks, v); RETURN_THIS; }
+		type_settings<T>& always_clamp(const bool v = true) { set_flag(ImGuiSliderFlags_AlwaysClamp, v); RETURN_THIS; }
+
+		const ImGuiSliderFlags& get_slider_flags() const { return _flags; }
+	};
+
+	/* Input flag settings*/
+	template<typename T>
+	struct input_flags {
+	private:
+		ImGuiInputTextFlags _flags = ImGuiInputTextFlags_None;
+		inline void set_flag(const ImGuiInputTextFlags flag, const bool enabled) {
+			if (enabled) _flags = static_cast<ImGuiInputTextFlags>(_flags | flag);
+			else _flags = static_cast<ImGuiInputTextFlags>(_flags & ~flag);
+		}
+
+	public:
+		type_settings<T>& chars_decimal(const bool v = true) { set_flag(ImGuiInputTextFlags_CharsDecimal, v); RETURN_THIS; }
+		type_settings<T>& chars_hexadecimal(const bool v = true) { set_flag(ImGuiInputTextFlags_CharsHexadecimal, v); RETURN_THIS; }
+		type_settings<T>& chars_scientific(const bool v = true) { set_flag(ImGuiInputTextFlags_CharsScientific, v); RETURN_THIS; }
+		type_settings<T>& chars_uppercase(const bool v = true) { set_flag(ImGuiInputTextFlags_CharsUppercase, v); RETURN_THIS; }
+		type_settings<T>& chars_no_blank(const bool v = true) { set_flag(ImGuiInputTextFlags_CharsNoBlank, v); RETURN_THIS; }
+		type_settings<T>& allow_tab_input(const bool v = true) { set_flag(ImGuiInputTextFlags_AllowTabInput, v); RETURN_THIS; }
+		type_settings<T>& enter_returns_true(const bool v = true) { set_flag(ImGuiInputTextFlags_EnterReturnsTrue, v); RETURN_THIS; }
+		type_settings<T>& escape_clears_all(const bool v = true) { set_flag(ImGuiInputTextFlags_EscapeClearsAll, v); RETURN_THIS; }
+		type_settings<T>& ctrl_enter_for_new_line(const bool v = true) { set_flag(ImGuiInputTextFlags_CtrlEnterForNewLine, v); RETURN_THIS; }
+		type_settings<T>& read_only(const bool v = true) { set_flag(ImGuiInputTextFlags_ReadOnly, v); RETURN_THIS; }
+		type_settings<T>& password(const bool v = true) { set_flag(ImGuiInputTextFlags_Password, v); RETURN_THIS; }
+		type_settings<T>& always_overwrite(const bool v = true) { set_flag(ImGuiInputTextFlags_AlwaysOverwrite, v); RETURN_THIS; }
+		type_settings<T>& auto_select_all(const bool v = true) { set_flag(ImGuiInputTextFlags_AutoSelectAll, v); RETURN_THIS; }
+		type_settings<T>& parse_empty_ref_val(const bool v = true) { set_flag(ImGuiInputTextFlags_ParseEmptyRefVal, v); RETURN_THIS; }
+		type_settings<T>& display_empty_ref_val(const bool v = true) { set_flag(ImGuiInputTextFlags_DisplayEmptyRefVal, v); RETURN_THIS; }
+		type_settings<T>& no_horizontal_scroll(const bool v = true) { set_flag(ImGuiInputTextFlags_NoHorizontalScroll, v); RETURN_THIS; }
+		type_settings<T>& no_undo_redo(const bool v = true) { set_flag(ImGuiInputTextFlags_NoUndoRedo, v); RETURN_THIS; }
+		type_settings<T>& elide_left(const bool v = true) { set_flag(ImGuiInputTextFlags_ElideLeft, v); RETURN_THIS; }
+		type_settings<T>& callback_completion(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackCompletion, v); RETURN_THIS; }
+		type_settings<T>& callback_history(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackHistory, v); RETURN_THIS; }
+		type_settings<T>& callback_always(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackAlways, v); RETURN_THIS; }
+		type_settings<T>& callback_char_filter(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackCharFilter, v); RETURN_THIS; }
+		type_settings<T>& callback_resize(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackResize, v); RETURN_THIS; }
+		type_settings<T>& callback_edit(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackEdit, v); RETURN_THIS; }
+
+		const ImGuiInputTextFlags& get_input_flags() const { return _flags; }
 	};
 
 	/* Settings to specify input type: Input, Drag, Slider */
 	template<typename T>
-	struct input_type : input_step<T>, format_settings<T> {
+	struct input_type : input_step<T>, format_settings<T>, slider_flags<T>, input_flags<T> {
 	public:
 		enum class type {
 			Input,
@@ -212,13 +372,13 @@ namespace ImGui::Reflect {
 
 		bool changed = false;
 		if (num_settings.is_slider()) {
-			changed = ImGui::SliderScalar(label, data_type, &value, &min, &max, fmt.c_str());
+			changed = ImGui::SliderScalar(label, data_type, &value, &min, &max, fmt.c_str(), num_settings.get_slider_flags());
 		} else if (num_settings.is_drag()) {
-			changed = ImGui::DragScalar(label, data_type, &value, T(0.1), &min, &max, fmt.c_str());
+			changed = ImGui::DragScalar(label, data_type, &value, T(0.1), &min, &max, fmt.c_str(), num_settings.get_slider_flags());
 		} else if (num_settings.is_input()) {
 			const auto& step = num_settings.get_step();
 			const auto& step_fast = num_settings.get_step_fast();
-			changed = ImGui::InputScalar(label, data_type, &value, &step, &step_fast, fmt.c_str());
+			changed = ImGui::InputScalar(label, data_type, &value, &step, &step_fast, fmt.c_str(), num_settings.get_input_flags());
 		} else {
 			throw std::runtime_error("Unknown input type");
 		}
@@ -229,7 +389,9 @@ namespace ImGui::Reflect {
 			if (value > max) value = max;
 		}
 
-		if (changed) num_response.changed();
+		if (changed) {
+			num_response.changed();
+		}
 		ImGui::Reflect::Detail::check_input_states(num_response);
 	}
 }
