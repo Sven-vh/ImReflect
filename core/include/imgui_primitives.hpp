@@ -237,9 +237,71 @@ namespace ImGui::Reflect::Detail {
 		}
 	};
 
+	/* Slider flag settings */
+	template<typename T>
+	struct slider_flags {
+	private:
+		ImGuiSliderFlags _flags = ImGuiSliderFlags_None;
+
+		inline void set_flag(const ImGuiSliderFlags flag, const bool enabled) {
+			if (enabled) _flags = static_cast<ImGuiSliderFlags>(_flags | flag);
+			else _flags = static_cast<ImGuiSliderFlags>(_flags & ~flag);
+		}
+	public:
+		type_settings<T>& logarithmic(const bool v = true) { set_flag(ImGuiSliderFlags_Logarithmic, v); RETURN_THIS; }
+		type_settings<T>& no_round_to_format(const bool v = true) { set_flag(ImGuiSliderFlags_NoRoundToFormat, v); RETURN_THIS; }
+		type_settings<T>& no_input(const bool v = true) { set_flag(ImGuiSliderFlags_NoInput, v); RETURN_THIS; }
+		type_settings<T>& wrap_around(const bool v = true) { set_flag(ImGuiSliderFlags_WrapAround, v); RETURN_THIS; }
+		type_settings<T>& clamp_on_input(const bool v = true) { set_flag(ImGuiSliderFlags_ClampOnInput, v); RETURN_THIS; }
+		type_settings<T>& clamp_zero_range(const bool v = true) { set_flag(ImGuiSliderFlags_ClampZeroRange, v); RETURN_THIS; }
+		type_settings<T>& no_speed_tweaks(const bool v = true) { set_flag(ImGuiSliderFlags_NoSpeedTweaks, v); RETURN_THIS; }
+		type_settings<T>& always_clamp(const bool v = true) { set_flag(ImGuiSliderFlags_AlwaysClamp, v); RETURN_THIS; }
+
+		const ImGuiSliderFlags& get_slider_flags() const { return _flags; }
+	};
+
+	/* Input flag settings*/
+	template<typename T>
+	struct input_flags {
+	private:
+		ImGuiInputTextFlags _flags = ImGuiInputTextFlags_None;
+		inline void set_flag(const ImGuiInputTextFlags flag, const bool enabled) {
+			if (enabled) _flags = static_cast<ImGuiInputTextFlags>(_flags | flag);
+			else _flags = static_cast<ImGuiInputTextFlags>(_flags & ~flag);
+		}
+
+	public:
+		type_settings<T>& chars_decimal(const bool v = true) { set_flag(ImGuiInputTextFlags_CharsDecimal, v); RETURN_THIS; }
+		type_settings<T>& chars_hexadecimal(const bool v = true) { set_flag(ImGuiInputTextFlags_CharsHexadecimal, v); RETURN_THIS; }
+		type_settings<T>& chars_scientific(const bool v = true) { set_flag(ImGuiInputTextFlags_CharsScientific, v); RETURN_THIS; }
+		type_settings<T>& chars_uppercase(const bool v = true) { set_flag(ImGuiInputTextFlags_CharsUppercase, v); RETURN_THIS; }
+		type_settings<T>& chars_no_blank(const bool v = true) { set_flag(ImGuiInputTextFlags_CharsNoBlank, v); RETURN_THIS; }
+		type_settings<T>& allow_tab_input(const bool v = true) { set_flag(ImGuiInputTextFlags_AllowTabInput, v); RETURN_THIS; }
+		type_settings<T>& enter_returns_true(const bool v = true) { set_flag(ImGuiInputTextFlags_EnterReturnsTrue, v); RETURN_THIS; }
+		type_settings<T>& escape_clears_all(const bool v = true) { set_flag(ImGuiInputTextFlags_EscapeClearsAll, v); RETURN_THIS; }
+		type_settings<T>& ctrl_enter_for_new_line(const bool v = true) { set_flag(ImGuiInputTextFlags_CtrlEnterForNewLine, v); RETURN_THIS; }
+		type_settings<T>& read_only(const bool v = true) { set_flag(ImGuiInputTextFlags_ReadOnly, v); RETURN_THIS; }
+		type_settings<T>& password(const bool v = true) { set_flag(ImGuiInputTextFlags_Password, v); RETURN_THIS; }
+		type_settings<T>& always_overwrite(const bool v = true) { set_flag(ImGuiInputTextFlags_AlwaysOverwrite, v); RETURN_THIS; }
+		type_settings<T>& auto_select_all(const bool v = true) { set_flag(ImGuiInputTextFlags_AutoSelectAll, v); RETURN_THIS; }
+		type_settings<T>& parse_empty_ref_val(const bool v = true) { set_flag(ImGuiInputTextFlags_ParseEmptyRefVal, v); RETURN_THIS; }
+		type_settings<T>& display_empty_ref_val(const bool v = true) { set_flag(ImGuiInputTextFlags_DisplayEmptyRefVal, v); RETURN_THIS; }
+		type_settings<T>& no_horizontal_scroll(const bool v = true) { set_flag(ImGuiInputTextFlags_NoHorizontalScroll, v); RETURN_THIS; }
+		type_settings<T>& no_undo_redo(const bool v = true) { set_flag(ImGuiInputTextFlags_NoUndoRedo, v); RETURN_THIS; }
+		type_settings<T>& elide_left(const bool v = true) { set_flag(ImGuiInputTextFlags_ElideLeft, v); RETURN_THIS; }
+		type_settings<T>& callback_completion(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackCompletion, v); RETURN_THIS; }
+		type_settings<T>& callback_history(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackHistory, v); RETURN_THIS; }
+		type_settings<T>& callback_always(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackAlways, v); RETURN_THIS; }
+		type_settings<T>& callback_char_filter(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackCharFilter, v); RETURN_THIS; }
+		type_settings<T>& callback_resize(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackResize, v); RETURN_THIS; }
+		type_settings<T>& callback_edit(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackEdit, v); RETURN_THIS; }
+
+		const ImGuiInputTextFlags& get_input_flags() const { return _flags; }
+	};
+
 	/* Settings to specify input type: Input, Drag, Slider */
 	template<typename T>
-	struct input_type : input_step<T>, format_settings<T> {
+	struct input_type : input_step<T>, format_settings<T>, slider_flags<T>, input_flags<T> {
 	public:
 		enum class type {
 			Input,
@@ -310,13 +372,13 @@ namespace ImGui::Reflect {
 
 		bool changed = false;
 		if (num_settings.is_slider()) {
-			changed = ImGui::SliderScalar(label, data_type, &value, &min, &max, fmt.c_str());
+			changed = ImGui::SliderScalar(label, data_type, &value, &min, &max, fmt.c_str(), num_settings.get_slider_flags());
 		} else if (num_settings.is_drag()) {
-			changed = ImGui::DragScalar(label, data_type, &value, T(0.1), &min, &max, fmt.c_str());
+			changed = ImGui::DragScalar(label, data_type, &value, T(0.1), &min, &max, fmt.c_str(), num_settings.get_slider_flags());
 		} else if (num_settings.is_input()) {
 			const auto& step = num_settings.get_step();
 			const auto& step_fast = num_settings.get_step_fast();
-			changed = ImGui::InputScalar(label, data_type, &value, &step, &step_fast, fmt.c_str());
+			changed = ImGui::InputScalar(label, data_type, &value, &step, &step_fast, fmt.c_str(), num_settings.get_input_flags());
 		} else {
 			throw std::runtime_error("Unknown input type");
 		}

@@ -31,6 +31,7 @@ namespace svh {
 			.min(-10)
 			.max(10)
 			.as_input()
+			.password()
 			.pop()
 			.push_member<&MyStruct::c>()
 			.min(0.0f)
@@ -38,6 +39,7 @@ namespace svh {
 			.clamp()
 			.as_slider()
 			.as_float(5)
+			.logarithmic()
 			.pop();
 
 		//printf("\nSettings before: \n");
