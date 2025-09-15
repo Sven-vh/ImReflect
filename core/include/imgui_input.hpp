@@ -3,17 +3,26 @@
 #include <extern/svh/tag_invoke.hpp>
 #include <extern/visit_struct/visit_struct.hpp>
 
-// Forward declare
-using ImSettings = svh::scope;
-
 /* Define this for you class or struct */
 #define IMGUI_REFLECT(T, ...) \
 VISITABLE_STRUCT_IN_CONTEXT(ImGui::Reflect::Detail::ImContext, T, __VA_ARGS__);
 
 namespace ImGui::Reflect {
-	struct ImResponse {
-		bool Changed = false;
-	};
+	/* Settings for types */
+	template<class T, class = void>
+	struct type_settings : svh::scope<type_settings> {};
+
+	using ImSettings = svh::scope<type_settings>;
+	template<typename T>
+	using ImSettingsT = type_settings<type_settings<T>>;
+
+	/* responses for types */
+	struct response_base;
+
+	template<class T>
+	struct type_response;
+
+	using ImResponse = svh::scope<type_response>;
 
 	namespace Detail {
 
@@ -37,24 +46,26 @@ namespace ImGui::Reflect {
 			visit_struct::context<ImContext>::for_each(value,
 				[&](const char* name, auto& field) {
 					auto& member_settings = settings.get_member(value, field);
-					InputImpl(name, field, member_settings, response); // recurse
+					auto& member_response = response.get_member(value, field);
+					InputImpl(name, field, member_settings, member_response); // recurse
 				});
 		}
 
 		template<typename T>
 		void InputImpl(const char* label, T& value, ImSettings& settings, ImResponse& response) {
 			auto& type_settings = settings.get<T>();
+			auto& type_response = response.get<T>();
 			/* Try tag_invoke for user defined implementations */
 			if constexpr (svh::is_tag_invocable_v<ImInput_t, const char*, T&, ImSettings&, ImResponse&>) {
-				tag_invoke(input, label, value, type_settings, response);
+				tag_invoke(input, label, value, type_settings, type_response);
 			}
 			/* Try tag_invoke with default library implementations */
 			else if constexpr (svh::is_tag_invocable_v<ImInputLib_t, const char*, T&, ImSettings&, ImResponse&>) {
-				tag_invoke(input_lib, label, value, type_settings, response);
+				tag_invoke(input_lib, label, value, type_settings, type_response);
 			}
 			/* If type is reflected */
 			else if constexpr (visit_struct::traits::is_visitable<T, ImContext>::value) {
-				imgui_input_visit_field(label, value, type_settings, response);
+				imgui_input_visit_field(label, value, type_settings, type_response);
 			} else {
 				static_assert(svh::always_false<T>::value, "No suitable Input implementation found for type T");
 			}
@@ -68,7 +79,117 @@ namespace ImGui::Reflect {
 		Detail::InputImpl(label, value, settings, response);
 		return response;
 	}
-
 }
+
+namespace ImGui::Reflect {
+	namespace Internal {
+		constexpr int mouse_button_count = 3; // (0=left, 1=right, 2=middle)
+	}
+	struct response_base {
+		virtual ~response_base() = default;
+		virtual void changed() = 0;
+		virtual void hovered() = 0;
+		virtual void active() = 0;
+		virtual void activated() = 0;
+		virtual void deactivated() = 0;
+		virtual void deactivated_after_edit() = 0;
+		virtual void clicked(ImGuiMouseButton button) = 0;
+		virtual void double_clicked(ImGuiMouseButton button) = 0;
+		virtual void focused() = 0;
+	};
+
+	template<class T>
+	struct type_response : response_base, svh::scope<type_response> {
+	private:
+		bool _is_changed = false;
+		bool _is_hovered = false;
+		bool _is_active = false;
+		bool _is_activated = false;
+		bool _is_deactivated = false;
+		bool _is_deactivated_after_edit = false;
+		bool _is_clicked[Internal::mouse_button_count] = { false };
+		bool _is_double_clicked[Internal::mouse_button_count] = { false };
+		bool _is_focused = false;
+
+		/* Helper to chain calls to parent */
+		template<typename Method, typename... Args>
+		void chain_to_parent(Method method, Args... args) {  // Note: no perfect forwarding
+			if (this->has_parent()) {
+				auto* p = dynamic_cast<response_base*>(this->parent);
+				if (p) {
+					std::invoke(method, p, args...);
+				}
+			}
+		}
+
+	public:
+		/* Setters */
+		void changed() override {
+			_is_changed = true;
+			chain_to_parent(&response_base::changed);
+		}
+		void hovered() override {
+			_is_hovered = true;
+			chain_to_parent(&response_base::hovered);
+		}
+		void active() override {
+			_is_active = true;
+			chain_to_parent(&response_base::active);
+		}
+		void activated() override {
+			_is_activated = true;
+			chain_to_parent(&response_base::activated);
+		}
+		void deactivated() override {
+			_is_deactivated = true;
+			chain_to_parent(&response_base::deactivated);
+		}
+		void deactivated_after_edit() override {
+			_is_deactivated_after_edit = true;
+			chain_to_parent(&response_base::deactivated_after_edit);
+		}
+		void clicked(ImGuiMouseButton button) override {
+			if (button >= 0 && button < Internal::mouse_button_count) {
+				_is_clicked[button] = true;
+			}
+			chain_to_parent(&response_base::clicked, button);
+		}
+		void double_clicked(ImGuiMouseButton button) override {
+			if (button >= 0 && button < Internal::mouse_button_count) {
+				_is_double_clicked[button] = true;
+			}
+			chain_to_parent(&response_base::double_clicked, button);
+		}
+		void focused() override {
+			_is_focused = true;
+			chain_to_parent(&response_base::focused);
+		}
+
+		/* Getters */
+		bool is_changed() const { return _is_changed; }
+		bool is_hovered() const { return _is_hovered; }
+		bool is_active() const { return _is_active; }
+		bool is_activated() const { return _is_activated; }
+		bool is_deactivated() const { return _is_deactivated; }
+		bool is_deactivated_after_edit() const { return _is_deactivated_after_edit; }
+		bool is_clicked(ImGuiMouseButton button) const {
+			if (button >= 0 && button < Internal::mouse_button_count) {
+				return _is_clicked[button];
+			}
+			return false;
+		}
+		bool is_double_clicked(ImGuiMouseButton button) const {
+			if (button >= 0 && button < Internal::mouse_button_count) {
+				return _is_double_clicked[button];
+			}
+			return false;
+		}
+		bool is_focused() const { return _is_focused; }
+	};
+}
+
+using ImSettings = ImGui::Reflect::ImSettings;
+template<typename T>
+using ImSettingsT = ImGui::Reflect::ImSettingsT<T>;
 
 using ImResponse = ImGui::Reflect::ImResponse;

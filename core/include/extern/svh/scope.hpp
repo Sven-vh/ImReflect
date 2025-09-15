@@ -215,7 +215,7 @@ namespace svh {
 				return *found;
 			}
 
-			if (is_root() && SVH_AUTO_INSERT) {
+			if (SVH_AUTO_INSERT) {
 				return push_member<member>();
 			}
 
@@ -248,16 +248,6 @@ namespace svh {
 		BaseTemplate<T>* find(const member_id& child_member_id = {}) const {
 			const std::type_index key = get_type_key<T>();
 
-			/* Check current map */
-			auto it = children.find(key);
-			if (it != children.end()) {
-				auto* found = dynamic_cast<BaseTemplate<T>*>(it->second.get());
-				if (!found) {
-					throw std::runtime_error("Existing child has unexpected type");
-				}
-				return found;
-			}
-
 			/* Check member map */
 			if (child_member_id.is_valid()) {
 				auto mit = member_children.find(child_member_id);
@@ -265,6 +255,16 @@ namespace svh {
 					auto* found = dynamic_cast<BaseTemplate<T>*>(mit->second.get());
 					if (!found) {
 						throw std::runtime_error("Existing member child has unexpected type");
+					}
+					return found;
+				}
+			} else {
+				/* Check current map */
+				auto it = children.find(key);
+				if (it != children.end()) {
+					auto* found = dynamic_cast<BaseTemplate<T>*>(it->second.get());
+					if (!found) {
+						throw std::runtime_error("Existing child has unexpected type");
 					}
 					return found;
 				}
@@ -310,10 +310,20 @@ namespace svh {
 				if (!class_scope) {
 					throw std::runtime_error("Existing child has unexpected type");
 				}
-				auto* found = class_scope->template find<MemberType>();
+				auto* found = class_scope->template find<MemberType>(key);
 				if (found) {
 					return found;
 				}
+			}
+
+			/* Check in children of member type */
+			auto member_it = children.find(member_type);
+			if (member_it != children.end()) {
+				auto* member_scope = dynamic_cast<BaseTemplate<MemberType>*>(member_it->second.get());
+				if (!member_scope) {
+					throw std::runtime_error("Existing child has unexpected type");
+				}
+				return member_scope;
 			}
 
 			/* Recurse to parent */
@@ -394,7 +404,7 @@ namespace svh {
 				return *found;
 			}
 
-			if (is_root() && SVH_AUTO_INSERT) {
+			if (SVH_AUTO_INSERT) {
 				// Create new member settings at runtime
 				const char* instance_addr = reinterpret_cast<const char*>(&instance);
 				const char* member_addr = reinterpret_cast<const char*>(&member);
@@ -436,7 +446,7 @@ namespace svh {
 		/// </summary>
 		/// <param name="indent">Indentation level</param>
 		void debug_log(int indent = 0) const {
-			std::string prefix(indent, ' ');
+			std::string prefix(indent, '==');
 			for (const auto& pair : children) {
 				const auto& key = pair.first;
 				const auto& child = pair.second;
@@ -472,7 +482,7 @@ namespace svh {
 				return std::hash<std::type_index>()(k.struct_type) ^ std::hash<std::type_index>()(k.member_type) ^ std::hash<std::size_t>()(k.offset);
 			}
 		};
-	private:
+	protected:
 		scope* parent = nullptr; /* Root level */
 
 		/* type -> scope */
