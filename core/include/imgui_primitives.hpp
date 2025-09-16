@@ -13,6 +13,11 @@ namespace ImGui::Reflect::Detail {
 	template<typename T>
 	using enable_if_numeric_t = std::enable_if_t<is_numeric_v<T>, void>;
 
+	template<typename T> /* Only bool */
+	constexpr bool is_bool_v = std::is_same_v<T, bool>;
+	template<typename T>
+	using enable_if_bool_t = std::enable_if_t<is_bool_v<T>, void>;
+
 	/* Helper macro to return *this as derived type */
 #define RETURN_THIS return static_cast<type_settings<T>&>(*this)
 
@@ -299,38 +304,76 @@ namespace ImGui::Reflect::Detail {
 		const ImGuiInputTextFlags& get_input_flags() const { return _flags; }
 	};
 
-	/* Settings to specify input type: Input, Drag, Slider */
+	enum class input_type_widget {
+		Input,
+		Drag,
+		Slider,
+		Radio,
+		Checkbox,
+		Dropdown,
+		Button
+	};
+
 	template<typename T>
-	struct input_type : input_step<T>, format_settings<T>, slider_flags<T>, input_flags<T> {
-	public:
-		enum class type {
-			Input,
-			Drag,
-			Slider
-		};
+	struct input_type {
+		input_type(const input_type_widget type) : _type(type) {}
+		input_type_widget _type;
 
-	private:
-		type _type = type::Input;
+		const input_type_widget& get_input_type() const { return _type; }
+	};
 
-	public:
-		type_settings<T>& as_input() { _type = type::Input; RETURN_THIS; }
-		type_settings<T>& as_drag() { _type = type::Drag; RETURN_THIS; }
-		type_settings<T>& as_slider() { _type = type::Slider; RETURN_THIS; }
+	template<typename T>
+	struct input_widget : virtual input_type<T>, input_step<T> {
+		input_widget() : input_type<T>(input_type_widget::Input) {}
+		type_settings<T>& as_input() { this->_type = input_type_widget::Input; RETURN_THIS; }
+		bool is_input() const { return this->_type == input_type_widget::Input; }
+	};
 
-		const type& get_input_type() const { return _type; }
-		bool is_input() const { return _type == type::Input; }
-		bool is_drag() const { return _type == type::Drag; }
-		bool is_slider() const { return _type == type::Slider; }
+	template<typename T>
+	struct drag_widget : virtual input_type<T> {
+		drag_widget() : input_type<T>(input_type_widget::Drag) {}
+		type_settings<T>& as_drag() { this->_type = input_type_widget::Drag; RETURN_THIS; }
+		bool is_drag() const { return this->_type == input_type_widget::Drag; }
+	};
+
+	template<typename T>
+	struct slider_widget : virtual input_type<T> {
+		slider_widget() : input_type<T>(input_type_widget::Slider) {}
+		type_settings<T>& as_slider() { this->_type = input_type_widget::Slider; RETURN_THIS; }
+		bool is_slider() const { return this->_type == input_type_widget::Slider; }
+	};
+
+	template<typename T>
+	struct radio_widget : virtual input_type<T> {
+		radio_widget() : input_type<T>(input_type_widget::Radio) {}
+		type_settings<T>& as_radio() { this->_type = input_type_widget::Radio; RETURN_THIS; }
+		bool is_radio() const { return this->_type == input_type_widget::Radio; }
+	};
+
+	template<typename T>
+	struct checkbox_widget : virtual input_type<T> {
+		checkbox_widget() : input_type<T>(input_type_widget::Checkbox) {}
+		type_settings<T>& as_checkbox() { this->_type = input_type_widget::Checkbox; RETURN_THIS; }
+		bool is_checkbox() const { return this->_type == input_type_widget::Checkbox; }
+	};
+
+	template<typename T>
+	struct dropdown_widget : virtual input_type<T> {
+		dropdown_widget() : input_type<T>(input_type_widget::Dropdown) {}
+		type_settings<T>& as_dropdown() { this->_type = input_type_widget::Dropdown; RETURN_THIS; }
+		bool is_dropdown() const { return this->_type == input_type_widget::Dropdown; }
+	};
+
+	template<typename T>
+	struct button_widget : virtual input_type<T> {
+		button_widget() : input_type<T>(input_type_widget::Button) {}
+		type_settings<T>& as_button() { this->_type = input_type_widget::Button; RETURN_THIS; }
+		bool is_button() const { return this->_type == input_type_widget::Button; }
 	};
 }
 
 /* Usefull helper functions */
 namespace ImGui::Reflect::Detail {
-
-	template<typename T>
-	static void input_widget(const char* label, T& value, ImSettingsT<T>& settings) {
-
-	}
 
 	/* Check and set input states in response */
 	template<typename T>
@@ -351,12 +394,19 @@ namespace ImGui::Reflect::Detail {
 /* Input fields for primitive types */
 namespace ImGui::Reflect {
 
-	/* ========================= integral types except bool ========================= */
+	/* ========================= all integral types except bool ========================= */
 	template<typename T>
 	struct type_settings<T, Detail::enable_if_numeric_t<T>> : ImSettings,
 		ImGui::Reflect::Detail::min_max<T>,
-		ImGui::Reflect::Detail::input_type<T> {
+		ImGui::Reflect::Detail::input_widget<T>,
+		ImGui::Reflect::Detail::drag_widget<T>,
+		ImGui::Reflect::Detail::slider_widget<T>,
+		ImGui::Reflect::Detail::input_flags<T>, 
+		ImGui::Reflect::Detail::format_settings<T>,
+		ImGui::Reflect::Detail::slider_flags<T>
+	{
 		/* Need to specify ``ImGui::Reflect`` before Detail::min_max otherwise intellisense wont work */
+		type_settings() : ImGui::Reflect::Detail::input_type<T>(ImGui::Reflect::Detail::input_type_widget::Input) {}
 	};
 
 	template<typename T>
@@ -394,6 +444,10 @@ namespace ImGui::Reflect {
 		}
 		ImGui::Reflect::Detail::check_input_states(num_response);
 	}
+
+	template<typename T>
+	struct type_settings<T, Detail::enable_if_bool_t<T>> : ImSettings {
+	};
 }
 
 static_assert(svh::is_tag_invocable_v<ImGui::Reflect::Detail::ImInputLib_t, const char*, int&, ImSettings&, ImResponse&>, "int tag_invoke not found");

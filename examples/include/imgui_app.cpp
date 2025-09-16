@@ -20,27 +20,44 @@ namespace svh {
 
 		
 		auto settings = ImSettings();
+#if 1
 		settings.push_member<&MyStruct::a>()
-			.min(0)
-			.max(255)
-			.as_slider()
-			.clamp()
-			.as_hex()
+			____.min(0)
+			____.max(255)
+			____.as_slider()
+			____.clamp()
+			____.as_hex()
 			.pop()
 			.push_member<&MyStruct::b>()
-			.min(-10)
-			.max(10)
-			.as_input()
-			.password()
+			____.min(-10)
+			____.max(10)
+			____.as_input()
+			//____.password()
 			.pop()
 			.push_member<&MyStruct::c>()
-			.min(0.0f)
-			.max(1.0f)
-			.clamp()
-			.as_slider()
-			.as_float(5)
-			.logarithmic()
+			____.min(0.0f)
+			____.max(1.0f)
+			____.clamp()
+			____.as_slider()
+			____.as_float(5)
+			____.logarithmic()
 			.pop();
+#else
+		settings.push<int>()
+			____.min(0)
+			____.max(255)
+			____.as_slider()
+			____.clamp()
+			.pop()
+			.push<float>()
+			____.min(0.0f)
+			____.max(1.0f)
+			____.as_float(10)
+			____.as_slider()
+			____.logarithmic()
+			.pop();
+
+#endif
 
 		//printf("\nSettings before: \n");
 		//settings.debug_log();
