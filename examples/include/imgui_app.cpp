@@ -5,13 +5,24 @@
 
 typedef uint32_t my_special_int;
 
+//struct OtherStruct {
+//	int foo;
+//	double bar;
+//};
+//IMGUI_REFLECT(OtherStruct, foo, bar)
+
 struct MyStruct {
 	int a;
 	int b;
 	float c;
+	bool d = false;
+	bool e = true;
+	bool f = false;
+	bool g = false;
+	//OtherStruct s;
 };
+IMGUI_REFLECT(MyStruct, a, b, c, d, e, f, g )
 
-IMGUI_REFLECT(MyStruct, a, b, c)
 
 namespace svh {
 	void imgui_app::render() {
@@ -41,6 +52,28 @@ namespace svh {
 			____.as_slider()
 			____.as_float(5)
 			____.logarithmic()
+			.pop()
+			.push<MyStruct>()
+			____.push<int>()
+			________.min(0)
+			________.max(100)
+			________.as_slider()
+			________.clamp()
+			____.pop()
+			.pop()
+			.push_member<&MyStruct::d>()
+			____.as_checkbox()
+			.pop()
+			.push_member<&MyStruct::e>()
+			____.as_radio()
+			.pop()
+			.push_member<&MyStruct::f>()
+			____.as_button()
+			.pop()
+			.push_member<&MyStruct::g>()
+			____.as_dropdown()
+			____.true_text("Yes")
+			____.false_text("No")
 			.pop();
 #else
 		settings.push<int>()

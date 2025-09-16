@@ -242,6 +242,19 @@ namespace ImGui::Reflect::Detail {
 		}
 	};
 
+	template<typename T>
+	struct true_false_text {
+	private:
+		std::string _true_text = "True";
+		std::string _false_text = "False";
+
+	public:
+		type_settings<T>& true_text(const std::string& text) { _true_text = text; RETURN_THIS; }
+		type_settings<T>& false_text(const std::string& text) { _false_text = text; RETURN_THIS; }
+		const std::string& get_true_text() const { return _true_text; }
+		const std::string& get_false_text() const { return _false_text; };
+	};
+
 	/* Slider flag settings */
 	template<typename T>
 	struct slider_flags {
@@ -446,8 +459,53 @@ namespace ImGui::Reflect {
 	}
 
 	template<typename T>
-	struct type_settings<T, Detail::enable_if_bool_t<T>> : ImSettings {
+	struct type_settings<T, Detail::enable_if_bool_t<T>> : ImSettings,
+		ImGui::Reflect::Detail::radio_widget<T>,
+		ImGui::Reflect::Detail::checkbox_widget<T>,
+		ImGui::Reflect::Detail::button_widget<T>,
+		ImGui::Reflect::Detail::dropdown_widget<T>,
+		ImGui::Reflect::Detail::true_false_text<T> {
+		type_settings() : ImGui::Reflect::Detail::input_type<T>(ImGui::Reflect::Detail::input_type_widget::Checkbox) {}
 	};
+
+	template<typename T>
+	std::enable_if_t<ImGui::Reflect::Detail::is_bool_v<T>, void>
+		tag_invoke(Detail::ImInputLib_t, const char* label, T& value, ImSettings& settings, ImResponse& response) {
+		type_settings<T>& bool_settings = settings.get<T>();
+		type_response<T>& bool_response = response.get<T>();
+		bool changed = false;
+		if (bool_settings.is_checkbox()) {
+			changed = ImGui::Checkbox(label, &value);
+		} else if (bool_settings.is_radio()) {
+			int int_value = value ? 1 : 0;
+			changed = ImGui::RadioButton(bool_settings.get_true_text().c_str(), &int_value, 1);
+			ImGui::SameLine();
+			changed |= ImGui::RadioButton(bool_settings.get_false_text().c_str(), &int_value, 0);
+			value = (int_value != 0);
+			ImGui::SameLine();
+			ImGui::Text(label);
+		} else if (bool_settings.is_dropdown()) {
+			const char* items[] = { bool_settings.get_false_text().c_str(), bool_settings.get_true_text().c_str() };
+			int int_value = value ? 1 : 0;
+			changed = ImGui::Combo(label, &int_value, items, IM_ARRAYSIZE(items));
+			value = (int_value != 0);
+		} else if (bool_settings.is_button()) {
+			const auto& button_label = value ? bool_settings.get_true_text() : bool_settings.get_false_text();
+			if (ImGui::Button(button_label.c_str())) {
+				value = !value;
+				changed = true;
+			}
+			ImGui::SameLine();
+			ImGui::Text("%s", label);
+		} else {
+			throw std::runtime_error("Unknown input type for bool");
+		}
+		if (changed) {
+			bool_response.changed();
+		}
+		ImGui::Reflect::Detail::check_input_states(bool_response);
+
+	}
 }
 
 static_assert(svh::is_tag_invocable_v<ImGui::Reflect::Detail::ImInputLib_t, const char*, int&, ImSettings&, ImResponse&>, "int tag_invoke not found");

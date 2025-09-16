@@ -1,4 +1,5 @@
 #pragma once
+#include <imgui/imgui.h>
 #include <extern/svh/scope.hpp>
 #include <extern/svh/tag_invoke.hpp>
 #include <extern/visit_struct/visit_struct.hpp>
@@ -45,9 +46,11 @@ namespace ImGui::Reflect {
 			ImGui::Text("%s", label);
 			visit_struct::context<ImContext>::for_each(value,
 				[&](const char* name, auto& field) {
+					ImGui::PushID(name);
 					auto& member_settings = settings.get_member(value, field);
 					auto& member_response = response.get_member(value, field);
 					InputImpl(name, field, member_settings, member_response); // recurse
+					ImGui::PopID();
 				});
 		}
 
