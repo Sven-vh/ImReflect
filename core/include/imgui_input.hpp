@@ -84,6 +84,14 @@ namespace ImGui::Reflect {
 		Detail::InputImpl(label, value, settings, response);
 		return response;
 	}
+
+	template<typename T>
+	ImResponse Input(const char* label, T& value) {
+		ImSettings settings;
+		ImResponse response;
+		Detail::InputImpl(label, value, settings, response);
+		return response;
+	}
 }
 
 namespace ImGui::Reflect {
