@@ -472,10 +472,11 @@ namespace ImGui::Reflect {
 		ImGui::Reflect::Detail::check_input_states(num_response);
 	}
 
+	/* ========================= bool ========================= */
 	template<typename T>
 	struct type_settings<T, Detail::enable_if_bool_t<T>> : ImSettings,
-		ImGui::Reflect::Detail::radio_widget<T>,
 		ImGui::Reflect::Detail::checkbox_widget<T>,
+		ImGui::Reflect::Detail::radio_widget<T>,
 		ImGui::Reflect::Detail::button_widget<T>,
 		ImGui::Reflect::Detail::dropdown_widget<T>,
 		ImGui::Reflect::Detail::true_false_text<T> {
