@@ -20,6 +20,7 @@ namespace ImGui::Reflect::Detail {
 
 	/* Helper macro to return *this as derived type */
 #define RETURN_THIS return static_cast<type_settings<T>&>(*this)
+#define RETURN_THIS_T(T) return static_cast<type_settings<T>&>(*this)
 
 	template<typename T>
 	struct imgui_data_type_trait {
@@ -102,6 +103,18 @@ namespace ImGui::Reflect::Detail {
 
 		const T& get_step() const { return _step; }
 		const T& get_step_fast() const { return _step_fast; }
+	};
+
+	/* Generic speed settings for sliders and draggers */
+	template<typename T>
+	struct drag_speed {
+	private:
+		float _speed = 1.0f;
+	public:
+		/* Optional default speed */
+		drag_speed(const float v = 1.0f) : _speed(v) {}
+		type_settings<T>& speed(const float v) { _speed = v; RETURN_THIS; }
+		float get_speed() const { return _speed; }
 	};
 
 	/* format settings for input widgets */
@@ -410,15 +423,16 @@ namespace ImGui::Reflect {
 	/* ========================= all integral types except bool ========================= */
 	template<typename T>
 	struct type_settings<T, Detail::enable_if_numeric_t<T>> : ImSettings,
+		/* Need to specify ``ImGui::Reflect`` before Detail::min_max otherwise intellisense wont work */
 		ImGui::Reflect::Detail::min_max<T>,
+		ImGui::Reflect::Detail::drag_speed<T>,
 		ImGui::Reflect::Detail::input_widget<T>,
 		ImGui::Reflect::Detail::drag_widget<T>,
 		ImGui::Reflect::Detail::slider_widget<T>,
-		ImGui::Reflect::Detail::input_flags<T>, 
+		ImGui::Reflect::Detail::input_flags<T>,
 		ImGui::Reflect::Detail::format_settings<T>,
-		ImGui::Reflect::Detail::slider_flags<T>
-	{
-		/* Need to specify ``ImGui::Reflect`` before Detail::min_max otherwise intellisense wont work */
+		ImGui::Reflect::Detail::slider_flags<T> {
+		/* Default to input */
 		type_settings() : ImGui::Reflect::Detail::input_type<T>(ImGui::Reflect::Detail::input_type_widget::Input) {}
 	};
 
@@ -465,6 +479,7 @@ namespace ImGui::Reflect {
 		ImGui::Reflect::Detail::button_widget<T>,
 		ImGui::Reflect::Detail::dropdown_widget<T>,
 		ImGui::Reflect::Detail::true_false_text<T> {
+		/* Default to checkbox */
 		type_settings() : ImGui::Reflect::Detail::input_type<T>(ImGui::Reflect::Detail::input_type_widget::Checkbox) {}
 	};
 
@@ -505,6 +520,81 @@ namespace ImGui::Reflect {
 		}
 		ImGui::Reflect::Detail::check_input_states(bool_response);
 
+	}
+
+	/* TODO: delete this, only for testing*/
+	enum class TestEnum {
+
+	};
+	static_assert(std::is_enum_v<TestEnum>, "TestEnum is not an enum");
+
+	/* ========================= enums ========================= */
+	template<typename E>
+	struct type_settings<E, std::enable_if_t<std::is_enum_v<E>, void>> : ImSettings,
+		ImGui::Reflect::Detail::radio_widget<E>,
+		ImGui::Reflect::Detail::dropdown_widget<E>,
+		ImGui::Reflect::Detail::drag_widget<E>,
+		ImGui::Reflect::Detail::drag_speed<E>,
+		ImGui::Reflect::Detail::slider_widget<E> {
+		/* Default to dropdown */
+		type_settings() :
+			ImGui::Reflect::Detail::input_type<E>(ImGui::Reflect::Detail::input_type_widget::Dropdown),
+			ImGui::Reflect::Detail::drag_speed<E>(0.01f) {
+		}
+	};
+
+	/* Use magic enum to reflect */
+	template<typename E>
+	std::enable_if_t<std::is_enum_v<E>, void>
+		tag_invoke(Detail::ImInputLib_t, const char* label, E& value, ImSettings& settings, ImResponse& response) {
+		type_settings<E>& enum_settings = settings.get<E>();
+		type_response<E>& enum_response = response.get<E>();
+
+		const auto enum_values = magic_enum::enum_values<E>();
+		const auto enum_names = magic_enum::enum_names<E>();
+		const int enum_count = static_cast<int>(enum_values.size());
+
+		bool changed = false;
+		if (enum_settings.is_radio()) {
+			int int_value = static_cast<int>(value);
+			for (int i = 0; i < enum_count; ++i) {
+				changed |= ImGui::RadioButton(enum_names[i].data(), &int_value, static_cast<int>(enum_values[i]));
+				if (i < enum_count - 1) ImGui::SameLine();
+			}
+			value = static_cast<E>(int_value);
+			ImGui::SameLine();
+			ImGui::Text("%s", label);
+		} else if (enum_settings.is_dropdown()) {
+			int int_value = static_cast<int>(value);
+			std::vector<const char*> item_vec;
+			for (const auto& name : enum_names) {
+				item_vec.push_back(name.data());
+			}
+			changed = ImGui::Combo(label, &int_value, item_vec.data(), enum_count);
+			value = static_cast<E>(int_value);
+		} else if (enum_settings.is_slider()) {
+			int int_value = static_cast<int>(value);
+			const int min = static_cast<int>(enum_values.front());
+			const int max = static_cast<int>(enum_values.back());
+			const char* index_name = magic_enum::enum_name(value).data();
+			changed = ImGui::SliderInt(label, &int_value, min, max, index_name);
+			value = static_cast<E>(int_value);
+		} else if (enum_settings.is_drag()) {
+			int int_value = static_cast<int>(value);
+			const int min = static_cast<int>(enum_values.front());
+			const int max = static_cast<int>(enum_values.back());
+			const auto& speed = enum_settings.get_speed();
+			const char* index_name = magic_enum::enum_name(value).data();
+			changed = ImGui::DragInt(label, &int_value, speed, min, max, index_name);
+			value = static_cast<E>(int_value);
+		} else {
+			throw std::runtime_error("Unknown input type for enum");
+		}
+
+		if (changed) {
+			enum_response.changed();
+		}
+		ImGui::Reflect::Detail::check_input_states(enum_response);
 	}
 }
 
