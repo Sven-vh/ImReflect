@@ -43,6 +43,7 @@ namespace ImGui::Reflect {
 
 		template<typename T>
 		void imgui_input_visit_field(const char* label, T& value, ImSettings& settings, ImResponse& response) {
+			ImGui::PushID(label);
 			ImGui::Text("%s", label);
 			visit_struct::context<ImContext>::for_each(value,
 				[&](const char* name, auto& field) {
@@ -52,6 +53,7 @@ namespace ImGui::Reflect {
 					InputImpl(name, field, member_settings, member_response); // recurse
 					ImGui::PopID();
 				});
+			ImGui::PopID();
 		}
 
 		template<typename T>
