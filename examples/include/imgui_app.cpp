@@ -28,10 +28,28 @@ public:
 	type_settings<MyStruct>& b_setting(int v) { _b_setting = v; RETURN_THIS_T(MyStruct); }
 };
 
+// 20 options
 enum class MyEnum {
 	Option1,
 	Option2,
-	Option3
+	Option3,
+	Option4,
+	Option5,
+	Option6,
+	Option7,
+	Option8,
+	Option9,
+	Option10,
+	Option11,
+	Option12,
+	Option13,
+	Option14,
+	Option15,
+	Option16,
+	Option17,
+	Option18,
+	Option19,
+	Option20
 };
 
 struct EnumHolder {

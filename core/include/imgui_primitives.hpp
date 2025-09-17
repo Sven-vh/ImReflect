@@ -557,11 +557,22 @@ namespace ImGui::Reflect {
 		bool changed = false;
 		if (enum_settings.is_radio()) {
 			int int_value = static_cast<int>(value);
-			for (int i = 0; i < enum_count; ++i) {
-				changed |= ImGui::RadioButton(enum_names[i].data(), &int_value, static_cast<int>(enum_values[i]));
-				if (i < enum_count - 1) ImGui::SameLine();
+
+			const float child_width = ImGui::CalcItemWidth();
+			const ImVec2 label_size = CalcTextSize(label, NULL, true);
+			const ImGuiStyle& style = ImGui::GetStyle();
+			const float child_height = label_size.y + style.ScrollbarSize + (style.WindowPadding.y) * 2.0f;
+			const ImVec2 child_size(child_width, child_height);
+
+			/* Evenly spread radio buttons */
+			if (ImGui::BeginChild("##radio_enum", child_size, 0, ImGuiWindowFlags_HorizontalScrollbar)) {
+				for (int i = 0; i < enum_count; ++i) {
+					changed |= ImGui::RadioButton(enum_names[i].data(), &int_value, static_cast<int>(enum_values[i]));
+					if (i < enum_count - 1) ImGui::SameLine();
+				}
+				value = static_cast<E>(int_value);
 			}
-			value = static_cast<E>(int_value);
+			ImGui::EndChild();
 			ImGui::SameLine();
 			ImGui::Text("%s", label);
 		} else if (enum_settings.is_dropdown()) {
