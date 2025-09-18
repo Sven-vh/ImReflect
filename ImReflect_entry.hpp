@@ -45,6 +45,7 @@ namespace ImReflect {
 		void imgui_input_visit_field(const char* label, T& value, ImSettings& settings, ImResponse& response) {
 			ImGui::PushID(label);
 			ImGui::SeparatorText(label);
+			ImGui::Indent();
 			visit_struct::context<ImContext>::for_each(value,
 				[&](const char* name, auto& field) {
 					ImGui::PushID(name);
@@ -53,6 +54,7 @@ namespace ImReflect {
 					InputImpl(name, field, member_settings, member_response); // recurse
 					ImGui::PopID();
 				});
+			ImGui::Unindent();
 			ImGui::PopID();
 		}
 

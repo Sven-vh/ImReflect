@@ -13,9 +13,9 @@ struct MyStruct {
 	int a;
 	float b;
 	bool c = false;
-	OtherStruct d;
+	OtherStruct other_struct;
 };
-IMGUI_REFLECT(MyStruct, a, b, c, d)
+IMGUI_REFLECT(MyStruct, a, b, c, other_struct)
 
 template<>
 struct ImReflect::type_settings<MyStruct> : ImSettings {
@@ -27,6 +27,20 @@ public:
 	type_settings<MyStruct>& a_setting(bool v) { _a_setting = v; RETURN_THIS_T(MyStruct); }
 	type_settings<MyStruct>& b_setting(int v) { _b_setting = v; RETURN_THIS_T(MyStruct); }
 };
+
+enum class Difficulty {
+	Easy,
+	Medium,
+	Hard
+};
+
+struct GameSettings {
+	int			volume = 50;
+	float		sensitivity = 1.0f;
+	bool		fullscreen = false;
+	Difficulty	difficulty = Difficulty::Medium;
+};
+IMGUI_REFLECT(GameSettings, volume, sensitivity, fullscreen, difficulty)
 
 // 20 options
 enum class MyEnum {
@@ -60,119 +74,95 @@ struct EnumHolder {
 };
 IMGUI_REFLECT(EnumHolder, a, b, c, d)
 
+struct vec3 {
+	float x, y, z;
+};
+
+namespace MyNamespace {
+	struct Transform {
+		vec3 position;
+		vec3 rotation;
+		vec3 scale;
+		std::string name = "Foo";
+	};
+}
+
+template<>
+struct ImReflect::type_settings<MyNamespace::Transform> : ImSettings {
+private:
+	bool _change_name = false;
+
+public:
+	type_settings<MyNamespace::Transform>& change_name(bool value) {
+		_change_name = value;
+		RETURN_THIS_T(MyNamespace::Transform);
+	}
+
+	bool get_change_name() const {
+		return _change_name;
+	}
+};
+
+void tag_invoke(ImReflect::ImInput_t, const char* label, MyNamespace::Transform& value, ImSettings& settings, ImResponse& response) {
+	auto& transform_settings = settings.get<MyNamespace::Transform>();
+
+	ImGui::SeparatorText(label);
+
+	if (transform_settings.get_change_name()) {
+		//ImGui::InputText("Name", &value.name);
+	} else {
+		ImGui::Text(value.name.c_str());
+	}
+
+	ImGui::InputFloat3("Position", &value.position.x);
+	ImGui::InputFloat3("Rotation", &value.rotation.x);
+	ImGui::InputFloat3("Scale", &value.scale.x);
+}
+
+//template<>
+//struct ImReflect::type_settings<int> : ImSettings {
+//private:
+//	int _multiplier = 1;
+//public:
+//	type_settings<int>& multiplier(int v) { _multiplier = v; RETURN_THIS_T(int); }
+//	int get_multiplier() const { return _multiplier; }
+//};
+//
+//void tag_invoke(ImReflect::ImInput_t, const char* label, int& value, ImSettings& settings, ImResponse& response) {
+//	ImGui::Text(label);
+//	ImGui::InputInt(label, &value);
+//}
+//
+//static_assert(svh::is_tag_invocable<ImReflect::ImInput_t, const char*, int&, ImReflect::ImSettings&, ImReflect::ImResponse&>::value, "Transform does not have tag_invoke for ImInput_t");
+
 namespace svh {
 	void imgui_app::render() {
 		auto root = ImSettings();
 		root.push_member<&EnumHolder::a>()
-				.as_radio()
+			.as_radio()
 			.pop()
 			.push_member<&EnumHolder::b>()
-				.as_slider()
+			.as_slider()
 			.pop()
 			.push_member<&EnumHolder::c>()
-				.as_drag()
+			.as_drag()
 			.pop()
 			.push_member<&EnumHolder::d>()
-				.as_dropdown()
+			.as_dropdown()
 			.pop();
 
-		static EnumHolder e;
-		ImReflect::Input("Enum Test", e, root);
-	}
-}
+		static GameSettings settings;
+		ImReflect::Input("Game Settings", settings);
 
-
-void func() {
-	{
-
-
-
-		auto settings = ImSettings();
-#if 0
-		settings.push_member<&MyStruct::a>()
-			____.min(0)
-			____.max(255)
-			____.as_slider()
-			____.clamp()
-			____.as_hex()
-			.pop()
-			.push_member<&MyStruct::b>()
-			____.min(-10)
-			____.max(10)
-			____.clamp()
-			____.as_input()
-			.pop()
-			.push_member<&MyStruct::c>()
-			____.min(0.0f)
-			____.max(1.0f)
-			____.clamp()
-			____.as_slider()
-			____.as_float(5)
-			____.logarithmic()
-			.pop()
-			.push<MyStruct>()
-			____.push<int>()
-			________.min(0)
-			________.max(100)
-			________.as_slider()
-			________.clamp()
-			____.pop()
-			.pop()
-			.push_member<&MyStruct::d>()
-			____.as_checkbox()
-			.pop()
-			.push_member<&MyStruct::e>()
-			____.as_radio()
-			.pop()
-			.push_member<&MyStruct::f>()
-			____.as_button()
-			.pop()
-			.push_member<&MyStruct::g>()
-			____.as_dropdown()
-			____.true_text("Yes")
-			____.false_text("No")
-			.pop();
-#else
-		settings.push<int>()
-			____.min(0)
-			____.max(255)
-			____.as_slider()
-			____.clamp()
-			.pop()
-			.push<float>()
-			____.min(0.0f)
-			____.max(1.0f)
-			____.as_float(10)
-			____.as_slider()
-			____.logarithmic()
+		auto config = ImSettings();
+		config.push<MyNamespace::Transform>()
+				.change_name(true)
 			.pop();
 
-#endif
+		static MyNamespace::Transform t;
+		ImReflect::Input("My Transform", t, config);
 
-		//printf("\nSettings before: \n");
-		//settings.debug_log();
-
-		//printf("\nSettings after: \n");
-		//settings.debug_log();
-		//printf("\nResponse: \n");
-		//response.debug_log();
-
-		//if (response.get<MyStruct>().is_changed()) {
-		//	printf("MyStruct changed\n");
-		//}
-		//if (response.get<MyStruct>().get<int>().is_changed()) {
-		//	printf("int changed\n");
-		//}
-		//if (response.get_member<&MyStruct::a>().is_changed()) printf("a changed\n");
-		//if (response.get_member<&MyStruct::a>().is_hovered()) printf("a hovered\n");
-		//if (response.get_member<&MyStruct::a>().is_active()) printf("a active\n");
-		//if (response.get_member<&MyStruct::a>().is_activated()) printf("a activated\n");
-		//if (response.get_member<&MyStruct::a>().is_deactivated()) printf("a deactivated\n");
-		//if (response.get_member<&MyStruct::a>().is_deactivated_after_edit()) printf("a deactivated after edit\n");
-		//if (response.get_member<&MyStruct::a>().is_clicked(ImGuiMouseButton_Left)) printf("a clicked left\n");
-		//if (response.get_member<&MyStruct::a>().is_double_clicked(ImGuiMouseButton_Left)) printf("a double clicked left\n");
-		//if (response.get_member<&MyStruct::a>().is_focused()) printf("a focused\n");
-		//
-
+		static MyStruct my_struct;
+		ImReflect::Input("My Struct", my_struct);
 	}
 }
