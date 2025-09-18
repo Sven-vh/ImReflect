@@ -8,14 +8,14 @@
 #define IMGUI_REFLECT(T, ...) \
 VISITABLE_STRUCT_IN_CONTEXT(ImReflect::Detail::ImContext, T, __VA_ARGS__);
 
+struct global_tag {};
+
 namespace ImReflect {
 	/* Settings for types */
 	template<class T, class = void>
 	struct type_settings : svh::scope<type_settings> {};
 
 	using ImSettings = svh::scope<type_settings>;
-	template<typename T>
-	using ImSettingsT = type_settings<type_settings<T>>;
 
 	/* responses for types */
 	struct response_base;
@@ -25,13 +25,13 @@ namespace ImReflect {
 
 	using ImResponse = svh::scope<type_response>;
 
+	/* Tags for the tag_invoke input functions */
+	struct ImInput_t : global_tag{ /* Public Tag */ };
+	inline constexpr ImInput_t input{};
+
 	namespace Detail {
 
-		/* Tags for the tag_invoke input functions */
-		struct ImInput_t { /* Public Tag */ };
-		inline constexpr ImInput_t input{};
-
-		struct ImInputLib_t { /* Library Tag */ };
+		struct ImInputLib_t { /* Library only tag */ };
 		inline constexpr ImInputLib_t input_lib{};
 
 		/* Context for visit_struct */
@@ -44,7 +44,7 @@ namespace ImReflect {
 		template<typename T>
 		void imgui_input_visit_field(const char* label, T& value, ImSettings& settings, ImResponse& response) {
 			ImGui::PushID(label);
-			ImGui::Text("%s", label);
+			ImGui::SeparatorText(label);
 			visit_struct::context<ImContext>::for_each(value,
 				[&](const char* name, auto& field) {
 					ImGui::PushID(name);
@@ -202,7 +202,5 @@ namespace ImReflect {
 }
 
 using ImSettings = ImReflect::ImSettings;
-template<typename T>
-using ImSettingsT = ImReflect::ImSettingsT<T>;
 
 using ImResponse = ImReflect::ImResponse;

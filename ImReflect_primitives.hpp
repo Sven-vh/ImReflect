@@ -537,8 +537,8 @@ namespace ImReflect {
 		ImReflect::Detail::drag_widget<E>,
 		ImReflect::Detail::drag_speed<E>,
 		ImReflect::Detail::slider_widget<E> {
-		/* Default to dropdown */
 		type_settings() :
+			/* Default settings */
 			ImReflect::Detail::input_type<E>(ImReflect::Detail::input_type_widget::Dropdown),
 			ImReflect::Detail::drag_speed<E>(0.01f) {
 		}
