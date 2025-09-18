@@ -136,7 +136,7 @@ Todo
 
 ## Building
 
-Currently, the library is in multiple headers, see ``Core/Include``. I intend to make a single header in the future.
+Currently, the library is provided in multiple headers, see ``ImReflect.hpp``, ``ImReflect_primitives.hpp``, ``ImReflect_entry.hpp``, and the extern folder. I intend on making it a single header in the future.
 
 ### Dependencies
 - [ImGui](https://github.com/ocornut/imgui) (duh)
