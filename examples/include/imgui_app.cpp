@@ -18,7 +18,7 @@ struct MyStruct {
 IMGUI_REFLECT(MyStruct, a, b, c, d)
 
 template<>
-struct ImGui::Reflect::type_settings<MyStruct> : ImSettings {
+struct ImReflect::type_settings<MyStruct> : ImSettings {
 private:
 	bool _a_setting = false;
 	int _b_setting = 42;
@@ -77,7 +77,7 @@ namespace svh {
 			.pop();
 
 		static EnumHolder e;
-		ImGui::Reflect::Input("Enum Test", e, root);
+		ImReflect::Input("Enum Test", e, root);
 	}
 }
 

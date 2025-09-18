@@ -6,7 +6,7 @@
 #include <string>
 
 /* Helpers */
-namespace ImGui::Reflect::Detail {
+namespace ImReflect::Detail {
 
 	template<typename T> /* All numbers except bool */
 	constexpr bool is_numeric_v = (std::is_integral_v<T> || std::is_floating_point_v<T>) && !std::is_same_v<T, bool>;
@@ -50,7 +50,7 @@ namespace ImGui::Reflect::Detail {
 }
 
 /* Generic settings for types */
-namespace ImGui::Reflect::Detail {
+namespace ImReflect::Detail {
 
 	/* Generic min/max settings for numeric types */
 	template<typename T>
@@ -399,7 +399,7 @@ namespace ImGui::Reflect::Detail {
 }
 
 /* Usefull helper functions */
-namespace ImGui::Reflect::Detail {
+namespace ImReflect::Detail {
 
 	/* Check and set input states in response */
 	template<typename T>
@@ -418,26 +418,26 @@ namespace ImGui::Reflect::Detail {
 }
 
 /* Input fields for primitive types */
-namespace ImGui::Reflect {
+namespace ImReflect {
 
 	/* ========================= all integral types except bool ========================= */
 	template<typename T>
 	struct type_settings<T, Detail::enable_if_numeric_t<T>> : ImSettings,
-		/* Need to specify ``ImGui::Reflect`` before Detail::min_max otherwise intellisense wont work */
-		ImGui::Reflect::Detail::min_max<T>,
-		ImGui::Reflect::Detail::drag_speed<T>,
-		ImGui::Reflect::Detail::input_widget<T>,
-		ImGui::Reflect::Detail::drag_widget<T>,
-		ImGui::Reflect::Detail::slider_widget<T>,
-		ImGui::Reflect::Detail::input_flags<T>,
-		ImGui::Reflect::Detail::format_settings<T>,
-		ImGui::Reflect::Detail::slider_flags<T> {
+		/* Need to specify ``ImReflect`` before Detail::min_max otherwise intellisense wont work */
+		ImReflect::Detail::min_max<T>,
+		ImReflect::Detail::drag_speed<T>,
+		ImReflect::Detail::input_widget<T>,
+		ImReflect::Detail::drag_widget<T>,
+		ImReflect::Detail::slider_widget<T>,
+		ImReflect::Detail::input_flags<T>,
+		ImReflect::Detail::format_settings<T>,
+		ImReflect::Detail::slider_flags<T> {
 		/* Default to input */
-		type_settings() : ImGui::Reflect::Detail::input_type<T>(ImGui::Reflect::Detail::input_type_widget::Input) {}
+		type_settings() : ImReflect::Detail::input_type<T>(ImReflect::Detail::input_type_widget::Input) {}
 	};
 
 	template<typename T>
-	std::enable_if_t<ImGui::Reflect::Detail::is_numeric_v<T>, void>
+	std::enable_if_t<ImReflect::Detail::is_numeric_v<T>, void>
 		tag_invoke(Detail::ImInputLib_t, const char* label, T& value, ImSettings& settings, ImResponse& response) {
 		type_settings<T>& num_settings = settings.get<T>();
 		type_response<T>& num_response = response.get<T>();
@@ -469,23 +469,23 @@ namespace ImGui::Reflect {
 		if (changed) {
 			num_response.changed();
 		}
-		ImGui::Reflect::Detail::check_input_states(num_response);
+		ImReflect::Detail::check_input_states(num_response);
 	}
 
 	/* ========================= bool ========================= */
 	template<typename T>
 	struct type_settings<T, Detail::enable_if_bool_t<T>> : ImSettings,
-		ImGui::Reflect::Detail::checkbox_widget<T>,
-		ImGui::Reflect::Detail::radio_widget<T>,
-		ImGui::Reflect::Detail::button_widget<T>,
-		ImGui::Reflect::Detail::dropdown_widget<T>,
-		ImGui::Reflect::Detail::true_false_text<T> {
+		ImReflect::Detail::checkbox_widget<T>,
+		ImReflect::Detail::radio_widget<T>,
+		ImReflect::Detail::button_widget<T>,
+		ImReflect::Detail::dropdown_widget<T>,
+		ImReflect::Detail::true_false_text<T> {
 		/* Default to checkbox */
-		type_settings() : ImGui::Reflect::Detail::input_type<T>(ImGui::Reflect::Detail::input_type_widget::Checkbox) {}
+		type_settings() : ImReflect::Detail::input_type<T>(ImReflect::Detail::input_type_widget::Checkbox) {}
 	};
 
 	template<typename T>
-	std::enable_if_t<ImGui::Reflect::Detail::is_bool_v<T>, void>
+	std::enable_if_t<ImReflect::Detail::is_bool_v<T>, void>
 		tag_invoke(Detail::ImInputLib_t, const char* label, T& value, ImSettings& settings, ImResponse& response) {
 		type_settings<T>& bool_settings = settings.get<T>();
 		type_response<T>& bool_response = response.get<T>();
@@ -519,7 +519,7 @@ namespace ImGui::Reflect {
 		if (changed) {
 			bool_response.changed();
 		}
-		ImGui::Reflect::Detail::check_input_states(bool_response);
+		ImReflect::Detail::check_input_states(bool_response);
 
 	}
 
@@ -532,15 +532,15 @@ namespace ImGui::Reflect {
 	/* ========================= enums ========================= */
 	template<typename E>
 	struct type_settings<E, std::enable_if_t<std::is_enum_v<E>, void>> : ImSettings,
-		ImGui::Reflect::Detail::radio_widget<E>,
-		ImGui::Reflect::Detail::dropdown_widget<E>,
-		ImGui::Reflect::Detail::drag_widget<E>,
-		ImGui::Reflect::Detail::drag_speed<E>,
-		ImGui::Reflect::Detail::slider_widget<E> {
+		ImReflect::Detail::radio_widget<E>,
+		ImReflect::Detail::dropdown_widget<E>,
+		ImReflect::Detail::drag_widget<E>,
+		ImReflect::Detail::drag_speed<E>,
+		ImReflect::Detail::slider_widget<E> {
 		/* Default to dropdown */
 		type_settings() :
-			ImGui::Reflect::Detail::input_type<E>(ImGui::Reflect::Detail::input_type_widget::Dropdown),
-			ImGui::Reflect::Detail::drag_speed<E>(0.01f) {
+			ImReflect::Detail::input_type<E>(ImReflect::Detail::input_type_widget::Dropdown),
+			ImReflect::Detail::drag_speed<E>(0.01f) {
 		}
 	};
 
@@ -560,7 +560,7 @@ namespace ImGui::Reflect {
 			int int_value = static_cast<int>(value);
 
 			const float child_width = ImGui::CalcItemWidth();
-			const ImVec2 label_size = CalcTextSize(label, NULL, true);
+			const ImVec2 label_size = ImGui::CalcTextSize(label, NULL, true);
 			const ImGuiStyle& style = ImGui::GetStyle();
 			const float child_height = label_size.y + style.ScrollbarSize + (style.WindowPadding.y) * 2.0f;
 			const ImVec2 child_size(child_width, child_height);
@@ -606,10 +606,10 @@ namespace ImGui::Reflect {
 		if (changed) {
 			enum_response.changed();
 		}
-		ImGui::Reflect::Detail::check_input_states(enum_response);
+		ImReflect::Detail::check_input_states(enum_response);
 	}
 }
 
-static_assert(svh::is_tag_invocable_v<ImGui::Reflect::Detail::ImInputLib_t, const char*, int&, ImSettings&, ImResponse&>, "int tag_invoke not found");
+static_assert(svh::is_tag_invocable_v<ImReflect::Detail::ImInputLib_t, const char*, int&, ImSettings&, ImResponse&>, "int tag_invoke not found");
 
 

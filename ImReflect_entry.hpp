@@ -6,9 +6,9 @@
 
 /* Define this for you class or struct */
 #define IMGUI_REFLECT(T, ...) \
-VISITABLE_STRUCT_IN_CONTEXT(ImGui::Reflect::Detail::ImContext, T, __VA_ARGS__);
+VISITABLE_STRUCT_IN_CONTEXT(ImReflect::Detail::ImContext, T, __VA_ARGS__);
 
-namespace ImGui::Reflect {
+namespace ImReflect {
 	/* Settings for types */
 	template<class T, class = void>
 	struct type_settings : svh::scope<type_settings> {};
@@ -94,7 +94,7 @@ namespace ImGui::Reflect {
 	}
 }
 
-namespace ImGui::Reflect {
+namespace ImReflect {
 	namespace Internal {
 		constexpr int mouse_button_count = 3; // (0=left, 1=right, 2=middle)
 	}
@@ -201,8 +201,8 @@ namespace ImGui::Reflect {
 	};
 }
 
-using ImSettings = ImGui::Reflect::ImSettings;
+using ImSettings = ImReflect::ImSettings;
 template<typename T>
-using ImSettingsT = ImGui::Reflect::ImSettingsT<T>;
+using ImSettingsT = ImReflect::ImSettingsT<T>;
 
-using ImResponse = ImGui::Reflect::ImResponse;
+using ImResponse = ImReflect::ImResponse;
