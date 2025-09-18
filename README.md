@@ -1,4 +1,4 @@
-# imgui-reflect
+# ImReflect
 
 A reflection-based wrapper for ImGui that automatically generates ImGui UI.
 
