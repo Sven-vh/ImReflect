@@ -15,9 +15,11 @@ struct GameSettings {
     float sensitivity = 1.0f;
     bool fullscreen = false;
 };
+// Specify which member variables need to be shown
 IMGUI_REFLECT(GameSettings, volume, sensitivity, fullscreen)
 
-static GameSettings settings;
+GameSettings settings;
+
 // In your render loop
 ImGui::Reflect::Input("Settings", settings);
 ```
