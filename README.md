@@ -2,13 +2,10 @@
 
 A reflection-based wrapper for ImGui that automatically generates ImGui UI.
 
-## Features
-
-- **Automatic UI Generation**: Use the `IMGUI_REFLECT` macro to automatically create ImGui controls for your structs
-- **Type-Safe Settings**: Configure input types, ranges, formats, and behavior with a fluent API
-- **Enum Support**: Handle enums with radio buttons, dropdowns, sliders, or drag controls
-- **Response Handling**: Get detailed feedback about user interactions (changed, hovered, clicked, etc.)
-- **Nested Structures**: Support for complex nested data structures
+> [!NOTE]
+> This is WIP. It currently only supports primitive types, booleans, and enums.
+>
+> I'm making this as part of my university project.
 
 # Basic Usage
 ## Simple Struct Reflection
@@ -131,43 +128,9 @@ if (response.get_member<&PlayerStats::health>().is_changed()) {
 - `ImGui::Reflect::Input(label, value)` - Render UI for a reflected struct with default settings
 - `ImGui::Reflect::Input(label, value, settings)` - Render UI with custom settings
 
-### Settings Configuration
+### Settings configurations
 
-#### Numeric Types
-```cpp
-settings.push<int>()
-    .min(0).max(100)        // Set range
-    .clamp()                // Enforce clamping
-    .as_slider()           // Use slider widget
-    .as_drag()             // Use drag widget  
-    .as_input()            // Use input field
-    .step(1).step_fast(10) // Set step increments
-    .as_hex()              // Display as hexadecimal
-    .width(100)            // Set field width
-.pop();
-```
-
-#### Float Types
-```cpp
-settings.push<float>()
-    .min(0.0f).max(1.0f)
-    .as_float(3)           // 3 decimal places
-    .as_percentage()       // Display as percentage
-    .as_scientific(2)      // Scientific notation
-    .logarithmic()         // Logarithmic scale
-    .speed(0.01f)          // Drag speed
-.pop();
-```
-
-#### Enum Types
-```cpp
-settings.push<MyEnum>()
-    .as_dropdown()         // Dropdown menu
-    .as_radio()           // Radio buttons
-    .as_slider()          // Slider through values
-    .as_drag()            // Drag through values
-.pop();
-```
+Todo
 
 ## Building
 
