@@ -1,7 +1,7 @@
 #include "imgui_app.hpp"
-#include <imgui/imgui.h>
+#include <imgui.h>
 
-#include <imgui_reflect.hpp>
+#include <ImReflect.hpp>
 
 struct OtherStruct {
 	char foo;

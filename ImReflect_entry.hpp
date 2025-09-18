@@ -1,5 +1,5 @@
 #pragma once
-#include <imgui/imgui.h>
+#include <imgui.h>
 #include <extern/svh/scope.hpp>
 #include <extern/svh/tag_invoke.hpp>
 #include <extern/visit_struct/visit_struct.hpp>

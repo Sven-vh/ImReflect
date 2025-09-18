@@ -6,9 +6,9 @@
 // - Documentation        https://dearimgui.com/docs (same as your local docs/ folder).
 // - Introduction, links and more at the top of imgui.cpp
 
-#include <imgui/imgui.h>
-#include <imgui/backends/imgui_impl_dx9.h>
-#include <imgui/backends/imgui_impl_win32.h>
+#include <imgui.h>
+#include <backends/imgui_impl_dx9.h>
+#include <backends/imgui_impl_win32.h>
 #include <d3d9.h>
 #include <tchar.h>
 

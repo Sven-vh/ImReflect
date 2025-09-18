@@ -3,12 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36301.6
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImReflect", "ImReflect.vcxproj", "{8F5B95CD-67B2-44B5-AA3C-A7D422E6CFA6}"
-EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImReflect-examples", "..\examples\ImReflect-examples.vcxproj", "{B832499D-7D63-4A15-B32D-6B45424E400E}"
-	ProjectSection(ProjectDependencies) = postProject
-		{8F5B95CD-67B2-44B5-AA3C-A7D422E6CFA6} = {8F5B95CD-67B2-44B5-AA3C-A7D422E6CFA6}
-	EndProjectSection
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ImReflect-examples", "ImReflect-examples.vcxproj", "{B832499D-7D63-4A15-B32D-6B45424E400E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -16,10 +11,6 @@ Global
 		Release|x64 = Release|x64
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{8F5B95CD-67B2-44B5-AA3C-A7D422E6CFA6}.Debug|x64.ActiveCfg = Debug|x64
-		{8F5B95CD-67B2-44B5-AA3C-A7D422E6CFA6}.Debug|x64.Build.0 = Debug|x64
-		{8F5B95CD-67B2-44B5-AA3C-A7D422E6CFA6}.Release|x64.ActiveCfg = Release|x64
-		{8F5B95CD-67B2-44B5-AA3C-A7D422E6CFA6}.Release|x64.Build.0 = Release|x64
 		{B832499D-7D63-4A15-B32D-6B45424E400E}.Debug|x64.ActiveCfg = Debug|x64
 		{B832499D-7D63-4A15-B32D-6B45424E400E}.Debug|x64.Build.0 = Debug|x64
 		{B832499D-7D63-4A15-B32D-6B45424E400E}.Release|x64.ActiveCfg = Release|x64

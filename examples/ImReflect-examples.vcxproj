@@ -46,7 +46,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)out\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)out-int\$(Configuration)-$(Platform)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\extern;$(SolutionDir)..\extern\imgui;$(SolutionDir)include;$(SolutionDir);$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\extern;$(SolutionDir)..\imgui\imgui;$(SolutionDir)include;$(SolutionDir)..\;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(ProjectDir)out\$(Configuration)-$(Platform)\</OutDir>
@@ -82,17 +82,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\extern\imgui\backends\imgui_impl_dx9.cpp" />
-    <ClCompile Include="..\extern\imgui\backends\imgui_impl_win32.cpp" />
-    <ClCompile Include="..\extern\imgui\imgui.cpp" />
-    <ClCompile Include="..\extern\imgui\imgui_demo.cpp" />
-    <ClCompile Include="..\extern\imgui\imgui_draw.cpp" />
-    <ClCompile Include="..\extern\imgui\imgui_tables.cpp" />
-    <ClCompile Include="..\extern\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\imgui\imgui\backends\imgui_impl_dx9.cpp" />
+    <ClCompile Include="..\imgui\imgui\backends\imgui_impl_win32.cpp" />
+    <ClCompile Include="..\imgui\imgui\imgui.cpp" />
+    <ClCompile Include="..\imgui\imgui\imgui_demo.cpp" />
+    <ClCompile Include="..\imgui\imgui\imgui_draw.cpp" />
+    <ClCompile Include="..\imgui\imgui\imgui_tables.cpp" />
+    <ClCompile Include="..\imgui\imgui\imgui_widgets.cpp" />
     <ClCompile Include="include\imgui_app.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\ImReflect_entry.hpp" />
+    <ClInclude Include="..\ImReflect_primitives.hpp" />
+    <ClInclude Include="..\ImReflect.hpp" />
     <ClInclude Include="include\imgui_app.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
