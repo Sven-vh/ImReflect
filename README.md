@@ -96,10 +96,10 @@ config.push_member<&Graphics::quality>()
     .as_dropdown()  // Dropdown menu
 .pop()
 .push_member<&Graphics::shadows>()
-    .as_radio()     // Radio buttons
+    .as_slider()     // Slider control
 .pop()
 .push_member<&Graphics::textures>()
-    .as_slider()    // Slider control
+    .as_radio()    // Radio buttons
 .pop();
 
 static Graphics gfx;
