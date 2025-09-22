@@ -47,6 +47,21 @@ namespace ImReflect::Detail {
 			}
 			}();
 	};
+
+	/* Simple RAII ID */
+	struct scope_id {
+		scope_id(const char* id) { ImGui::PushID(id); }
+		~scope_id() { ImGui::PopID(); }
+	};
+
+	void text_label(const std::string& text) {
+		size_t pos = text.find("##");
+		if (pos != std::string::npos) {
+			ImGui::TextUnformatted(text.c_str(), text.c_str() + pos);
+		} else {
+			ImGui::TextUnformatted(text.c_str());
+		}
+	}
 }
 
 /* Generic settings for types */
@@ -445,14 +460,18 @@ namespace ImReflect {
 		const auto& min = num_settings.get_min();
 		const auto& max = num_settings.get_max();
 		const auto& fmt = num_settings.get_format();
+		const auto& speed = num_settings.get_speed();
 		constexpr auto data_type = Detail::imgui_data_type_trait<T>::value;
 
 		bool changed = false;
 		if (num_settings.is_slider()) {
+			const auto id = Detail::scope_id("slider");
 			changed = ImGui::SliderScalar(label, data_type, &value, &min, &max, fmt.c_str(), num_settings.get_slider_flags());
 		} else if (num_settings.is_drag()) {
-			changed = ImGui::DragScalar(label, data_type, &value, T(0.1), &min, &max, fmt.c_str(), num_settings.get_slider_flags());
+			const auto id = Detail::scope_id("drag");
+			changed = ImGui::DragScalar(label, data_type, &value, speed, &min, &max, fmt.c_str(), num_settings.get_slider_flags());
 		} else if (num_settings.is_input()) {
+			const auto id = Detail::scope_id("input");
 			const auto& step = num_settings.get_step();
 			const auto& step_fast = num_settings.get_step_fast();
 			changed = ImGui::InputScalar(label, data_type, &value, &step, &step_fast, fmt.c_str(), num_settings.get_input_flags());
@@ -491,28 +510,39 @@ namespace ImReflect {
 		type_response<T>& bool_response = response.get<T>();
 		bool changed = false;
 		if (bool_settings.is_checkbox()) {
+			const auto id = Detail::scope_id("checkbox");
+
 			changed = ImGui::Checkbox(label, &value);
 		} else if (bool_settings.is_radio()) {
+			const auto id = Detail::scope_id("radio");
+
 			int int_value = value ? 1 : 0;
 			changed = ImGui::RadioButton(bool_settings.get_true_text().c_str(), &int_value, 1);
 			ImGui::SameLine();
 			changed |= ImGui::RadioButton(bool_settings.get_false_text().c_str(), &int_value, 0);
 			value = (int_value != 0);
+
 			ImGui::SameLine();
-			ImGui::Text(label);
+			ImReflect::Detail::text_label(label);
 		} else if (bool_settings.is_dropdown()) {
+			const auto id = Detail::scope_id("dropdown");
+
 			const char* items[] = { bool_settings.get_false_text().c_str(), bool_settings.get_true_text().c_str() };
 			int int_value = value ? 1 : 0;
 			changed = ImGui::Combo(label, &int_value, items, IM_ARRAYSIZE(items));
+
 			value = (int_value != 0);
 		} else if (bool_settings.is_button()) {
+			const auto id = Detail::scope_id("button");
+
 			const auto& button_label = value ? bool_settings.get_true_text() : bool_settings.get_false_text();
 			if (ImGui::Button(button_label.c_str())) {
 				value = !value;
 				changed = true;
 			}
+
 			ImGui::SameLine();
-			ImGui::Text("%s", label);
+			ImReflect::Detail::text_label(label);
 		} else {
 			throw std::runtime_error("Unknown input type for bool");
 		}
@@ -557,6 +587,8 @@ namespace ImReflect {
 
 		bool changed = false;
 		if (enum_settings.is_radio()) {
+			const auto id = Detail::scope_id("radio_enum");
+
 			int int_value = static_cast<int>(value);
 
 			const float child_width = ImGui::CalcItemWidth();
@@ -573,30 +605,43 @@ namespace ImReflect {
 				}
 				value = static_cast<E>(int_value);
 			}
+
 			ImGui::EndChild();
 			ImGui::SameLine();
 			ImGui::Text("%s", label);
 		} else if (enum_settings.is_dropdown()) {
+			const auto id = Detail::scope_id("dropdown_enum");
+
 			int int_value = static_cast<int>(value);
+
 			std::vector<const char*> item_vec;
 			for (const auto& name : enum_names) {
 				item_vec.push_back(name.data());
 			}
+
 			changed = ImGui::Combo(label, &int_value, item_vec.data(), enum_count);
 			value = static_cast<E>(int_value);
 		} else if (enum_settings.is_slider()) {
+			const auto id = Detail::scope_id("slider_enum");
+
 			int int_value = static_cast<int>(value);
 			const int min = static_cast<int>(enum_values.front());
 			const int max = static_cast<int>(enum_values.back());
+
 			const char* index_name = magic_enum::enum_name(value).data();
+
 			changed = ImGui::SliderInt(label, &int_value, min, max, index_name);
 			value = static_cast<E>(int_value);
 		} else if (enum_settings.is_drag()) {
+			const auto id = Detail::scope_id("drag_enum");
+
 			int int_value = static_cast<int>(value);
 			const int min = static_cast<int>(enum_values.front());
 			const int max = static_cast<int>(enum_values.back());
+
 			const auto& speed = enum_settings.get_speed();
 			const char* index_name = magic_enum::enum_name(value).data();
+
 			changed = ImGui::DragInt(label, &int_value, speed, min, max, index_name);
 			value = static_cast<E>(int_value);
 		} else {

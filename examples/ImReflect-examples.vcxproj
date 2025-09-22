@@ -46,11 +46,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <OutDir>$(ProjectDir)out\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)out-int\$(Configuration)-$(Platform)\</IntDir>
-    <ExternalIncludePath>$(SolutionDir)..\extern;$(SolutionDir)..\imgui\imgui;$(SolutionDir)include;$(SolutionDir)..\;$(ExternalIncludePath)</ExternalIncludePath>
+    <ExternalIncludePath>$(SolutionDir)..\extern;$(SolutionDir)..\imgui\imgui;$(SolutionDir)include;$(SolutionDir)..\;$(SolutionDir)..\imgui\imgui\misc\cpp;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <OutDir>$(ProjectDir)out\$(Configuration)-$(Platform)\</OutDir>
     <IntDir>$(ProjectDir)out-int\$(Configuration)-$(Platform)\</IntDir>
+    <ExternalIncludePath>$(SolutionDir)..\extern;$(SolutionDir)..\imgui\imgui;$(SolutionDir)include;$(SolutionDir)..\;$(SolutionDir)..\imgui\imgui\misc\cpp;$(ExternalIncludePath)</ExternalIncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -89,6 +90,7 @@
     <ClCompile Include="..\imgui\imgui\imgui_draw.cpp" />
     <ClCompile Include="..\imgui\imgui\imgui_tables.cpp" />
     <ClCompile Include="..\imgui\imgui\imgui_widgets.cpp" />
+    <ClCompile Include="..\imgui\imgui\misc\cpp\imgui_stdlib.cpp" />
     <ClCompile Include="include\imgui_app.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
