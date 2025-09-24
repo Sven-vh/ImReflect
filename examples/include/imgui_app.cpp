@@ -604,6 +604,63 @@ config.push_member<&MyTypes::int_one>()
 }
 
 // ========================================
+// Settings Test, disable, slider settings, ...
+// ========================================
+static void settings_test() {
+	ImGui::SeparatorText("Settings Test");
+	ImGui::PushID("settings_test");
+	ImGui::Indent();
+
+	static MyTypes my_struct;
+	ImGui::Text("Disable member");
+	HelpMarker("Disable a specific member variable");
+	{
+		ImGui::PushID("disable member");
+
+		ImSettings config;
+		config.push_member<&MyTypes::int_one>()
+			.disable()
+			.pop();
+
+		const std::string code = R"(ImSettings config;
+config.push_member<&MyTypes::int_one>()
+	.disable()
+.pop();)";
+
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("int_one is now disabled\nOutput:");
+		ImReflect::Input("my_struct", my_struct, config);
+
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Disable type");
+	HelpMarker("Disable all members of a specific type");
+	{
+		ImGui::PushID("disable type");
+
+		ImSettings config;
+		config.push<float>()
+			.disable()
+			.pop();
+		const std::string code = R"(ImSettings config;
+config.push<float>()
+	.disable()
+.pop();)";
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("All floats are now disabled\nOutput:");
+		ImReflect::Input("my_struct", my_struct, config);
+
+		ImGui::PopID();
+	}
+
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // Main
 // =======================================
 namespace svh {
@@ -663,8 +720,14 @@ namespace svh {
 
 			ImGui::EndTabItem();
 		}
+		if (ImGui::BeginTabItem("Settings")) {
+		
+			// Settings test
+			settings_test();
+			
+			ImGui::EndTabItem();
+		}
 
 		ImGui::EndTabBar();
-
 	}
 }

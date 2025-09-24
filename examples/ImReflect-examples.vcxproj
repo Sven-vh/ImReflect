@@ -98,6 +98,8 @@
     <ClInclude Include="..\ImReflect_entry.hpp" />
     <ClInclude Include="..\ImReflect_primitives.hpp" />
     <ClInclude Include="..\ImReflect.hpp" />
+    <ClInclude Include="..\ImReflect_helper.hpp" />
+    <ClInclude Include="..\ImReflect_std.hpp" />
     <ClInclude Include="include\imgui_app.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

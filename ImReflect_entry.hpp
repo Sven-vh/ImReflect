@@ -11,22 +11,32 @@ VISITABLE_STRUCT_IN_CONTEXT(ImReflect::Detail::ImContext, T, __VA_ARGS__);
 struct global_tag {};
 
 namespace ImReflect {
+
+	/* Forward declare */
+	namespace Detail {
+		template<typename T>
+		struct required;
+	}
+
 	/* Settings for types */
-	template<class T, class = void>
-	struct type_settings : svh::scope<type_settings> {};
+	template<class T, class ENABLE = void>
+	struct type_settings; /* Forward declare */
 
 	using ImSettings = svh::scope<type_settings>;
+
+	template<class T, class ENABLE>
+	struct type_settings : svh::scope<type_settings>, ImReflect::Detail::required<T> {};
 
 	/* responses for types */
 	struct response_base;
 
 	template<class T>
-	struct type_response;
+	struct type_response; /* Forward declare */
 
 	using ImResponse = svh::scope<type_response>;
 
 	/* Tags for the tag_invoke input functions */
-	struct ImInput_t : global_tag{ /* Public Tag */ };
+	struct ImInput_t : global_tag { /* Public Tag */ };
 	inline constexpr ImInput_t input{};
 
 	namespace Detail {
@@ -60,8 +70,20 @@ namespace ImReflect {
 
 		template<typename T>
 		void InputImpl(const char* label, T& value, ImSettings& settings, ImResponse& response) {
-			auto& type_settings = settings.get<T>();
-			auto& type_response = response.get<T>();
+			type_settings<T>& type_settings = settings.get<T>();
+			type_response<T>& type_response = response.get<T>();
+
+			/* Validate type settings */
+			//TODO: add link to documentation
+			static_assert(std::is_base_of_v<ImReflect::Detail::required<T>, std::remove_reference_t<decltype(type_settings)>>,
+				"ImReflect Error: TypeSettings specialization class must inherit from ImReflect::Detail::required<T>.");
+
+			const bool disabled = type_settings.is_disabled();
+			//const bool disabled = true;
+			if (disabled) {
+				ImGui::BeginDisabled();
+			}
+
 			/* Try tag_invoke for user defined implementations */
 			if constexpr (svh::is_tag_invocable_v<ImInput_t, const char*, T&, ImSettings&, ImResponse&>) {
 				tag_invoke(input, label, value, type_settings, type_response);
@@ -75,6 +97,10 @@ namespace ImReflect {
 				imgui_input_visit_field(label, value, type_settings, type_response);
 			} else {
 				static_assert(svh::always_false<T>::value, "No suitable Input implementation found for type T");
+			}
+
+			if (disabled) {
+				ImGui::EndDisabled();
 			}
 		}
 	}
@@ -138,6 +164,7 @@ namespace ImReflect {
 		}
 
 	public:
+		void foo_bar() {};
 		/* Setters */
 		void changed() override {
 			_is_changed = true;
