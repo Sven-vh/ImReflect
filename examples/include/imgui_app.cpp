@@ -717,7 +717,7 @@ config.push<std::string>()
 		const std::string code = R"(ImSettings config;
 config.push<std::string>()
 	.as_multiline()
-	.line_height(5) // 5 lines height
+	.line_count(5) // 5 lines height
 .pop();)";
 
 		IMGUI_SAMPLE_MULTI_CODE(code);
