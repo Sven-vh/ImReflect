@@ -661,6 +661,99 @@ config.push<float>()
 }
 
 // ========================================
+// std::string
+// =======================================
+static void string_test() {
+	ImGui::SeparatorText("String Test");
+	ImGui::PushID("string_test");
+	ImGui::Indent();
+
+	static std::string my_string = "Hello World";
+
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_string", my_string);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Multiline default");
+	HelpMarker("Multiline input, default settings");
+	{
+		ImGui::PushID("multiline default");
+
+		ImSettings config;
+		config.push<std::string>()
+			.as_multiline()
+			.pop();
+
+		const std::string code = R"(ImSettings config;
+config.push<std::string>()
+	.as_multiline()
+.pop();)";
+
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("Output:");
+		ImReflect::Input("my_string##multiline", my_string, config);
+
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+	ImGui::Text("Multiline specify height");
+	HelpMarker("Multiline input, specify height in lines");
+	{
+		ImGui::PushID("multiline height");
+
+		ImSettings config;
+		config.push<std::string>()
+			.as_multiline()
+			.line_count(5) // 5 lines height
+			.pop();
+
+		const std::string code = R"(ImSettings config;
+config.push<std::string>()
+	.as_multiline()
+	.line_height(5) // 5 lines height
+.pop();)";
+
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("Output:");
+		ImReflect::Input("my_string##multiline height", my_string, config);
+
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Multiline auto resize");
+	HelpMarker("Multiline input, auto resize");
+	{
+		ImSettings config;
+		config.push<std::string>()
+			.as_multiline()
+			.auto_resize()
+			.pop();
+
+		const std::string code = R"(ImSettings config;
+config.push<std::string>()
+	.as_multiline()
+	.auto_resize()
+.pop();)";
+
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("Output:");
+		ImReflect::Input("my_string##multiline auto resize", my_string, config);
+	}
+
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // Main
 // =======================================
 namespace svh {
@@ -721,10 +814,17 @@ namespace svh {
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("Settings")) {
-		
+
 			// Settings test
 			settings_test();
-			
+
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("String")) {
+
+			// String test
+			string_test();
+
 			ImGui::EndTabItem();
 		}
 

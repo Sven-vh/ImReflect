@@ -1,5 +1,6 @@
 #pragma once
 #include <imgui.h>
+#include <imgui_internal.h>
 #include "ImReflect_entry.hpp"
 
 /* Usefull helper functions */
@@ -21,6 +22,11 @@ namespace ImReflect::Detail {
 		} else {
 			ImGui::TextUnformatted(text.c_str());
 		}
+	}
+
+	float multiline_text_height(int line_height) {
+		const auto& ctx = *ImGui::GetCurrentContext();
+		return ctx.FontSize * line_height + ctx.Style.FramePadding.y * 2.0f;
 	}
 
 	/* Check and set input states in response */

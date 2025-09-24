@@ -372,7 +372,7 @@ namespace ImReflect {
 		ImReflect::Detail::input_flags<T>,
 		ImReflect::Detail::format_settings<T>,
 		ImReflect::Detail::slider_flags<T> {
-		/* Default to input */
+		/* Default to input widget */
 		type_settings() : ImReflect::Detail::input_type<T>(ImReflect::Detail::input_type_widget::Input) {}
 	};
 

@@ -96,7 +96,8 @@ namespace ImReflect {
 			else if constexpr (visit_struct::traits::is_visitable<T, ImContext>::value) {
 				imgui_input_visit_field(label, value, type_settings, type_response);
 			} else {
-				static_assert(svh::always_false<T>::value, "No suitable Input implementation found for type T");
+				//TODO: add link to documentation
+				static_assert(svh::always_false<T>::value, "ImReflect Error: No suitable Input implementation found for type T");
 			}
 
 			if (disabled) {
