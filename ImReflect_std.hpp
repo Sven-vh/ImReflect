@@ -22,8 +22,8 @@ namespace ImReflect::Detail {
 		int _line_count = -1; /* -1 = imgui default, 0 = auto resize, >0 line height*/
 
 	public:
-		type_settings<T>& as_multiline() { _multi_line = true; RETURN_THIS; }
-		type_settings<T>& auto_resize() { _multi_line = true; _line_count = 0; RETURN_THIS; }
+		type_settings<T>& as_multiline(const bool v = true) { _multi_line = v; RETURN_THIS; }
+		type_settings<T>& auto_resize(const bool v = true) { _multi_line = v; _line_count = v ? 0 : -1; RETURN_THIS; }
 		/* -1 = imgui default, 0 = auto resize, >0 line height*/
 		type_settings<T>& line_count(int count) { _multi_line = true; _line_count = count; RETURN_THIS; }
 
@@ -37,7 +37,7 @@ namespace ImReflect::Detail {
 	template<typename T>
 	struct tree_node {
 	private:
-		bool _tree_node = true;
+		bool _tree_node = false;
 	public:
 		type_settings<T>& as_tree_node(const bool v = true) { _tree_node = v; RETURN_THIS; }
 		const bool& is_tree_node() const { return _tree_node; };
@@ -95,6 +95,11 @@ namespace ImReflect {
 	struct type_settings<std::pair<T1, T2>> : ImSettings,
 		ImReflect::Detail::required<std::pair<T1, T2>>,
 		ImReflect::Detail::tree_node<std::pair<T1, T2>> {
+	private:
+		int _pair_count = 0; /* 0 = not set, >0 = user specified*/
+	public:
+		type_settings<std::pair<T1, T2>>& pair_count(int count) { _pair_count = count; RETURN_THIS_T(std::pair<T1,T2>); }
+		int get_pair_count() const { return _pair_count; }
 	};
 
 	template<typename T>
@@ -113,7 +118,7 @@ namespace ImReflect {
 		if (is_open) {
 			ImGui::SameLine();
 
-			ImReflect::Input("##pair_item", value, pair_settings, pair_response);
+			ImReflect::Input(label, value, pair_settings, pair_response);
 
 			ImGui::TreePop();
 		}
@@ -125,35 +130,37 @@ namespace ImReflect {
 		type_response<std::pair<T1, T2>>& pair_response = response.get<std::pair<T1, T2>>();
 
 		const bool as_tree = pair_settings.is_tree_node();
+		const int pair_count = pair_settings.get_pair_count();
 
 		Detail::text_label(label);
 		const auto id = Detail::scope_id("pair");
 		ImGui::SameLine();
 
-		const auto& style = ImGui::GetStyle();
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(5.0f, 0.0f));
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 0.0f));  // Remove item spacing
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));  // Remove item spacing
 
-		if (ImGui::BeginTable("table", 2, ImGuiTableFlags_Resizable)) {
+		const float column_width = (pair_count > 0) ? (ImGui::CalcItemWidth() / pair_count) : -FLT_MIN;
+
+		if (ImGui::BeginTable("table", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings)) {
 
 			//ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, style.CellPadding.y));
 			ImGui::TableNextColumn();
-			ImGui::PushItemWidth(-FLT_MIN);
+			ImGui::PushItemWidth(column_width);
 
 			ImGui::PushID("first");
 			if (as_tree) {
-				pair_item_input(label, value.first, pair_settings, pair_response);
+				pair_item_input("##pair_first", value.first, pair_settings, pair_response);
 			} else {
 				ImReflect::Input("##pair_first", value.first, pair_settings, pair_response);
 			}
 			ImGui::PopID();
 
 			ImGui::TableNextColumn();
-			ImGui::PushItemWidth(-FLT_MIN);
+			ImGui::PushItemWidth(column_width);
 
 			ImGui::PushID("second");
 			if (as_tree) {
-				pair_item_input(label, value.second, pair_settings, pair_response);
+				pair_item_input("##pair_second", value.second, pair_settings, pair_response);
 			} else {
 				ImReflect::Input("##pair_second", value.second, pair_settings, pair_response);
 			}
@@ -165,4 +172,70 @@ namespace ImReflect {
 		ImGui::PopStyleVar(2);
 		/* No need to check if changed, is already handled by their own input functions*/
 	}
+
+	/* ========================= std::tuple ========================= */
+	template<typename... Ts>
+	struct type_settings<std::tuple<Ts...>> : ImSettings,
+		ImReflect::Detail::required<std::tuple<Ts...>>,
+		ImReflect::Detail::tree_node<std::tuple<Ts...>> {
+	};
+
+	template<std::size_t Index = 0, typename... Ts>
+	void tuple_item_input(std::tuple<Ts...>& value, ImSettings& tuple_settings, ImResponse& tuple_response) {
+		if constexpr (Index < sizeof...(Ts)) {
+			using ElementType = std::tuple_element_t<Index, std::tuple<Ts...>>;
+			constexpr const char* tree_label = "##tuple_tree";
+			ImGuiID id = ImGui::GetID((std::string(tree_label) + std::to_string(Index)).c_str());
+			ImGuiStorage* storage = ImGui::GetStateStorage();
+			bool is_open = storage->GetBool(id, true);
+			auto tree_flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding;
+			if (is_open == false) tree_flags |= ImGuiTreeNodeFlags_SpanFullWidth;
+			// render
+			is_open = ImGui::TreeNodeEx((std::string(tree_label) + std::to_string(Index)).c_str(), tree_flags);
+			if (is_open) {
+				ImGui::SameLine();
+				ImReflect::Input("##tuple_item", std::get<Index>(value), tuple_settings, tuple_response);
+				ImGui::TreePop();
+			}
+			tuple_item_input<Index + 1, Ts...>(value, tuple_settings, tuple_response); // recurse
+		}
+	}
+
+	template<typename... Ts>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::tuple<Ts...>& value, ImSettings& settings, ImResponse& response) {
+		type_settings<std::tuple<Ts...>>& tuple_settings = settings.get<std::tuple<Ts...>>();
+		type_response<std::tuple<Ts...>>& tuple_response = response.get<std::tuple<Ts...>>();
+
+		const bool as_tree = tuple_settings.is_tree_node();
+
+		Detail::text_label(label);
+		ImGui::SameLine();
+		
+		const auto id = Detail::scope_id("tuple");
+		
+		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(5.0f, 0.0f));
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 0.0f));
+
+		if (ImGui::BeginTable("table", sizeof...(Ts), ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings)) {
+			std::apply([&](auto&... args) {
+				int index = 0;
+				((ImGui::TableNextColumn(),
+					ImGui::PushItemWidth(-FLT_MIN),
+					ImGui::PushID(index),
+					[&]() {
+						if (as_tree) {
+							tuple_item_input(value, tuple_settings, tuple_response);
+						} else {
+							ImReflect::Input("##tuple_item", args, tuple_settings, tuple_response);
+						}
+					}(),
+						ImGui::PopID(),
+						++index), ...);
+				}, value);
+			ImGui::EndTable();
+		}
+		ImGui::PopStyleVar(2);
+		/* No need to check if changed, is already handled by their own input functions*/
+	}
+
 }

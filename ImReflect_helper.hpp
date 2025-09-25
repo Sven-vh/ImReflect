@@ -7,7 +7,7 @@
 namespace ImReflect::Detail {
 	/* Helper macro to return *this as derived type */
 #define RETURN_THIS return static_cast<type_settings<T>&>(*this)
-#define RETURN_THIS_T(T) return static_cast<type_settings<T>&>(*this)
+#define RETURN_THIS_T(...) return static_cast<type_settings<__VA_ARGS__>&>(*this)
 
 	/* Simple RAII ID */
 	struct scope_id {

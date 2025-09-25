@@ -783,11 +783,16 @@ static void pair_test() {
 
 		ImSettings config;
 		config.push<std::pair<std::string, float>>()
-			.push<float>()
-			.min(0.0f)
-			.max(10.0f)
-			.as_slider()
-			.pop()
+			.as_tree_node(false)
+			____.push<float>()
+			________.min(0.0f)
+			________.max(10.0f)
+			________.as_slider()
+			____.pop()
+			____.push<std::string>()
+			________.as_multiline()
+			________.auto_resize()
+			____.pop()
 			.pop();
 
 		ImReflect::Input("nested_pair", nested_pair, config);
