@@ -24,7 +24,7 @@ namespace ImReflect::Detail {
 		}
 	}
 
-	float multiline_text_height(int line_height) {
+	float multiline_text_height(std::size_t line_height) {
 		const auto& ctx = *ImGui::GetCurrentContext();
 		return ctx.FontSize * line_height + ctx.Style.FramePadding.y * 2.0f;
 	}

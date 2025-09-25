@@ -99,7 +99,9 @@ x
 #define IMGUI_SAMPLE_MULTI_CODE(x) \
 { \
 	std::string input = x; \
+	ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetColorU32(ImGuiCol_TextDisabled)); \
 	ImGui::InputTextMultiline("##"#x, &input, ImVec2(0, 0), ImGuiInputTextFlags_ReadOnly | ImGuiInputTextFlags_AllowTabInput); \
+	ImGui::PopStyleColor(1); \
 }
 
 /* From imgui_demo.cpp */
@@ -579,6 +581,7 @@ static void member_settings_test() {
 			.min(-50)
 			.max(50)
 			.as_input()
+			.clamp()
 			.pop();
 
 		const std::string code = R"(ImSettings config;
@@ -591,6 +594,7 @@ config.push_member<&MyTypes::int_one>()
 	.min(-50)
 	.max(50)
 	.as_input()
+	.clamp()
 .pop();)";
 
 		IMGUI_SAMPLE_MULTI_CODE(code);
@@ -662,7 +666,7 @@ config.push<float>()
 
 // ========================================
 // std::string
-// =======================================
+// ========================================
 static void string_test() {
 	ImGui::SeparatorText("String Test");
 	ImGui::PushID("string_test");
@@ -754,6 +758,66 @@ config.push<std::string>()
 }
 
 // ========================================
+// std::pair
+// ========================================
+static void pair_test() {
+	ImGui::SeparatorText("std::pair Test");
+	ImGui::PushID("pair_test");
+	ImGui::Indent();
+
+	static std::pair<int, std::string> my_pair = { 42, "Hello" };
+
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_pair", my_pair);
+		ImGui::PopID();
+	}
+
+	ImGui::Text("Pair inside of pair");
+	HelpMarker("You can also nest pairs");
+	{
+		ImGui::PushID("nested pair");
+		static std::pair<std::pair<std::string, float>, int> nested_pair = { {"Nested", 3.14f}, 7 };
+
+		ImSettings config;
+		config.push<std::pair<std::string, float>>()
+			.push<float>()
+			.min(0.0f)
+			.max(10.0f)
+			.as_slider()
+			.pop()
+			.pop();
+
+		ImReflect::Input("nested_pair", nested_pair, config);
+		ImGui::PopID();
+	}
+
+	ImGui::Text("Pair of pairs");
+	HelpMarker("You can also nest pairs");
+	{
+		ImGui::PushID("pair of pairs");
+		static std::pair<std::pair<int, int>, std::pair<std::string, std::string>> pair_of_pairs = { {1, 2}, {"Hello", "World"} };
+		ImReflect::Input("pair_of_pairs", pair_of_pairs);
+		ImGui::PopID();
+	}
+
+	ImGui::Text("5 levels of pairs");
+	HelpMarker("You can also nest pairs");
+	{
+		ImGui::PushID("5 levels of pairs");
+		using pair5 = std::pair<int, std::pair<int, std::pair<int, std::pair<int, std::pair<int, int>>>>>;
+		static pair5 five_levels_of_pairs = { 1, {2, {3, {4, {5, 6}}}} };
+		ImReflect::Input("five_levels_of_pairs", five_levels_of_pairs);
+		ImGui::PopID();
+	}
+
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // Main
 // =======================================
 namespace svh {
@@ -824,6 +888,13 @@ namespace svh {
 
 			// String test
 			string_test();
+
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Pair")) {
+
+			// Pair test
+			pair_test();
 
 			ImGui::EndTabItem();
 		}

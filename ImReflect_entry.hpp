@@ -106,7 +106,16 @@ namespace ImReflect {
 		}
 	}
 
-	/* Public entry point */
+	/* Public entry points */
+	template<typename T>
+	ImResponse Input(const char* label, T& value) {
+		ImSettings settings;
+		ImResponse response;
+		Detail::InputImpl(label, value, settings, response);
+		return response;
+	}
+
+	/* With settings */
 	template<typename T>
 	ImResponse Input(const char* label, T& value, ImSettings& settings) {
 		ImResponse response;
@@ -114,10 +123,9 @@ namespace ImReflect {
 		return response;
 	}
 
+	/* Genreally not needed by users, mainly gets called by other input implementation*/
 	template<typename T>
-	ImResponse Input(const char* label, T& value) {
-		ImSettings settings;
-		ImResponse response;
+	ImResponse Input(const char* label, T& value, ImSettings& settings, ImResponse& response) {
 		Detail::InputImpl(label, value, settings, response);
 		return response;
 	}
