@@ -33,6 +33,15 @@ namespace ImReflect::Detail {
 		int get_line_count() const { return _line_count; }
 	};
 
+	/* Whether or not tree node is wanted */
+	template<typename T>
+	struct tree_node {
+	private:
+		bool _tree_node = true;
+	public:
+		type_settings<T>& as_tree_node(const bool v = true) { _tree_node = v; RETURN_THIS; }
+		const bool& is_tree_node() const { return _tree_node; };
+	};
 }
 
 /* Input fields for std types */
@@ -84,7 +93,8 @@ namespace ImReflect {
 	/* ========================= std::pair ========================= */
 	template<typename T1, typename T2>
 	struct type_settings<std::pair<T1, T2>> : ImSettings,
-		ImReflect::Detail::required<std::pair<T1, T2>> {
+		ImReflect::Detail::required<std::pair<T1, T2>>,
+		ImReflect::Detail::tree_node<std::pair<T1, T2>> {
 	};
 
 	template<typename T>
@@ -114,8 +124,7 @@ namespace ImReflect {
 		type_settings<std::pair<T1, T2>>& pair_settings = settings.get<std::pair<T1, T2>>();
 		type_response<std::pair<T1, T2>>& pair_response = response.get<std::pair<T1, T2>>();
 
-		//const auto flags = ImGuiTableFlags_Resizable | (count % 600 < 300 ? ImGuiTableFlags_Borders : 0);
-		const auto flags = ImGuiTableFlags_Resizable;
+		const bool as_tree = pair_settings.is_tree_node();
 
 		Detail::text_label(label);
 		const auto id = Detail::scope_id("pair");
@@ -125,21 +134,29 @@ namespace ImReflect {
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(5.0f, 0.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 0.0f));  // Remove item spacing
 
-		if (ImGui::BeginTable("table", 2, flags)) {
+		if (ImGui::BeginTable("table", 2, ImGuiTableFlags_Resizable)) {
 
 			//ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, style.CellPadding.y));
 			ImGui::TableNextColumn();
 			ImGui::PushItemWidth(-FLT_MIN);
 
 			ImGui::PushID("first");
-			pair_item_input(label, value.first, pair_settings, pair_response);
+			if (as_tree) {
+				pair_item_input(label, value.first, pair_settings, pair_response);
+			} else {
+				ImReflect::Input("##pair_first", value.first, pair_settings, pair_response);
+			}
 			ImGui::PopID();
 
 			ImGui::TableNextColumn();
 			ImGui::PushItemWidth(-FLT_MIN);
 
 			ImGui::PushID("second");
-			pair_item_input(label, value.second, pair_settings, pair_response);
+			if (as_tree) {
+				pair_item_input(label, value.second, pair_settings, pair_response);
+			} else {
+				ImReflect::Input("##pair_second", value.second, pair_settings, pair_response);
+			}
 			ImGui::PopID();
 
 			ImGui::EndTable();
