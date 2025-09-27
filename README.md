@@ -155,7 +155,7 @@ void tag_invoke(ImReflect::ImInput_t, const char* label, Transform& value, ImSet
 }
 ```
 
-ImReflect will find this function using ADL and gets called when it receives a Transform.
+ImReflect will find this function using Tag Invoke and gets called when it receives a Transform.
 
 **Important**, to be able to find your function, it needs to be defined exactly like this:
 
