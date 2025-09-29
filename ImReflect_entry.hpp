@@ -123,11 +123,10 @@ namespace ImReflect {
 		return response;
 	}
 
-	/* Genreally not needed by users, mainly gets called by other input implementation*/
+	/* Genreally not needed by users, mainly gets called by other input implementations */
 	template<typename T>
-	ImResponse Input(const char* label, T& value, ImSettings& settings, ImResponse& response) {
+	void Input(const char* label, T& value, ImSettings& settings, ImResponse& response) {
 		Detail::InputImpl(label, value, settings, response);
-		return response;
 	}
 }
 

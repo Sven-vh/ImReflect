@@ -236,6 +236,58 @@ static void primitive_test() {
 }
 
 // ========================================
+// Format Test
+// ========================================
+static void format_test() {
+	ImGui::SeparatorText("Format");
+	ImGui::PushID("format");
+	ImGui::Indent();
+	static float my_float = 0.0f;
+	static double my_double = 0.0;
+	ImGui::Text("Float - default format");
+	HelpMarker("Default format");
+	{
+		auto config = ImSettings();
+		config.push<float>()
+			.pop();
+		ImReflect::Input("my_float", my_float, config);
+	}
+	ImGui::Text("Float - custom format");
+	HelpMarker("Custom format with 3 decimal places");
+	{
+		auto config = ImSettings();
+		config.push<float>()
+			.format("%.3f")
+			.pop();
+		ImReflect::Input("my_float##format", my_float, config);
+	}
+
+	ImGui::NewLine();
+	ImGui::Text("Double - default format");
+	HelpMarker("Default format");
+	{
+		auto config = ImSettings();
+		config.push<double>()
+			.pop();
+		ImReflect::Input("my_double", my_double, config);
+	}
+	ImGui::Text("uint32_t - as_hex()");
+	HelpMarker("Custom format as hexadecimal");
+	{
+		auto config = ImSettings();
+		config.push<uint32_t>()
+			.as_hex()
+			.pop();
+		static uint32_t my_char = 0;
+		ImReflect::Input("uint32_t", my_char, config);
+	}
+
+
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // Boolean Test
 // ========================================
 static void boolean_test() {
@@ -246,9 +298,13 @@ static void boolean_test() {
 	static bool my_bool;
 
 	ImGui::Text("Default - as_checkbox()");
-	HelpMarker("Default settings, no extra settings given");
+	HelpMarker("Will make it a checkbox widget, is default");
 	{
-		ImReflect::Input("my_bool", my_bool);
+		auto config = ImSettings();
+		config.push<bool>()
+			.as_checkbox()
+			.pop();
+		ImReflect::Input("my_bool", my_bool, config);
 	}
 
 	ImGui::NewLine();
@@ -344,9 +400,13 @@ static void enum_test() {
 	static MyEnum my_enum;
 
 	ImGui::Text("Default - as_dropdown()");
-	HelpMarker("Default settings, no extra settings given");
+	HelpMarker("Default settings");
 	{
-		ImReflect::Input("my_enum", my_enum);
+		auto config = ImSettings();
+		config.push<MyEnum>()
+			.as_dropdown()
+			.pop();
+		ImReflect::Input("my_enum", my_enum, config);
 	}
 
 	ImGui::NewLine();
@@ -850,6 +910,11 @@ namespace svh {
 			primitive_test<double>();
 			primitive_test<long double>();
 
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Format")) {
+			// Format test
+			format_test();
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("Booleans")) {

@@ -115,7 +115,6 @@ namespace ImReflect::Detail {
 	};
 
 	/* format settings for input widgets */
-/* Comprehensive format settings for ImGui input widgets */
 	template<typename T>
 	struct format_settings {
 	private:
