@@ -79,9 +79,13 @@ namespace ImReflect {
 				"ImReflect Error: TypeSettings specialization class must inherit from ImReflect::Detail::required<T>.");
 
 			const bool disabled = type_settings.is_disabled();
-			//const bool disabled = true;
 			if (disabled) {
 				ImGui::BeginDisabled();
+			}
+
+			const float min_width = type_settings.get_min_width();
+			if (min_width > 0.0f) {
+				ImGui::PushItemWidth(min_width);
 			}
 
 			/* Try tag_invoke for user defined implementations */

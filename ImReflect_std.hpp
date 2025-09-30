@@ -98,7 +98,7 @@ namespace ImReflect {
 	private:
 		int _pair_count = 0; /* 0 = not set, >0 = user specified*/
 	public:
-		type_settings<std::pair<T1, T2>>& pair_count(int count) { _pair_count = count; RETURN_THIS_T(std::pair<T1,T2>); }
+		type_settings<std::pair<T1, T2>>& pair_count(int count) { _pair_count = count; RETURN_THIS_T(std::pair<T1, T2>); }
 		int get_pair_count() const { return _pair_count; }
 	};
 
@@ -130,7 +130,12 @@ namespace ImReflect {
 		type_response<std::pair<T1, T2>>& pair_response = response.get<std::pair<T1, T2>>();
 
 		const bool as_tree = pair_settings.is_tree_node();
+
 		const int pair_count = pair_settings.get_pair_count();
+		const bool use_pair_count = (pair_count > 0);
+
+		const float min_width = pair_settings.get_min_width();
+		const bool use_min_width = (min_width > 0.0f);
 
 		Detail::text_label(label);
 		const auto id = Detail::scope_id("pair");
@@ -139,11 +144,26 @@ namespace ImReflect {
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(5.0f, 0.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));  // Remove item spacing
 
-		const float column_width = (pair_count > 0) ? (ImGui::CalcItemWidth() / pair_count) : -FLT_MIN;
+		//const float column_width = (pair_count > 0) ? (ImGui::CalcItemWidth() / pair_count) : -FLT_MIN;
+		float column_width = -FLT_MIN;
+		if (use_min_width) {
+			column_width = min_width;
+		} else if (use_pair_count) {
+			column_width = ImGui::CalcItemWidth() / pair_count;
+		} else {
+			column_width = -FLT_MIN;
+		}
 
-		if (ImGui::BeginTable("table", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings)) {
+		if (ImGui::BeginTable("table", 2, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings | ImGuiTableFlags_NoHostExtendX)) {
 
-			//ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(0.0f, style.CellPadding.y));
+			// push ImGuiTableColumnFlags_WidthFixed
+
+			//ImGui::TableNextColumn();
+			if (use_min_width) {
+				ImGui::TableSetupColumn("left", ImGuiTableColumnFlags_WidthFixed);
+				ImGui::TableSetupColumn("right", ImGuiTableColumnFlags_WidthFixed);
+			}
+
 			ImGui::TableNextColumn();
 			ImGui::PushItemWidth(column_width);
 
@@ -210,9 +230,9 @@ namespace ImReflect {
 
 		Detail::text_label(label);
 		ImGui::SameLine();
-		
+
 		const auto id = Detail::scope_id("tuple");
-		
+
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(5.0f, 0.0f));
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4.0f, 0.0f));
 

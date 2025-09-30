@@ -58,9 +58,18 @@ namespace ImReflect::Detail {
 		const bool& is_disabled() const { return _disabled; }
 	};
 
+	template<typename T>
+	struct min_width_mixin {
+	private:
+		float _min_width = 0.0f; /* 0 = imgui default */
+	public:
+		type_settings<T>& min_width(float width) { _min_width = width; RETURN_THIS; }
+		const float& get_min_width() const { return _min_width; };
+	};
+
 	/* Required marker */
 	template<typename T>
-	struct required : disabled<T> {
+	struct required : disabled<T>, min_width_mixin<T> {
 
 	};
 

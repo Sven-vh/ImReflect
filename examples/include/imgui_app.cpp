@@ -668,7 +668,7 @@ config.push_member<&MyTypes::int_one>()
 }
 
 // ========================================
-// Settings Test, disable, slider settings, ...
+// Settings Test, disable, min_width
 // ========================================
 static void settings_test() {
 	ImGui::SeparatorText("Settings Test");
@@ -717,6 +717,50 @@ config.push<float>()
 		ImGui::Text("All floats are now disabled\nOutput:");
 		ImReflect::Input("my_struct", my_struct, config);
 
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Min Width");
+	HelpMarker("Set a minimum width for all members of a specific type");
+	{
+		ImGui::PushID("min width");
+		ImSettings config;
+		config.push<float>()
+			.min_width(200.0f)
+			.pop();
+		const std::string code = R"(ImSettings config;
+config.push<float>()
+	.min_width(200.0f)
+.pop();)";
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("All floats now have a minimum width of 200 pixels\nOutput:");
+		ImReflect::Input("my_struct", my_struct, config);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Min Width Pair");
+	HelpMarker("Set a minimum width for all members of a specific type");
+	{
+		ImGui::PushID("min width pair");
+		using pair_type = std::pair<int, float>;
+		static pair_type my_pair = { 42, 3.14f };
+		ImSettings config;
+		config.push<pair_type>()
+			.min_width(200.0f)
+			.pop();
+		const std::string code = R"(using pair_type = std::pair<int, float>;
+static pair_type my_pair = { 42, 3.14f };
+ImSettings config;
+config.push<pair_type>()
+	.min_width(200.0f)
+.pop();)";
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("The pair now has a minimum width of 200 pixels\nOutput:");
+		ImReflect::Input("my_pair", my_pair, config);
 		ImGui::PopID();
 	}
 
@@ -874,6 +918,12 @@ static void pair_test() {
 		ImGui::PushID("5 levels of pairs");
 		using pair5 = std::pair<int, std::pair<int, std::pair<int, std::pair<int, std::pair<int, int>>>>>;
 		static pair5 five_levels_of_pairs = { 1, {2, {3, {4, {5, 6}}}} };
+
+		ImSettings config;
+		config.push<pair5>()
+			.min_width(300.0f)
+			.pop();
+
 		ImReflect::Input("five_levels_of_pairs", five_levels_of_pairs);
 		ImGui::PopID();
 	}
