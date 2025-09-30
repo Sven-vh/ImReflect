@@ -874,6 +874,13 @@ static void pair_test() {
 		ImGui::PushID("5 levels of pairs");
 		using pair5 = std::pair<int, std::pair<int, std::pair<int, std::pair<int, std::pair<int, int>>>>>;
 		static pair5 five_levels_of_pairs = { 1, {2, {3, {4, {5, 6}}}} };
+
+		ImSettings config;
+		config.push<std::pair>().pair_count(5).pop();
+
+		int count = config.get<std::pair>().get_pair_count();
+		int other_count = config.get<std::pair<int, int>>().get_pair_count();
+
 		ImReflect::Input("five_levels_of_pairs", five_levels_of_pairs);
 		ImGui::PopID();
 	}

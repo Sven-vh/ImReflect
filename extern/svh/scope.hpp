@@ -12,12 +12,13 @@
 #define SVH_AUTO_INSERT true
 #endif
 
+/* Helpers */
 namespace svh {
-	// Base template
+	/* Base template */
 	template<typename T>
 	struct member_pointer_traits;
 
-	// Specialization for member object pointers
+	/* Specialization for member object pointers */
 	template<typename M, typename T>
 	struct member_pointer_traits<M T::*> {
 		using member_type = M;
@@ -30,7 +31,75 @@ namespace svh {
 		using C = typename traits::class_type;
 		return reinterpret_cast<std::size_t>(&(reinterpret_cast<C const volatile*>(0)->*member));
 	}
+
+	// Handles templates with mixed type/non-type parameters
+	template<typename T>
+	struct is_templated : std::false_type {};
+
+	// Type-only parameters
+	template<template<typename...> class Template, typename... Args>
+	struct is_templated<Template<Args...>> : std::true_type {};
+
+	// Non-type parameters (e.g., std::array<int, 5>)
+	template<template<typename, auto...> class Template, typename T, auto... Args>
+	struct is_templated<Template<T, Args...>> : std::true_type {};
+
+	// Pure non-type parameters
+	template<template<auto...> class Template, auto... Args>
+	struct is_templated<Template<Args...>> : std::true_type {};
 }
+
+/* template param count helper */
+namespace svh {
+	struct dummy_type {};
+
+	// Helper: ignores the index, returns the type
+	template<typename T, std::size_t>
+	using ignore_index = T;
+
+	template<typename T, std::size_t... Is>
+	struct repeat_type_impl {
+		template<template<typename...> class Tmpl>
+		using apply = Tmpl<ignore_index<T, Is>...>;
+	};
+
+	/* [Example] T = dummy_type, N = 2, typename = std::index_sequence<0, 1>*/
+	template<typename T, std::size_t N, typename = std::make_index_sequence<N>>
+	struct repeat_type;
+
+	template<typename T, std::size_t N, std::size_t... Is>
+	struct repeat_type<T, N, std::index_sequence<Is...>>
+		: repeat_type_impl<T, Is...> {
+	};
+
+	/* Default param counts */
+	template<template<typename...> class T>
+	struct default_param_count {
+		static_assert(sizeof(T<int>) == 0,
+			"No default parameter count defined for this template. "
+			"Either specialize default_param_count<T> or provide N explicitly.");
+	};
+
+	// Define defaults for common types
+	template<> struct default_param_count<std::vector> { static constexpr std::size_t value = 1; };
+	template<> struct default_param_count<std::pair> { static constexpr std::size_t value = 2; };
+	template<> struct default_param_count<std::map> { static constexpr std::size_t value = 2; };
+	template<> struct default_param_count<std::tuple> { static constexpr std::size_t value = 3; };
+
+	/* Main template */
+	/* [Example] T = std::pair, N = 2 (default defined by type traits) */
+	template<template<typename...> class T, std::size_t N = default_param_count<T>::value>
+	struct template_instantiator {
+		/*
+		[Example]
+		1) type = repeat_type<dummy_type, 2>::apply<std::pair>
+		2)		= std::pair<ignore_index<dummy_type, 0>, ignore_index<dummy_type, 1>>
+
+		*/
+		using type = typename repeat_type<dummy_type, N>::template apply<T>;
+	};
+}
+
 
 namespace svh {
 
@@ -55,6 +124,13 @@ namespace svh {
 		BaseTemplate<T>& push() {
 			return _push<T>();
 		}
+
+		template<template<class...> class T, std::size_t Arg_Count = default_param_count<T>::value>
+		auto& push() {
+			using instantiated = typename template_instantiator<T, Arg_Count>::type;
+			return _push<instantiated>();
+		}
+
 
 		/// <summary>
 		/// Push multiple scopes in order.
@@ -174,6 +250,12 @@ namespace svh {
 		template <class T>
 		BaseTemplate<T>& get() {
 			return _get<T>();
+		}
+
+		template<template<class...> class T, std::size_t Arg_Count = default_param_count<T>::value>
+		auto& get() {
+			using instantiated = typename template_instantiator<T, Arg_Count>::type;
+			return _get<instantiated>();
 		}
 
 		template <class T, class U, class... Rest>
