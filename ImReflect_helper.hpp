@@ -43,6 +43,12 @@ namespace ImReflect::Detail {
 		}
 		if (ImGui::IsItemFocused()) response.focused();
 	}
+
+	void imgui_tooltip(const char* tooltip) {
+		if (tooltip && tooltip[0] != '\0' && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+			ImGui::SetTooltip("%s", tooltip);
+		}
+	}
 }
 
 /* Shared Generic settings for types between primitives and std types */

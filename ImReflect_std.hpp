@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include <imgui.h>
 #include <imgui_stdlib.h>
 #include "ImReflect_helper.hpp"
@@ -77,6 +77,33 @@ namespace ImReflect::Detail {
 		type_settings<T>& columns(int count) { _columns = count; RETURN_THIS; }
 		int get_columns() const { return _columns; }
 	};
+
+	template<typename T>
+	struct reorderable_mixin {
+	private:
+		bool _reorderable = true;
+	public:
+		type_settings<T>& reorderable(const bool v = true) { _reorderable = v; RETURN_THIS; }
+		const bool& is_reorderable() const { return _reorderable; };
+	};
+
+	template<typename T>
+	struct insertable_mixin {
+	private:
+		bool _insertable = true;
+	public:
+		type_settings<T>& insertable(const bool v = true) { _insertable = v; RETURN_THIS; }
+		const bool& is_insertable() const { return _insertable; };
+	};
+
+	template<typename T>
+	struct removable_mixin {
+	private:
+		bool _removable = true;
+	public:
+		type_settings<T>& removable(const bool v = true) { _removable = v; RETURN_THIS; }
+		const bool& is_removable() const { return _removable; };
+	};
 }
 
 /* Input fields for std types */
@@ -130,38 +157,8 @@ namespace ImReflect {
 	namespace Detail {
 		constexpr const char* TUPLE_TREE_LABEL = "##tuple_tree";
 		constexpr ImVec2 TUPLE_CELL_PADDING{ 5.0f, 0.0f };
+		constexpr ImVec2 TUPLE_CELL_GRID_PADDING{ 5.0f, 2.5f };
 		constexpr ImVec2 TUPLE_ITEM_SPACING{ 4.0f, 0.0f };
-	}
-
-	template<typename T, std::size_t Index = 0, typename... Ts>
-	void render_tuple_element_as_tree(std::tuple<Ts...>& value, ImSettings& settings, ImResponse& response) {
-		if constexpr (Index < sizeof...(Ts)) {
-			auto& tuple_settings = settings.get<T>();
-			auto& tuple_response = response.get<T>();
-
-			const std::string node_id = std::string(Detail::TUPLE_TREE_LABEL) + std::to_string(Index);
-
-			ImGui::TableNextColumn();
-
-			ImGuiID id = ImGui::GetID(node_id.c_str());
-			ImGuiStorage* storage = ImGui::GetStateStorage();
-			bool is_open = storage->GetBool(id, true);
-
-			auto tree_flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding;
-			if (is_open == false) tree_flags |= ImGuiTreeNodeFlags_SpanFullWidth;
-
-
-			is_open = ImGui::TreeNodeEx(node_id.c_str(), tree_flags);
-			if (is_open) {
-				ImGui::SameLine();
-				ImGui::SetNextItemWidth(-FLT_MIN);
-				ImReflect::Input("##tuple_item", std::get<Index>(value), tuple_settings, tuple_response);
-				ImGui::TreePop();
-			}
-
-			// Tail recursion
-			render_tuple_element_as_tree<T, Index + 1>(value, settings, response);
-		}
 	}
 
 	template<typename T, typename Tuple, std::size_t... Is>
@@ -169,8 +166,12 @@ namespace ImReflect {
 		auto& tuple_settings = settings.get<T>();
 		auto& tuple_response = response.get<T>();
 
-		const bool is_line = tuple_settings.is_line();
+		/* Settings to have things in a grid */
 		const bool is_grid = tuple_settings.is_grid();
+		const int columns = tuple_settings.get_columns();
+
+		/* Settings to have things on a single line*/
+		const bool is_line = tuple_settings.is_line();
 		const bool use_min_width = tuple_settings.has_min_width();
 		const float min_width = tuple_settings.get_min_width();
 
@@ -179,29 +180,58 @@ namespace ImReflect {
 			column_width = min_width;
 		}
 
-		if (use_min_width) {
-			const int tuple_size = sizeof...(Is);
-			for (int i = 0; i < tuple_size; ++i) {
-				// First column: fixed width using min_width
-				// Second column: auto-size to content
-				if (i == 0) {
-					ImGui::TableSetupColumn("left", ImGuiTableColumnFlags_WidthFixed, min_width);
+		if ((is_line && use_min_width) || is_grid) {
+			const int loop_count = (is_line && use_min_width) ? sizeof...(Is) : columns;
+			const bool first_col_fixed = (is_line && use_min_width) || (is_grid && use_min_width);
 
+			for (int i = 0; i < loop_count; ++i) {
+				if (i == 0 && first_col_fixed) {
+					ImGui::TableSetupColumn("left", ImGuiTableColumnFlags_WidthFixed, min_width);
 				} else {
-					ImGui::TableSetupColumn("right", ImGuiTableColumnFlags_WidthStretch);
+					if (is_grid && use_min_width) {
+						ImGui::TableSetupColumn("right", ImGuiTableColumnFlags_WidthFixed, min_width);
+					} else {
+						ImGui::TableSetupColumn("right", ImGuiTableColumnFlags_WidthStretch);
+					}
 				}
 			}
 		}
 
+		const bool is_dropdown = tuple_settings.is_dropdown();
 		auto render_element = [&](auto index, auto& element) {
+			if (is_grid) {
+				const int col = index % columns;
+				if (col == 0 && index != 0) {
+					ImGui::TableNextRow();
+				}
+			}
 			ImGui::TableNextColumn();
-			ImGui::SetNextItemWidth(column_width);
 			ImGui::PushID(static_cast<int>(index));
-			ImReflect::Input("##tuple_item", element, tuple_settings, tuple_response);
+			if (is_dropdown) {
+				const std::string node_id = std::string(Detail::TUPLE_TREE_LABEL) + std::to_string(index);
+
+				const ImGuiID id = ImGui::GetID(node_id.c_str());
+				ImGuiStorage* storage = ImGui::GetStateStorage();
+				bool is_open = storage->GetBool(id, true);
+
+				auto tree_flags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_FramePadding;
+				if (is_open == false) tree_flags |= ImGuiTreeNodeFlags_SpanFullWidth;
+
+				is_open = ImGui::TreeNodeEx(node_id.c_str(), tree_flags);
+				if (is_open) {
+					ImGui::SameLine();
+					ImGui::SetNextItemWidth(column_width);
+					ImReflect::Input("##tuple_item", element, tuple_settings, tuple_response);
+					ImGui::TreePop();
+				}
+			} else {
+				ImGui::SetNextItemWidth(column_width);
+				ImReflect::Input("##tuple_item", element, tuple_settings, tuple_response);
+			}
 			ImGui::PopID();
 			};
 
-		// Much cleaner fold expression
+		// fold expression
 		(render_element(Is, std::get<Is>(value)), ...);
 	}
 
@@ -215,25 +245,34 @@ namespace ImReflect {
 
 		const auto id = Detail::scope_id("tuple");
 
-		// Table rendering
-		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, Detail::TUPLE_CELL_PADDING);
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, Detail::TUPLE_ITEM_SPACING);
-
-		const bool is_line = tuple_settings.is_line();
+		/* Settings to have things in a grid */
 		const bool is_grid = tuple_settings.is_grid();
+
+		/* Settings to have things on a single line*/
+		const bool is_line = tuple_settings.is_line();
 		const bool use_min_width = tuple_settings.has_min_width();
-		const float min_width = tuple_settings.get_min_width();
 
 		ImGuiTableFlags flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings;
 		if (use_min_width) flags |= ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoKeepColumnsVisible;
 
 		constexpr auto tuple_size = sizeof...(Ts);
-		if (ImGui::BeginTable("table", tuple_size, flags)) {
-			if (tuple_settings.is_dropdown()) {
-				render_tuple_element_as_tree<T>(value, tuple_settings, tuple_response);
-			} else {
-				render_tuple_elements_as_table<T>(value, tuple_settings, tuple_response, std::make_index_sequence<tuple_size>{});
-			}
+		const int columns = tuple_settings.get_columns();
+
+		int tuple_columns = tuple_size;
+		if (is_grid) {
+			tuple_columns = std::min<int>(columns, tuple_size);
+		}
+
+		// Table rendering
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, Detail::TUPLE_ITEM_SPACING);
+		if (is_grid) {
+			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, Detail::TUPLE_CELL_GRID_PADDING);
+		} else {
+			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, Detail::TUPLE_CELL_PADDING);
+		}
+
+		if (ImGui::BeginTable("table", tuple_columns, flags)) {
+			render_tuple_elements_as_table<T>(value, tuple_settings, tuple_response, std::make_index_sequence<tuple_size>{});
 			ImGui::EndTable();
 		}
 
@@ -274,6 +313,253 @@ namespace ImReflect {
 	void tag_invoke(Detail::ImInputLib_t, const char* label, std::pair<T1, T2>& value, ImSettings& settings, ImResponse& response) {
 		auto tuple_value = std::tie(value.first, value.second);
 		draw_tuple_element_label<std_pair>(label, tuple_value, settings, response);
+	}
+
+	/* ========================= std::vector ========================= */
+	struct std_vector {};
+
+	template<>
+	struct type_settings<std_vector> : ImSettings,
+		ImReflect::Detail::required<std_vector>,
+		ImReflect::Detail::dropdown<std_vector>,
+		ImReflect::Detail::reorderable_mixin<std_vector>,
+		ImReflect::Detail::insertable_mixin<std_vector>,
+		ImReflect::Detail::removable_mixin<std_vector> {
+	};
+
+	namespace Detail {
+		constexpr const char* VECTOR_TREE_LABEL = "##vector_tree";
+	}
+
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::vector<T>& value, ImSettings& settings, ImResponse& response) {
+		auto& vec_settings = settings.get<std_vector>();
+		auto& vec_response = response.get<std_vector>();
+
+		const bool is_dropdown = vec_settings.is_dropdown();
+		const bool use_min_width = vec_settings.has_min_width();
+		const float min_width = vec_settings.get_min_width();
+
+		const bool is_reorderable = vec_settings.is_reorderable();
+		const bool is_insertable = vec_settings.is_insertable();
+		const bool is_removable = vec_settings.is_removable();
+
+		float column_width = 0;
+		if (use_min_width) {
+			column_width = min_width;
+		}
+
+		constexpr bool default_constructible = std::is_default_constructible_v<T>;
+		constexpr bool copy_constructible = std::is_copy_constructible_v<T>;
+
+		const auto id = Detail::scope_id("vector");
+
+		ImReflect::Detail::text_label(label);
+		ImGui::SameLine();
+		size_t item_count = value.size();
+		if (is_insertable) {
+			if constexpr (default_constructible) {
+				if (ImGui::Button("+")) {
+					value.emplace_back(T());
+					vec_response.changed();
+				}
+			} else {
+				ImGui::BeginDisabled();
+				ImGui::Button("+");
+				ImGui::EndDisabled();
+				Detail::imgui_tooltip("Type is not default constructible, cannot add new item");
+			}
+		}
+		ImGui::SameLine();
+		if (is_removable) {
+			if (item_count > 0) {
+				if (ImGui::Button("-")) {
+					value.pop_back();
+					vec_response.changed();
+					item_count = value.size();
+				}
+			}
+		}
+
+		bool is_open = true;
+		if (is_dropdown) {
+			is_open = ImGui::TreeNodeEx(Detail::VECTOR_TREE_LABEL, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanFullWidth);
+		}
+		if (is_open) {
+			if (!is_dropdown) ImGui::Indent();
+
+			if constexpr (move_constructible) {
+				if (is_reorderable) {
+					ImGui::BeginChild("##drop_zone_0", ImVec2(0, ImGui::GetStyle().ItemSpacing.y * 0.5f), false);
+					ImGui::EndChild();
+
+					if (ImGui::BeginDragDropTarget()) {
+						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("VECTOR_ITEM")) {
+							int source_idx = *(const int*)payload->Data;
+							int target_idx = 0; // Insert at beginning
+
+							if (source_idx != target_idx) {
+								// Moving to beginning: rotate [0, source, source+1)
+								std::rotate(value.begin(),
+									value.begin() + source_idx,
+									value.begin() + source_idx + 1);
+								vec_response.changed();
+							}
+						}
+						ImGui::EndDragDropTarget();
+					}
+				}
+			}
+
+			for (int i = 0; i < item_count; ++i) {
+				ImGui::PushID(i);
+
+				bool right_clicked = false;
+
+				if (is_reorderable) {
+					//ImGui::BeginDisabled();
+					//ImGui::Button("==");
+					//ImGui::EndDisabled();
+					ImGui::Text("==");
+					if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+						ImGui::SetDragDropPayload("VECTOR_ITEM", &i, sizeof(int));
+						//ImGui::Text("Moving item %d", i);
+						ImGui::PushItemWidth(column_width);
+						ImReflect::Input("##vector_item", value[i], vec_settings, vec_response);
+						ImGui::PopItemWidth();
+						ImGui::EndDragDropSource();
+					}
+					if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
+						right_clicked = true;
+					}
+					ImGui::SameLine();
+				}
+
+				ImGui::PushItemWidth(column_width);
+				ImReflect::Input("##vector_item", value[i], vec_settings, vec_response);
+				ImGui::PopItemWidth();
+
+				/* drop zone between items */
+				const float item_spacing_y = ImGui::GetStyle().ItemSpacing.y;
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - item_spacing_y);
+				ImGui::BeginChild("##spacer", ImVec2(0, item_spacing_y), false);
+				ImGui::EndChild();
+				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - item_spacing_y);
+
+				if constexpr (move_constructible) {
+
+					if (is_reorderable) {
+						if (ImGui::BeginDragDropTarget()) {
+							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("VECTOR_ITEM")) {
+								int source_idx = *(const int*)payload->Data;
+								int target_idx = i + 1; // Now this correctly inserts AFTER item i
+
+								if (source_idx != target_idx) {
+									if (source_idx < target_idx) {
+										std::rotate(value.begin() + source_idx,
+											value.begin() + source_idx + 1,
+											value.begin() + target_idx);
+									} else {
+										std::rotate(value.begin() + target_idx,
+											value.begin() + source_idx,
+											value.begin() + source_idx + 1);
+									}
+									vec_response.changed();
+								}
+							}
+							ImGui::EndDragDropTarget();
+						}
+					}
+				}
+
+				if (right_clicked) {
+					ImGui::OpenPopup("item_context_menu");
+				}
+
+				if (ImGui::BeginPopup("item_context_menu")) {
+
+					if (is_removable && ImGui::MenuItem("Remove item")) {
+						value.erase(value.begin() + i);
+						vec_response.changed();
+						ImGui::EndPopup();
+						ImGui::PopID();
+						break; /* Important, as the vector has changed */
+					}
+					//only allow duplicate/insert if type is default constructible
+					if constexpr (copy_constructible) {
+						if (is_insertable && ImGui::MenuItem("Duplicate item")) {
+							value.insert(value.begin() + i + 1, value[i]);
+							vec_response.changed();
+						}
+					} else {
+						ImGui::BeginDisabled();
+						if (ImGui::MenuItem("Duplicate item")) {
+						}
+						ImGui::EndDisabled();
+						Detail::imgui_tooltip("Type is not copy constructible, cannot duplicate item");
+					}
+					ImGui::Separator();
+					//move up/down
+					if (is_reorderable) {
+
+						if (ImGui::MenuItem("Move up") && i != 0) {
+							std::swap(value[i], value[i - 1]);
+							vec_response.changed();
+						}
+						if (ImGui::MenuItem("Move down") && i != static_cast<int>(item_count) - 1) {
+							std::swap(value[i], value[i + 1]);
+							vec_response.changed();
+						}
+						ImGui::Separator();
+						if (ImGui::MenuItem("Move to top") && i != 0) {
+							std::rotate(value.begin(), value.begin() + i, value.begin() + i + 1);
+							vec_response.changed();
+						}
+						if (ImGui::MenuItem("Move to bottom") && i != static_cast<int>(item_count) - 1) {
+							std::rotate(value.begin() + i, value.begin() + i + 1, value.end());
+							vec_response.changed();
+						}
+						ImGui::Separator();
+					}
+					if constexpr (default_constructible) {
+						//only allow insert if type is default constructible
+						//insert above/below
+						if (is_insertable && ImGui::MenuItem("Insert above")) {
+							value.insert(value.begin() + i, T());
+							vec_response.changed();
+						}
+						if (is_insertable && ImGui::MenuItem("Insert below")) {
+							value.insert(value.begin() + i + 1, T());
+							vec_response.changed();
+						}
+					} else {
+						ImGui::BeginDisabled();
+						if (ImGui::MenuItem("Insert above")) {
+						}
+						if (ImGui::MenuItem("Insert below")) {
+						}
+						ImGui::EndDisabled();
+						Detail::imgui_tooltip("Type is not default constructible, cannot insert new item");
+					}
+
+					ImGui::Separator();
+					if (is_removable && ImGui::MenuItem("Clear all")) {
+						value.clear();
+						vec_response.changed();
+						ImGui::EndPopup();
+						ImGui::PopID();
+						break; /* Important, as the vector has changed */
+					}
+					ImGui::EndPopup();
+				}
+
+				ImGui::PopID();
+			}
+			if (!is_dropdown) ImGui::Unindent();
+		}
+		if (is_dropdown && is_open) {
+			ImGui::TreePop();
+		}
 	}
 
 }

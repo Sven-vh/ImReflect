@@ -984,7 +984,24 @@ static void tuple_test() {
 		ImReflect::Input("tuple_of_tuples", tuple_of_tuples);
 		ImGui::PopID();
 	}
-	ImGui::Text("Long tuple");
+	ImGui::Text("5 levels of tuples");
+	HelpMarker("You can also nest tuples");
+	{
+		ImGui::PushID("5 levels of tuples");
+		using tuple5 = std::tuple<int, std::tuple<int, std::tuple<int, std::tuple<std::string, std::tuple<int, int>>>>>;
+		static tuple5 five_levels_of_tuples = { 1, { 2, { 3, { "Deep", { 4, 5 } } } } };
+		ImSettings config;
+		config.push<std::string>()
+			.as_multiline()
+			.auto_resize()
+			.pop()
+			.push<ImReflect::std_tuple>()
+			.as_dropdown(true)
+			.pop();
+		ImReflect::Input("five_levels_of_tuples", five_levels_of_tuples, config);
+		ImGui::PopID();
+	}
+	ImGui::Text("Long tuple Line");
 	HelpMarker("You can have tuples with many elements");
 	{
 		ImGui::PushID("long tuple");
@@ -1010,24 +1027,104 @@ static void tuple_test() {
 		ImReflect::Input("long_tuple", long_tup, config);
 		ImGui::PopID();
 	}
-
-	ImGui::Text("5 levels of tuples");
-	HelpMarker("You can also nest tuples");
+	ImGui::Text("Long tuple Grid");
+	HelpMarker("You can have tuples with many elements");
 	{
-		ImGui::PushID("5 levels of tuples");
-		using tuple5 = std::tuple<int, std::tuple<int, std::tuple<int, std::tuple<std::string, std::tuple<int, int>>>>>;
-		static tuple5 five_levels_of_tuples = { 1, { 2, { 3, { "Deep", { 4, 5 } } } } };
+		ImGui::PushID("long tuple");
+
+		using LongTupleType = std::tuple<
+			int, float, std::string, bool,
+			int, float, std::string, bool,
+			int, float, std::string, bool
+		>;
+
+		static LongTupleType long_tup = {
+			1,     2.0f,   "Three",  true,
+			5,     6.0f,   "Seven",  false,
+			9,     10.0f,  "Eleven", true
+		};
+
 		ImSettings config;
-		config.push<std::string>()
-			.as_multiline()
-			.auto_resize()
-			.pop()
-			.push<ImReflect::std_tuple>()
-			.as_dropdown(true)
+		config.push<ImReflect::std_tuple>()
+			.as_grid()
+			.columns(4)
+			.min_width(100.0f)
 			.pop();
-		ImReflect::Input("five_levels_of_tuples", five_levels_of_tuples, config);
+
+		ImReflect::Input("long_tuple", long_tup, config);
 		ImGui::PopID();
 	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
+// std::vector
+// ========================================
+static void vector_test() {
+	ImGui::SeparatorText("std::vector Test");
+	ImGui::PushID("vector_test");
+	ImGui::Indent();
+	static std::vector<int> my_vector = { 1, 2, 3, 4, 5 };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_vector", my_vector);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Vector dropdown");
+	HelpMarker("Vector with dropdown style");
+	{
+		ImGui::PushID("vector dropdown");
+		ImSettings config;
+		config.push<ImReflect::std_vector>()
+			.as_dropdown()
+			.pop();
+		const std::string code = R"(ImSettings config;
+config.push<ImReflect::std_vector>()
+	.as_dropdown()
+.pop();)";
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("Output:");
+		ImReflect::Input("my_vector##dropdown", my_vector, config);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Vector pairs");
+	HelpMarker("Vector of pairs");
+	{
+		ImGui::PushID("vector pairs");
+		static std::vector<std::pair<std::string, float>> vector_of_pairs = {
+			{"One", 1.0f},
+			{"Two", 2.0f},
+			{"Three", 3.0f}
+		};
+		ImReflect::Input("vector_of_pairs", vector_of_pairs);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Vector structs");
+	HelpMarker("Vector of structs");
+	{
+		ImGui::PushID("vector structs");
+		static std::vector<MyTypes> vector_of_structs = {
+			{1, 2, 3.0f, 4.0f, true, false},
+			{5, 6, 7.0f, 8.0f, false, true},
+			{9, 10, 11.0f, 12.0f, true, true}
+		};
+		ImReflect::Input("vector_of_structs", vector_of_structs);
+		ImGui::PopID();
+	}
+
+
 	ImGui::Unindent();
 	ImGui::PopID();
 }
@@ -1122,6 +1219,13 @@ namespace svh {
 
 			// Tuple test
 			tuple_test();
+
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Vector")) {
+
+			// Vector test
+			vector_test();
 
 			ImGui::EndTabItem();
 		}
