@@ -35,12 +35,47 @@ namespace ImReflect::Detail {
 
 	/* Whether or not tree node is wanted */
 	template<typename T>
-	struct tree_node {
+	struct dropdown {
 	private:
-		bool _tree_node = false;
+		bool _dropdown = false;
 	public:
-		type_settings<T>& as_tree_node(const bool v = true) { _tree_node = v; RETURN_THIS; }
-		const bool& is_tree_node() const { return _tree_node; };
+		type_settings<T>& as_dropdown(const bool v = true) { _dropdown = v; RETURN_THIS; }
+		const bool& is_dropdown() const { return _dropdown; };
+	};
+
+	enum class TupleRenderMode {
+		Line,
+		Grid
+	};
+
+	struct render_mode_base {
+		render_mode_base(const TupleRenderMode& mode) : mode(mode) {}
+		TupleRenderMode mode;
+
+		TupleRenderMode get_render_mode() const { return mode; }
+	};
+
+	template<typename T>
+	struct line_mixin : public virtual render_mode_base {
+		line_mixin() : render_mode_base(TupleRenderMode::Line) {}
+
+		type_settings<T>& as_line() { mode = TupleRenderMode::Line; RETURN_THIS; }
+		bool is_line() const { return mode == TupleRenderMode::Line; }
+	};
+
+	template<typename T>
+	struct grid_mixin : public virtual render_mode_base {
+	private:
+		int _columns = 3; /* Default to 3 columns */
+
+	public:
+		grid_mixin() : render_mode_base(TupleRenderMode::Grid) {}
+
+		type_settings<T>& as_grid() { mode = TupleRenderMode::Grid; RETURN_THIS; }
+		bool is_grid() const { return mode == TupleRenderMode::Grid; }
+
+		type_settings<T>& columns(int count) { _columns = count; RETURN_THIS; }
+		int get_columns() const { return _columns; }
 	};
 }
 
@@ -91,15 +126,19 @@ namespace ImReflect {
 	}
 
 	/* ========================= std::tuple render methods, also used by std::pair ========================= */
+
 	namespace Detail {
 		constexpr const char* TUPLE_TREE_LABEL = "##tuple_tree";
 		constexpr ImVec2 TUPLE_CELL_PADDING{ 5.0f, 0.0f };
 		constexpr ImVec2 TUPLE_ITEM_SPACING{ 4.0f, 0.0f };
 	}
 
-	template<std::size_t Index = 0, typename... Ts>
+	template<typename T, std::size_t Index = 0, typename... Ts>
 	void render_tuple_element_as_tree(std::tuple<Ts...>& value, ImSettings& settings, ImResponse& response) {
 		if constexpr (Index < sizeof...(Ts)) {
+			auto& tuple_settings = settings.get<T>();
+			auto& tuple_response = response.get<T>();
+
 			const std::string node_id = std::string(Detail::TUPLE_TREE_LABEL) + std::to_string(Index);
 
 			ImGui::TableNextColumn();
@@ -116,22 +155,49 @@ namespace ImReflect {
 			if (is_open) {
 				ImGui::SameLine();
 				ImGui::SetNextItemWidth(-FLT_MIN);
-				ImReflect::Input("##tuple_item", std::get<Index>(value), settings, response);
+				ImReflect::Input("##tuple_item", std::get<Index>(value), tuple_settings, tuple_response);
 				ImGui::TreePop();
 			}
 
 			// Tail recursion
-			render_tuple_element_as_tree<Index + 1>(value, settings, response);
+			render_tuple_element_as_tree<T, Index + 1>(value, settings, response);
 		}
 	}
 
-	template<typename Tuple, std::size_t... Is>
+	template<typename T, typename Tuple, std::size_t... Is>
 	void render_tuple_elements_as_table(Tuple& value, ImSettings& settings, ImResponse& response, std::index_sequence<Is...>) {
+		auto& tuple_settings = settings.get<T>();
+		auto& tuple_response = response.get<T>();
+
+		const bool is_line = tuple_settings.is_line();
+		const bool is_grid = tuple_settings.is_grid();
+		const bool use_min_width = tuple_settings.has_min_width();
+		const float min_width = tuple_settings.get_min_width();
+
+		float column_width = -FLT_MIN;
+		if (use_min_width) {
+			column_width = min_width;
+		}
+
+		if (use_min_width) {
+			const int tuple_size = sizeof...(Is);
+			for (int i = 0; i < tuple_size; ++i) {
+				// First column: fixed width using min_width
+				// Second column: auto-size to content
+				if (i == 0) {
+					ImGui::TableSetupColumn("left", ImGuiTableColumnFlags_WidthFixed, min_width);
+
+				} else {
+					ImGui::TableSetupColumn("right", ImGuiTableColumnFlags_WidthStretch);
+				}
+			}
+		}
+
 		auto render_element = [&](auto index, auto& element) {
 			ImGui::TableNextColumn();
-			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::SetNextItemWidth(column_width);
 			ImGui::PushID(static_cast<int>(index));
-			ImReflect::Input("##tuple_item", element, settings, response);
+			ImReflect::Input("##tuple_item", element, tuple_settings, tuple_response);
 			ImGui::PopID();
 			};
 
@@ -153,12 +219,20 @@ namespace ImReflect {
 		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, Detail::TUPLE_CELL_PADDING);
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, Detail::TUPLE_ITEM_SPACING);
 
+		const bool is_line = tuple_settings.is_line();
+		const bool is_grid = tuple_settings.is_grid();
+		const bool use_min_width = tuple_settings.has_min_width();
+		const float min_width = tuple_settings.get_min_width();
+
+		ImGuiTableFlags flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings;
+		if (use_min_width) flags |= ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoKeepColumnsVisible;
+
 		constexpr auto tuple_size = sizeof...(Ts);
-		if (ImGui::BeginTable("table", tuple_size, ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings)) {
-			if (tuple_settings.is_tree_node()) {
-				render_tuple_element_as_tree(value, tuple_settings, tuple_response);
+		if (ImGui::BeginTable("table", tuple_size, flags)) {
+			if (tuple_settings.is_dropdown()) {
+				render_tuple_element_as_tree<T>(value, tuple_settings, tuple_response);
 			} else {
-				render_tuple_elements_as_table(value, tuple_settings, tuple_response, std::make_index_sequence<tuple_size>{});
+				render_tuple_elements_as_table<T>(value, tuple_settings, tuple_response, std::make_index_sequence<tuple_size>{});
 			}
 			ImGui::EndTable();
 		}
@@ -172,7 +246,10 @@ namespace ImReflect {
 	template<>
 	struct type_settings<std_tuple> : ImSettings,
 		ImReflect::Detail::required<std_tuple>,
-		ImReflect::Detail::tree_node<std_tuple> {
+		ImReflect::Detail::dropdown<std_tuple>,
+		ImReflect::Detail::line_mixin<std_tuple>,
+		ImReflect::Detail::grid_mixin<std_tuple> {
+		type_settings() : ImReflect::Detail::render_mode_base(Detail::TupleRenderMode::Line) {}
 	};
 
 	template<typename... Ts>
@@ -187,7 +264,10 @@ namespace ImReflect {
 	template<>
 	struct type_settings<std_pair> : ImSettings,
 		ImReflect::Detail::required<std_pair>,
-		ImReflect::Detail::tree_node<std_pair> {
+		ImReflect::Detail::dropdown<std_pair>,
+		ImReflect::Detail::line_mixin<std_pair>,
+		ImReflect::Detail::grid_mixin<std_pair> {
+		type_settings() : ImReflect::Detail::render_mode_base(Detail::TupleRenderMode::Line) {}
 	};
 
 	template<typename T1, typename T2>

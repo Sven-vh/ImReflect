@@ -746,20 +746,18 @@ config.push<float>()
 	HelpMarker("Set a minimum width for all members of a specific type");
 	{
 		ImGui::PushID("min width pair");
-		using pair_type = std::pair<int, float>;
-		static pair_type my_pair = { 42, 3.14f };
+		static std::pair<int, float> my_pair = { 42, 3.14f };
 		ImSettings config;
-		config.push<pair_type>()
+		config.push<ImReflect::std_pair>()
 			.min_width(200.0f)
 			.pop();
-		const std::string code = R"(using pair_type = std::pair<int, float>;
-static pair_type my_pair = { 42, 3.14f };
+		const std::string code = R"(static std::pair<int, float> my_pair = { 42, 3.14f };
 ImSettings config;
-config.push<pair_type>()
+config.push<ImReflect::std_pair>()
 	.min_width(200.0f)
 .pop();)";
 		IMGUI_SAMPLE_MULTI_CODE(code);
-		ImGui::Text("The pair now has a minimum width of 200 pixels\nOutput:");
+		ImGui::Text("The pair items now has a minimum width of 200 pixels\nOutput:");
 		ImReflect::Input("my_pair", my_pair, config);
 		ImGui::PopID();
 	}
@@ -887,7 +885,7 @@ static void pair_test() {
 
 		ImSettings config;
 		config.push<ImReflect::std_pair>()
-			.as_tree_node(false)
+			.as_dropdown(false)
 			____.push<float>()
 			________.min(0.0f)
 			________.max(10.0f)
@@ -923,6 +921,9 @@ static void pair_test() {
 		config.push<std::string>()
 			.as_multiline()
 			.auto_resize()
+			.pop()
+			.push<ImReflect::std_pair>()
+			.min_width(100.0f)
 			.pop();
 
 		ImReflect::Input("five_levels_of_pairs", five_levels_of_pairs, config);
@@ -948,7 +949,7 @@ static void tuple_test() {
 
 		ImSettings config;
 		config.push<ImReflect::std_tuple>()
-			.as_tree_node(true)
+			.as_dropdown(true)
 			.pop();
 
 		ImReflect::Input("my_tuple", my_tuple, config);
@@ -961,7 +962,7 @@ static void tuple_test() {
 		static std::tuple<std::tuple<std::string, float>, int> nested_tuple = { {"Nested", 3.14f}, 7 };
 		ImSettings config;
 		config.push<ImReflect::std_tuple>()
-			.as_tree_node(false)
+			.as_dropdown(false)
 			____.push<float>()
 			________.min(0.0f)
 			________.max(10.0f)
@@ -987,8 +988,18 @@ static void tuple_test() {
 	HelpMarker("You can have tuples with many elements");
 	{
 		ImGui::PushID("long tuple");
-		using long_tuple = std::tuple<int, float, std::string, bool, int, float, std::string, bool, int, float, std::string, bool>;
-		static long_tuple long_tup = { 1, 2.0f, "Three", true, 5, 6.0f, "Seven", false, 9, 10.0f, "Eleven", true };
+
+		using LongTupleType = std::tuple<
+			int, float, std::string, bool,
+			int, float, std::string, bool,
+			int, float, std::string, bool
+		>;
+
+		static LongTupleType long_tup = {
+			1,     2.0f,   "Three",  true,
+			5,     6.0f,   "Seven",  false,
+			9,     10.0f,  "Eleven", true
+		};
 
 		ImSettings config;
 		config.push<std::string>()
@@ -1012,7 +1023,7 @@ static void tuple_test() {
 			.auto_resize()
 			.pop()
 			.push<ImReflect::std_tuple>()
-			.as_tree_node(true)
+			.as_dropdown(true)
 			.pop();
 		ImReflect::Input("five_levels_of_tuples", five_levels_of_tuples, config);
 		ImGui::PopID();

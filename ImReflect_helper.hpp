@@ -65,6 +65,7 @@ namespace ImReflect::Detail {
 	public:
 		type_settings<T>& min_width(float width) { _min_width = width; RETURN_THIS; }
 		const float& get_min_width() const { return _min_width; };
+		const bool& has_min_width() const { return _min_width > 0.0f; }
 	};
 
 	/* Required marker */

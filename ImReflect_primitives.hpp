@@ -297,7 +297,6 @@ namespace ImReflect::Detail {
 		Button
 	};
 
-	template<typename T>
 	struct input_type {
 		input_type(const input_type_widget type) : _type(type) {}
 		input_type_widget _type;
@@ -306,50 +305,50 @@ namespace ImReflect::Detail {
 	};
 
 	template<typename T>
-	struct input_widget : virtual input_type<T>, input_step<T> {
-		input_widget() : input_type<T>(input_type_widget::Input) {}
+	struct input_widget : virtual input_type, input_step<T> {
+		input_widget() : input_type(input_type_widget::Input) {}
 		type_settings<T>& as_input() { this->_type = input_type_widget::Input; RETURN_THIS; }
 		bool is_input() const { return this->_type == input_type_widget::Input; }
 	};
 
 	template<typename T>
-	struct drag_widget : virtual input_type<T> {
-		drag_widget() : input_type<T>(input_type_widget::Drag) {}
+	struct drag_widget : virtual input_type {
+		drag_widget() : input_type(input_type_widget::Drag) {}
 		type_settings<T>& as_drag() { this->_type = input_type_widget::Drag; RETURN_THIS; }
 		bool is_drag() const { return this->_type == input_type_widget::Drag; }
 	};
 
 	template<typename T>
-	struct slider_widget : virtual input_type<T> {
-		slider_widget() : input_type<T>(input_type_widget::Slider) {}
+	struct slider_widget : virtual input_type {
+		slider_widget() : input_type(input_type_widget::Slider) {}
 		type_settings<T>& as_slider() { this->_type = input_type_widget::Slider; RETURN_THIS; }
 		bool is_slider() const { return this->_type == input_type_widget::Slider; }
 	};
 
 	template<typename T>
-	struct radio_widget : virtual input_type<T> {
-		radio_widget() : input_type<T>(input_type_widget::Radio) {}
+	struct radio_widget : virtual input_type {
+		radio_widget() : input_type(input_type_widget::Radio) {}
 		type_settings<T>& as_radio() { this->_type = input_type_widget::Radio; RETURN_THIS; }
 		bool is_radio() const { return this->_type == input_type_widget::Radio; }
 	};
 
 	template<typename T>
-	struct checkbox_widget : virtual input_type<T> {
-		checkbox_widget() : input_type<T>(input_type_widget::Checkbox) {}
+	struct checkbox_widget : virtual input_type {
+		checkbox_widget() : input_type(input_type_widget::Checkbox) {}
 		type_settings<T>& as_checkbox() { this->_type = input_type_widget::Checkbox; RETURN_THIS; }
 		bool is_checkbox() const { return this->_type == input_type_widget::Checkbox; }
 	};
 
 	template<typename T>
-	struct dropdown_widget : virtual input_type<T> {
-		dropdown_widget() : input_type<T>(input_type_widget::Dropdown) {}
+	struct dropdown_widget : virtual input_type {
+		dropdown_widget() : input_type(input_type_widget::Dropdown) {}
 		type_settings<T>& as_dropdown() { this->_type = input_type_widget::Dropdown; RETURN_THIS; }
 		bool is_dropdown() const { return this->_type == input_type_widget::Dropdown; }
 	};
 
 	template<typename T>
-	struct button_widget : virtual input_type<T> {
-		button_widget() : input_type<T>(input_type_widget::Button) {}
+	struct button_widget : virtual input_type {
+		button_widget() : input_type(input_type_widget::Button) {}
 		type_settings<T>& as_button() { this->_type = input_type_widget::Button; RETURN_THIS; }
 		bool is_button() const { return this->_type == input_type_widget::Button; }
 	};
@@ -372,7 +371,7 @@ namespace ImReflect {
 		ImReflect::Detail::format_settings<T>,
 		ImReflect::Detail::slider_flags<T> {
 		/* Default to input widget */
-		type_settings() : ImReflect::Detail::input_type<T>(ImReflect::Detail::input_type_widget::Input) {}
+		type_settings() : ImReflect::Detail::input_type(ImReflect::Detail::input_type_widget::Input) {}
 	};
 
 	template<typename T>
@@ -425,7 +424,7 @@ namespace ImReflect {
 		ImReflect::Detail::dropdown_widget<T>,
 		ImReflect::Detail::true_false_text<T> {
 		/* Default to checkbox */
-		type_settings() : ImReflect::Detail::input_type<T>(ImReflect::Detail::input_type_widget::Checkbox) {}
+		type_settings() : ImReflect::Detail::input_type(ImReflect::Detail::input_type_widget::Checkbox) {}
 	};
 
 	template<typename T>
@@ -495,7 +494,7 @@ namespace ImReflect {
 		ImReflect::Detail::slider_widget<E> {
 		type_settings() :
 			/* Default settings */
-			ImReflect::Detail::input_type<E>(ImReflect::Detail::input_type_widget::Dropdown),
+			ImReflect::Detail::input_type(ImReflect::Detail::input_type_widget::Dropdown),
 			ImReflect::Detail::drag_speed<E>(0.01f) {
 		}
 	};
