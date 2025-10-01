@@ -728,11 +728,11 @@ config.push<float>()
 		ImGui::PushID("min width");
 		ImSettings config;
 		config.push<float>()
-			.min_width(200.0f)
+			.min_width(100.0f)
 			.pop();
 		const std::string code = R"(ImSettings config;
 config.push<float>()
-	.min_width(200.0f)
+	.min_width(100.0f)
 .pop();)";
 		IMGUI_SAMPLE_MULTI_CODE(code);
 		ImGui::Text("All floats now have a minimum width of 200 pixels\nOutput:");
@@ -746,10 +746,11 @@ config.push<float>()
 	HelpMarker("Set a minimum width for all members of a specific type");
 	{
 		ImGui::PushID("min width pair");
-		using pair_type = std::pair<int, float>;
-		static pair_type my_pair = { 42, 3.14f };
+
+		static std::pair<int, float> my_pair = { 42, 3.14f };
+
 		ImSettings config;
-		config.push<pair_type>()
+		config.push<std::pair>()
 			.min_width(200.0f)
 			.pop();
 		const std::string code = R"(using pair_type = std::pair<int, float>;
@@ -916,19 +917,22 @@ static void pair_test() {
 	HelpMarker("You can also nest pairs");
 	{
 		ImGui::PushID("5 levels of pairs");
-		using pair5 = std::pair<int, std::pair<int, std::pair<int, std::pair<int, std::pair<int, int>>>>>;
-		static pair5 five_levels_of_pairs = { 1, {2, {3, {4, {5, 6}}}} };
+		using pair5 = std::pair<int, std::pair<int, std::pair<float, std::pair<int, std::pair<int, int>>>>>;
+		static pair5 five_levels_of_pairs = { 1, {2, {3.0f, {4, {5, 6}}}} };
 
 		ImSettings config;
 		// config.push<std::pair>().pair_count(5).pop();
 
 		// int count = config.get<std::pair>().get_pair_count();
 		// int other_count = config.get<std::pair<int, int>>().get_pair_count();
-		config.push<pair5>()
-			.min_width(300.0f)
+		config.push<std::pair>()
+			//.min_width(100.0f)
+			.push<float>()
+			.min_width(200.0f)
+			.pop()
 			.pop();
 
-		ImReflect::Input("five_levels_of_pairs", five_levels_of_pairs);
+		ImReflect::Input("five_levels_of_pairs", five_levels_of_pairs, config);
 		ImGui::PopID();
 	}
 

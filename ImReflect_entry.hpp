@@ -85,7 +85,7 @@ namespace ImReflect {
 
 			const float min_width = type_settings.get_min_width();
 			if (min_width > 0.0f) {
-				ImGui::PushItemWidth(min_width);
+				ImGui::SetNextItemWidth(min_width);
 			}
 
 			/* Try tag_invoke for user defined implementations */

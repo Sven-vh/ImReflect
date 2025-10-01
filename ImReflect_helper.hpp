@@ -54,6 +54,7 @@ namespace ImReflect::Detail {
 	private:
 		bool _disabled = false;
 	public:
+		/* Disable the input widget */
 		type_settings<T>& disable(const bool v = true) { _disabled = v; RETURN_THIS; }
 		const bool& is_disabled() const { return _disabled; }
 	};
@@ -63,6 +64,8 @@ namespace ImReflect::Detail {
 	private:
 		float _min_width = 0.0f; /* 0 = imgui default */
 	public:
+		/* For single items, this means the size of the input widget. */
+		/* For multi-item (e.g., pair), this means the width per item in the pair. */
 		type_settings<T>& min_width(float width) { _min_width = width; RETURN_THIS; }
 		const float& get_min_width() const { return _min_width; };
 	};
