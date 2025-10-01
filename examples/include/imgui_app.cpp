@@ -945,7 +945,13 @@ static void tuple_test() {
 	HelpMarker("Default settings, no extra settings given");
 	{
 		ImGui::PushID("default");
-		ImReflect::Input("my_tuple", my_tuple);
+
+		ImSettings config;
+		config.push<ImReflect::std_tuple>()
+			.as_tree_node(true)
+			.pop();
+
+		ImReflect::Input("my_tuple", my_tuple, config);
 		ImGui::PopID();
 	}
 	ImGui::Text("Tuple inside of tuple");
@@ -983,7 +989,14 @@ static void tuple_test() {
 		ImGui::PushID("long tuple");
 		using long_tuple = std::tuple<int, float, std::string, bool, int, float, std::string, bool, int, float, std::string, bool>;
 		static long_tuple long_tup = { 1, 2.0f, "Three", true, 5, 6.0f, "Seven", false, 9, 10.0f, "Eleven", true };
-		ImReflect::Input("long_tuple", long_tup);
+
+		ImSettings config;
+		config.push<std::string>()
+			.as_multiline()
+			.auto_resize()
+			.pop();
+
+		ImReflect::Input("long_tuple", long_tup, config);
 		ImGui::PopID();
 	}
 
