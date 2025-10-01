@@ -126,8 +126,8 @@ namespace ImReflect {
 
 	template<typename T1, typename T2>
 	void tag_invoke(Detail::ImInputLib_t, const char* label, std::pair<T1, T2>& value, ImSettings& settings, ImResponse& response) {
-		type_settings<std::pair<T1, T2>>& pair_settings = settings.get<std::pair<T1, T2>>();
-		type_response<std::pair<T1, T2>>& pair_response = response.get<std::pair<T1, T2>>();
+		auto& pair_settings = settings.get<std::pair>();
+		auto& pair_response = response.get<std::pair>();
 
 		const bool as_tree = pair_settings.is_tree_node();
 		const int pair_count = pair_settings.get_pair_count();
