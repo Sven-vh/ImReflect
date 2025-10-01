@@ -94,7 +94,7 @@ namespace svh {
 		[Example]
 		1) type = repeat_type<dummy_type, 2>::apply<std::pair>
 		2)		= std::pair<ignore_index<dummy_type, 0>, ignore_index<dummy_type, 1>>
-
+		3)		= std::pair<dummy_type, dummy_type>
 		*/
 		using type = typename repeat_type<dummy_type, N>::template apply<T>;
 	};

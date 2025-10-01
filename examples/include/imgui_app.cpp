@@ -917,8 +917,8 @@ static void pair_test() {
 	HelpMarker("You can also nest pairs");
 	{
 		ImGui::PushID("5 levels of pairs");
-		using pair5 = std::pair<int, std::pair<int, std::pair<float, std::pair<int, std::pair<int, int>>>>>;
-		static pair5 five_levels_of_pairs = { 1, {2, {3.0f, {4, {5, 6}}}} };
+		using pair5 = std::pair<std::pair<int,int>, std::pair<int, std::pair<float, std::pair<int, std::pair<int, int>>>>>;
+		static pair5 five_levels_of_pairs = { {1,2}, {3, {4.0f, {5, {6,7}}}} };
 
 		ImSettings config;
 		// config.push<std::pair>().pair_count(5).pop();
@@ -926,10 +926,7 @@ static void pair_test() {
 		// int count = config.get<std::pair>().get_pair_count();
 		// int other_count = config.get<std::pair<int, int>>().get_pair_count();
 		config.push<std::pair>()
-			//.min_width(100.0f)
-			.push<float>()
 			.min_width(200.0f)
-			.pop()
 			.pop();
 
 		ImReflect::Input("five_levels_of_pairs", five_levels_of_pairs, config);
