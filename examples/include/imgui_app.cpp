@@ -886,7 +886,7 @@ static void pair_test() {
 		static std::pair<std::pair<std::string, float>, int> nested_pair = { {"Nested", 3.14f}, 7 };
 
 		ImSettings config;
-		config.push<std::pair<std::string, float>>()
+		config.push<ImReflect::std_pair>()
 			.as_tree_node(false)
 			____.push<float>()
 			________.min(0.0f)
@@ -929,6 +929,81 @@ static void pair_test() {
 		ImGui::PopID();
 	}
 
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
+// std::tuple
+// ========================================
+static void tuple_test() {
+	ImGui::SeparatorText("std::tuple Test");
+	ImGui::PushID("tuple_test");
+	ImGui::Indent();
+	static std::tuple<int, float, std::string> my_tuple = { 42, 3.14f, "Hello" };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_tuple", my_tuple);
+		ImGui::PopID();
+	}
+	ImGui::Text("Tuple inside of tuple");
+	HelpMarker("You can also nest tuples");
+	{
+		ImGui::PushID("nested tuple");
+		static std::tuple<std::tuple<std::string, float>, int> nested_tuple = { {"Nested", 3.14f}, 7 };
+		ImSettings config;
+		config.push<ImReflect::std_tuple>()
+			.as_tree_node(false)
+			____.push<float>()
+			________.min(0.0f)
+			________.max(10.0f)
+			________.as_slider()
+			____.pop()
+			____.push<std::string>()
+			________.as_multiline()
+			________.auto_resize()
+			____.pop()
+			.pop();
+		ImReflect::Input("nested_tuple", nested_tuple, config);
+		ImGui::PopID();
+	}
+	ImGui::Text("Tuple of tuples");
+	HelpMarker("You can also nest tuples");
+	{
+		ImGui::PushID("tuple of tuples");
+		static std::tuple<std::tuple<int, int>, std::tuple<std::string, std::string>> tuple_of_tuples = { {1, 2}, {"Hello", "World"} };
+		ImReflect::Input("tuple_of_tuples", tuple_of_tuples);
+		ImGui::PopID();
+	}
+	ImGui::Text("Long tuple");
+	HelpMarker("You can have tuples with many elements");
+	{
+		ImGui::PushID("long tuple");
+		using long_tuple = std::tuple<int, float, std::string, bool, int, float, std::string, bool, int, float, std::string, bool>;
+		static long_tuple long_tup = { 1, 2.0f, "Three", true, 5, 6.0f, "Seven", false, 9, 10.0f, "Eleven", true };
+		ImReflect::Input("long_tuple", long_tup);
+		ImGui::PopID();
+	}
+
+	ImGui::Text("5 levels of tuples");
+	HelpMarker("You can also nest tuples");
+	{
+		ImGui::PushID("5 levels of tuples");
+		using tuple5 = std::tuple<int, std::tuple<int, std::tuple<int, std::tuple<std::string, std::tuple<int, int>>>>>;
+		static tuple5 five_levels_of_tuples = { 1, { 2, { 3, { "Deep", { 4, 5 } } } } };
+		ImSettings config;
+		config.push<std::string>()
+			.as_multiline()
+			.auto_resize()
+			.pop()
+			.push<ImReflect::std_tuple>()
+			.as_tree_node(true)
+			.pop();
+		ImReflect::Input("five_levels_of_tuples", five_levels_of_tuples, config);
+		ImGui::PopID();
+	}
 	ImGui::Unindent();
 	ImGui::PopID();
 }
@@ -1016,6 +1091,13 @@ namespace svh {
 
 			// Pair test
 			pair_test();
+
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Tuple")) {
+
+			// Tuple test
+			tuple_test();
 
 			ImGui::EndTabItem();
 		}
