@@ -316,8 +316,8 @@ namespace ImReflect {
 	}
 
 	/* ========================= std::vector ========================= */
-	struct std_vector {};
 
+	struct std_vector {};
 	template<>
 	struct type_settings<std_vector> : ImSettings,
 		ImReflect::Detail::required<std_vector>,
@@ -351,6 +351,7 @@ namespace ImReflect {
 
 		constexpr bool default_constructible = std::is_default_constructible_v<T>;
 		constexpr bool copy_constructible = std::is_copy_constructible_v<T>;
+		constexpr bool move_constructible = std::is_move_constructible_v<T>;
 
 		const auto id = Detail::scope_id("vector");
 
