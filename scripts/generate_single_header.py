@@ -60,12 +60,16 @@ class HeaderCombiner:
             self.output_lines.append(f"// File: {file_path.relative_to(self.repo_root)}")
             self.output_lines.append(f"// ============================================================================\n")
         
-        with open(file_path, 'r', encoding='utf-8') as f:
+        with open(file_path, 'r', encoding='utf-8-sig') as f:  # utf-8-sig handles BOM
             for line in f:
+                # Remove BOM if present
+                if line.startswith('\ufeff'):
+                    line = line[1:]
+                
                 stripped = line.strip()
                 
                 # Skip #pragma once since we're combining into one file
-                if stripped == '#pragma once':
+                if stripped == '#pragma once' or stripped == '\ufeff#pragma once':
                     continue
                 
                 # Handle includes

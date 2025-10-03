@@ -3980,7 +3980,6 @@ static_assert(svh::is_tag_invocable_v<ImReflect::Detail::ImInputLib_t, const cha
 // File: ImReflect_std.hpp
 // ============================================================================
 
-﻿#pragma once
 #include <imgui_stdlib.h>
 
 /* Helpers */
