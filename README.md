@@ -261,12 +261,35 @@ See the [Wiki](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings) for the 
 
 ## Building
 
-Currently, the library is provided in multiple headers, see ``ImReflect.hpp``, ``ImReflect_primitives.hpp``, ``ImReflect_entry.hpp``, and the extern folder. I intend on making it a single header in the future.
+The library is available in two formats:
+
+1. **Multiple Headers** (traditional): Include ``ImReflect.hpp`` which includes all necessary headers
+2. **Single Header** (recommended): Use ``generated/ImReflect_generated.hpp`` for easier integration
+
+The single header file combines all ImReflect headers and external dependencies into one file. It's automatically generated via GitHub Actions whenever changes are pushed to main.
+
+### Using Multiple Headers
+
+```cpp
+#include <ImReflect.hpp>
+```
+
+This includes: ``ImReflect_entry.hpp``, ``ImReflect_helper.hpp``, ``ImReflect_primitives.hpp``, ``ImReflect_std.hpp``, and the extern folder dependencies.
+
+### Using Single Header
+
+```cpp
+#include <generated/ImReflect_generated.hpp>
+```
+
+This includes everything in one file for easier integration into your project.
 
 ### Dependencies
 - [ImGui](https://github.com/ocornut/imgui) (duh)
 - [magic_enum](https://github.com/Neargye/magic_enum) (for enum reflection)
 - [visit_struct](https://github.com/cbeck88/visit_struct) (for struct reflection)
+
+**Note:** The single header includes the external dependencies (magic_enum, visit_struct, svh), but you still need to include ImGui headers separately.
 
 ## Fluent Builder Pattern
 

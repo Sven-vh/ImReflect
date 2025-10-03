@@ -1,0 +1,47 @@
+name: Generate Single Header
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'ImReflect*.hpp'
+      - 'extern/**/*.hpp'
+      - 'scripts/generate_single_header.py'
+
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Generate single header
+        run: |
+          python3 scripts/generate_single_header.py
+      
+      - name: Check for changes
+        id: check_changes
+        run: |
+          git diff --quiet generated/ImReflect_generated.hpp || echo "changed=true" >> $GITHUB_OUTPUT
+      
+      - name: Commit and push changes
+        if: steps.check_changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add generated/ImReflect_generated.hpp
+          git commit -m "Auto-generate single header file [skip ci]"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
