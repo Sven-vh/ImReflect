@@ -53,8 +53,14 @@ namespace ImReflect {
 
 		template<typename T>
 		void imgui_input_visit_field(const char* label, T& value, ImSettings& settings, ImResponse& response) {
+			constexpr bool is_const = std::is_const_v<T>;
 			ImGui::PushID(label);
 			ImGui::SeparatorText(label);
+			if constexpr (is_const) {
+				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+					ImGui::SetTooltip("Const object");
+				}
+			}
 			ImGui::Indent();
 			visit_struct::context<ImContext>::for_each(value,
 				[&](const char* name, auto& field) {
@@ -97,7 +103,7 @@ namespace ImReflect {
 				tag_invoke(input_lib, label, value, type_settings, type_response);
 			}
 			/* If type is reflected */
-			else if constexpr (visit_struct::traits::is_visitable<T, ImContext>::value) {
+			else if constexpr (visit_struct::traits::is_visitable<std::remove_cv_t<T>, ImContext>::value) {
 				imgui_input_visit_field(label, value, type_settings, type_response);
 			} else {
 				//TODO: add link to documentation

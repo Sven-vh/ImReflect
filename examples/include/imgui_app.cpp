@@ -462,8 +462,8 @@ static void enum_test() {
 // ========================================
 
 struct MyStruct {
-	int a;
-	float b;
+	int a = 0;
+	float b = 0.0f;
 	bool c = false;
 };
 IMGUI_REFLECT(MyStruct, a, b, c)
@@ -489,6 +489,15 @@ IMGUI_REFLECT(MyStruct, a, b, c))";
 
 		ImGui::Text("Output:");
 		ImReflect::Input("my_struct", my_struct);
+	}
+
+	ImGui::Text("Simple Struct const");
+	HelpMarker("You can also reflect const structs");
+	{
+		static const MyStruct my_const_struct;
+
+		ImGui::Text("Output:");
+		ImReflect::Input("my_const_struct", my_const_struct);
 	}
 
 	ImGui::Unindent();
