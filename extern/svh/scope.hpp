@@ -52,8 +52,8 @@ namespace svh {
 		/// <returns>Reference to the pushed scope</returns>
 		/// <exception cref="std::runtime_error">If an existing child has an unexpected type</exception>
 		template<class T>
-		BaseTemplate<T>& push() {
-			return _push<T>();
+		BaseTemplate<std::remove_cv_t<T>>& push() {
+			return _push<std::remove_cv_t<T>>();
 		}
 
 		/// <summary>
@@ -65,10 +65,10 @@ namespace svh {
 		/// <returns>Reference to the last pushed scope</returns>
 		template<class T, class U, class... Rest>
 		auto& push() {
-			auto& next = _push<T>();
+			auto& next = _push<std::remove_cv_t<T>>();
 			/* If rest is something, we recurse */
 			/* If rest is nothing, we fall back to single T push */
-			return next.template push<U, Rest...>();
+			return next.template push<std::remove_cv_t<U>, Rest...>();
 		}
 
 		/// <summary>
@@ -78,22 +78,22 @@ namespace svh {
 		/// <returns>Reference to the pushed scope</returns>
 		/// <exception cref="std::runtime_error">If an existing child has an unexpected type</exception>
 		template<class T>
-		BaseTemplate<T>& push_default() {
-			const std::type_index key = get_type_key<T>();
+		BaseTemplate<std::remove_cv_t<T>>& push_default() {
+			const std::type_index key = get_type_key<std::remove_cv_t<T>>();
 
 			/* reset if present */
 			auto it = children.find(key);
 			if (it != children.end()) {
-				auto* found = dynamic_cast<BaseTemplate<T>*>(it->second.get());
+				auto* found = dynamic_cast<BaseTemplate<std::remove_cv_t<T>>*>(it->second.get());
 				if (!found) {
 					throw std::runtime_error("Existing child has unexpected type");
 				}
-				*found = BaseTemplate<T>{}; // Reset to default
+				*found = BaseTemplate<std::remove_cv_t<T>>{}; // Reset to default
 				return *found;
 			}
 
 			/* Else create new */
-			return emplace_new<T>();
+			return emplace_new<std::remove_cv_t<T>>();
 		}
 
 		/// <summary>
@@ -104,8 +104,8 @@ namespace svh {
 		template<auto member>
 		auto& push_member() {
 			using traits = member_pointer_traits<decltype(member)>;
-			using MemberType = typename traits::member_type;
-			using ClassType = typename traits::class_type;
+			using MemberType = typename std::remove_cv_t<traits::member_type>;
+			using ClassType = typename std::remove_cv_t<traits::class_type>;
 
 			const std::type_index struct_type = get_type_key<ClassType>();
 			const std::type_index member_type = get_type_key<MemberType>();
@@ -164,6 +164,13 @@ namespace svh {
 			return parent->pop(--count);
 		}
 
+		scope& pop_to_root() {
+			if (is_root()) {
+				return *this;
+			}
+			return parent->pop_to_root();
+		}
+
 		/// <summary>
 		/// Get the scope for type T. If not found, recurse to parent.
 		/// If not found and at root, optionally insert a default one depending on ``SVH_AUTO_INSERT``.
@@ -172,16 +179,16 @@ namespace svh {
 		/// <returns>Reference to the found scope</returns>
 		/// <exception cref="std::runtime_error">If not found and at root and ``SVH_AUTO_INSERT`` is false</exception>
 		template <class T>
-		BaseTemplate<T>& get() {
-			return _get<T>();
+		BaseTemplate<std::remove_cv_t<T>>& get() {
+			return _get<std::remove_cv_t<T>>();
 		}
 
 		template <class T, class U, class... Rest>
 		auto& get() {
-			auto& next = _get<T>();
+			auto& next = _get<std::remove_cv_t<T>>();
 			/* If rest is something, we recurse */
 			/* If rest is nothing, we fall back to single T get */
-			return next.template get<U, Rest...>();
+			return next.template get<std::remove_cv_t<U>, Rest...>();
 		}
 
 		/// <summary>
@@ -192,16 +199,16 @@ namespace svh {
 		/// <returns>Reference to the found scope</returns>
 		/// <exception cref="std::runtime_error">If not found</exception>
 		template <class T>
-		const BaseTemplate<T>& get() const {
-			return _get<T>();
+		const BaseTemplate<std::remove_cv_t<T>>& get() const {
+			return _get<std::remove_cv_t<T>>();
 		}
 
 		template <class T, class U, class... Rest>
 		const auto& get() const {
-			auto& next = _get<T>();
+			auto& next = _get<std::remove_cv_t<T>>();
 			/* If rest is something, we recurse */
 			/* If rest is nothing, we fall back to single T get */
-			return next.template get<U, Rest...>();
+			return next.template get<std::remove_cv_t<U>, Rest...>();
 		}
 
 		/// Get member settings. Auto-creates if not found at root level.
@@ -510,7 +517,7 @@ namespace svh {
 			return ref;
 		}
 
-		/* Actual implementation fo push */
+		/* Actual implementation to push */
 		template<class T>
 		BaseTemplate<T>& _push() {
 			const std::type_index key = get_type_key<T>();
