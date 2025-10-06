@@ -1200,6 +1200,152 @@ config.push<ImReflect::std_vector>()
 }
 
 // ========================================
+// std::Array
+// ========================================
+static void array_test() {
+	ImGui::SeparatorText("std::array Test");
+	ImGui::PushID("array_test");
+	ImGui::Indent();
+	static std::array<int, 5> my_array = { 1, 2, 3, 4, 5 };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_array", my_array);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::array<int, 5> my_array_const = { 1, 2, 3, 4, 5 };
+		ImReflect::Input("my_array_const", my_array_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
+// std::list
+// ========================================
+static void list_test() {
+	ImGui::SeparatorText("std::list Test");
+	ImGui::PushID("list_test");
+	ImGui::Indent();
+	static std::list<int> my_list = { 1, 2, 3, 4, 5 };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_list", my_list);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::list<int> my_list_const = { 1, 2, 3, 4, 5 };
+		ImReflect::Input("my_list_const", my_list_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
+// std::deque
+// ========================================
+static void deque_test() {
+	ImGui::SeparatorText("std::deque Test");
+	ImGui::PushID("deque_test");
+	ImGui::Indent();
+	static std::deque<int> my_deque = { 1, 2, 3, 4, 5 };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_deque", my_deque);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::deque<int> my_deque_const = { 1, 2, 3, 4, 5 };
+		ImReflect::Input("my_deque_const", my_deque_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
+// std::set
+// ========================================
+static void set_test() {
+	ImGui::SeparatorText("std::set Test");
+	ImGui::PushID("set_test");
+	ImGui::Indent();
+	static std::set<int> my_set = { 1, 2, 3, 4, 5 };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_set", my_set);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::set<int> my_set_const = { 1, 2, 3, 4, 5 };
+		ImReflect::Input("my_set_const", my_set_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
+// std::map
+// ========================================
+static void map_test(){
+	ImGui::SeparatorText("std::map Test");
+	ImGui::PushID("map_test");
+	ImGui::Indent();
+	static std::map<int, float> my_map = {
+		{1, 1.0f},
+		{2, 2.0f},
+		{3, 3.0f} };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_map", my_map);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::map<int, float> my_map_const = {
+			{1, 1.0f},
+			{2, 2.0f},
+			{3, 3.0f} };
+		ImReflect::Input("my_map_const", my_map_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // Main
 // =======================================
 namespace svh {
@@ -1313,26 +1459,33 @@ namespace svh {
 
 			ImGui::EndTabItem();
 		}
+		if (ImGui::BeginTabItem("Array")) {
+
+			// Array test
+			array_test();
+
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("List")) {
+
+			// List test
+			list_test();
+
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Deque")) {
+		
+			// Deque test
+			deque_test();
+
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Set")) {
+			// Set test
+			set_test();
+			ImGui::EndTabItem();
+		}
 
 		ImGui::EndTabBar();
-
-		//static std::map<int, float> my_map = {
-		//{1, 1.0f},
-		//{2, 2.0f},
-		//{3, 3.0f} };
-		//std::vector<std::pair<const int&, float&>> refs;
-
-		//for (auto& [k, v] : my_map) {
-		//	refs.emplace_back(k, v);
-		//}
-
-		//for(auto& [k, v] : refs) {
-		//	ImGui::Text("Key: %d, Value: %.2f", k, v);
-		//	ImGui::SameLine();
-		//	if (ImGui::Button(("Change##" + std::to_string(k)).c_str())) {
-		//		v += 1.0f;
-		//	}
-		//}
-
 	}
 }
