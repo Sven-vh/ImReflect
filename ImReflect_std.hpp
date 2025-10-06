@@ -7,7 +7,7 @@
 /* Helpers */
 namespace ImReflect::Detail {
 	template<typename T> /* All numbers except bool */
-	constexpr bool is_string_type_v = std::is_same_v<T, std::string>;
+	constexpr bool is_string_type_v = std::is_same_v<std::remove_cv_t<T>, std::string>;
 	template<typename T>
 	using enable_if_string_t = std::enable_if_t<is_string_type_v<T>, void>;
 }
@@ -119,31 +119,46 @@ namespace ImReflect {
 	template<typename T>
 	std::enable_if_t<Detail::is_string_type_v<T>>
 		tag_invoke(Detail::ImInputLib_t, const char* label, T& value, ImSettings& settings, ImResponse& response) {
-		type_settings<T>& string_settings = settings.get<T>();
-		type_response<T>& string_response = response.get<T>();
+		auto& string_settings = settings.get<T>();
+		auto& string_response = response.get<T>();
+
+		constexpr bool is_const = std::is_const_v<T>;
 
 		const bool multi_line = string_settings.is_multiline();
 		const auto& flags = string_settings.get_input_flags();
 
 		bool changed = false;
-		if (multi_line) {
-			const int line_height = string_settings.get_line_count();
-			ImVec2 size;
-			if (line_height < 0) {
-				/* imgui default */
-				size = ImVec2(0, 0);
-			} else if (line_height == 0) {
-				/* auto resize, calculate height based on number of lines in string */
-				std::size_t lines = std::count(value.begin(), value.end(), '\n') + 1;
-				lines = std::max<std::size_t>(lines, 1); // at least one line
-				size = ImVec2(0, Detail::multiline_text_height(lines));
-			} else {
-				size = ImVec2(0, Detail::multiline_text_height(line_height));
-			}
+		if constexpr (is_const == false) {
+			if (multi_line) {
+				const int line_height = string_settings.get_line_count();
+				ImVec2 size;
+				if (line_height < 0) {
+					/* imgui default */
+					size = ImVec2(0, 0);
+				} else if (line_height == 0) {
+					/* auto resize, calculate height based on number of lines in string */
+					std::size_t lines = std::count(value.begin(), value.end(), '\n') + 1;
+					lines = std::max<std::size_t>(lines, 1); // at least one line
+					size = ImVec2(0, Detail::multiline_text_height(lines));
+				} else {
+					size = ImVec2(0, Detail::multiline_text_height(line_height));
+				}
 
-			changed = ImGui::InputTextMultiline(label, &value, size, flags);
+				changed = ImGui::InputTextMultiline(label, &value, size, flags);
+			} else {
+				changed = ImGui::InputText(label, &value, flags);
+			}
 		} else {
-			changed = ImGui::InputText(label, &value, flags);
+			/* Const value, just display */
+			ImReflect::Detail::text_label(label);
+			ImReflect::Detail::imgui_tooltip("Value is const");
+
+			ImGui::BeginDisabled();
+			ImGui::SameLine();
+
+			ImGui::TextWrapped("%s", value.c_str());
+
+			ImGui::EndDisabled();
 		}
 
 		if (changed) {
@@ -198,7 +213,7 @@ namespace ImReflect {
 		}
 
 		const bool is_dropdown = tuple_settings.is_dropdown();
-		auto render_element = [&](auto index, auto& element) {
+		auto render_element = [&](auto index, auto&& element) {
 			if (is_grid) {
 				const int col = index % columns;
 				if (col == 0 && index != 0) {
@@ -221,12 +236,12 @@ namespace ImReflect {
 				if (is_open) {
 					ImGui::SameLine();
 					ImGui::SetNextItemWidth(column_width);
-					ImReflect::Input("##tuple_item", element, tuple_settings, tuple_response);
+					ImReflect::Input("##tuple_item", std::forward<decltype(element)>(element), tuple_settings, tuple_response);
 					ImGui::TreePop();
 				}
 			} else {
 				ImGui::SetNextItemWidth(column_width);
-				ImReflect::Input("##tuple_item", element, tuple_settings, tuple_response);
+				ImReflect::Input("##tuple_item", std::forward<decltype(element)>(element), tuple_settings, tuple_response);
 			}
 			ImGui::PopID();
 			};
@@ -235,10 +250,23 @@ namespace ImReflect {
 		(render_element(Is, std::get<Is>(value)), ...);
 	}
 
-	template<typename T, typename... Ts>
-	void draw_tuple_element_label(const char* label, std::tuple<Ts...>& value, ImSettings& settings, ImResponse& response) {
-		auto& tuple_settings = settings.get<T>();
-		auto& tuple_response = response.get<T>();
+	template<typename Tag, bool is_const, typename... Ts>
+	auto& get_tuple_value(const std::tuple<Ts...>& original_value) {
+		if constexpr (is_const) {
+			return original_value;
+		} else {
+			return const_cast<std::tuple<Ts...>&>(original_value);
+		}
+	}
+
+	// Const overload, exactly the same as non-const version
+	template<typename Tag, bool is_const, typename... Ts>
+	void draw_tuple_element_label(const char* label, const std::tuple<Ts...>& original_value, ImSettings& settings, ImResponse& response) {
+		auto& tuple_settings = settings.get<Tag>();
+		auto& tuple_response = response.get<Tag>();
+
+		/* Get non-const reference if possible */
+		auto& value = get_tuple_value<Tag, is_const, Ts...>(original_value);
 
 		Detail::text_label(label);
 		ImGui::SameLine();
@@ -247,9 +275,6 @@ namespace ImReflect {
 
 		/* Settings to have things in a grid */
 		const bool is_grid = tuple_settings.is_grid();
-
-		/* Settings to have things on a single line*/
-		const bool is_line = tuple_settings.is_line();
 		const bool use_min_width = tuple_settings.has_min_width();
 
 		ImGuiTableFlags flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings;
@@ -272,7 +297,7 @@ namespace ImReflect {
 		}
 
 		if (ImGui::BeginTable("table", tuple_columns, flags)) {
-			render_tuple_elements_as_table<T>(value, tuple_settings, tuple_response, std::make_index_sequence<tuple_size>{});
+			render_tuple_elements_as_table<Tag>(value, tuple_settings, tuple_response, std::make_index_sequence<tuple_size>{});
 			ImGui::EndTable();
 		}
 
@@ -293,7 +318,12 @@ namespace ImReflect {
 
 	template<typename... Ts>
 	void tag_invoke(Detail::ImInputLib_t, const char* label, std::tuple<Ts...>& value, ImSettings& settings, ImResponse& response) {
-		draw_tuple_element_label<std_tuple, Ts...>(label, value, settings, response);
+		draw_tuple_element_label<std_tuple, false, Ts...>(label, value, settings, response);
+	}
+
+	template<typename... Ts>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, const std::tuple<Ts...>& value, ImSettings& settings, ImResponse& response) {
+		draw_tuple_element_label<std_tuple, true, Ts...>(label, value, settings, response);
 	}
 
 	/* ========================= std::pair ========================= */
@@ -312,7 +342,13 @@ namespace ImReflect {
 	template<typename T1, typename T2>
 	void tag_invoke(Detail::ImInputLib_t, const char* label, std::pair<T1, T2>& value, ImSettings& settings, ImResponse& response) {
 		auto tuple_value = std::tie(value.first, value.second);
-		draw_tuple_element_label<std_pair>(label, tuple_value, settings, response);
+		draw_tuple_element_label<std_pair, false>(label, tuple_value, settings, response);
+	}
+
+	template<typename T1, typename T2>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, const std::pair<T1, T2>& value, ImSettings& settings, ImResponse& response) {
+		auto tuple_value = std::tie(value.first, value.second);
+		draw_tuple_element_label<std_pair, true>(label, tuple_value, settings, response);
 	}
 
 	/* ========================= std::vector ========================= */
@@ -331,10 +367,22 @@ namespace ImReflect {
 		constexpr const char* VECTOR_TREE_LABEL = "##vector_tree";
 	}
 
-	template<typename T>
-	void tag_invoke(Detail::ImInputLib_t, const char* label, std::vector<T>& value, ImSettings& settings, ImResponse& response) {
+	template<typename T, bool is_const>
+	auto& get_vector_value(const std::vector<T>& original_value) {
+		if constexpr (is_const) {
+			return original_value;
+		} else {
+			return const_cast<std::vector<T>&>(original_value);
+		}
+	}
+
+	template<typename T, bool is_const>
+	void vector_input(ImReflect::ImSettings& settings, ImReflect::ImResponse& response, const char* label, const std::vector<T>& original_value) {
 		auto& vec_settings = settings.get<std_vector>();
 		auto& vec_response = response.get<std_vector>();
+
+		/* Get non-const reference if possible */
+		auto& value = get_vector_value<T, is_const>(original_value);
 
 		const bool is_dropdown = vec_settings.is_dropdown();
 		const bool use_min_width = vec_settings.has_min_width();
@@ -349,9 +397,9 @@ namespace ImReflect {
 			column_width = min_width;
 		}
 
-		constexpr bool default_constructible = std::is_default_constructible_v<T>;
-		constexpr bool copy_constructible = std::is_copy_constructible_v<T>;
-		constexpr bool move_constructible = std::is_move_constructible_v<T>;
+		constexpr bool default_constructible = std::is_default_constructible_v<T> && !is_const;
+		constexpr bool copy_constructible = std::is_copy_constructible_v<T> && !is_const;
+		constexpr bool move_constructible = std::is_move_constructible_v<T> && !is_const;
 
 		const auto id = Detail::scope_id("vector");
 
@@ -368,17 +416,24 @@ namespace ImReflect {
 				ImGui::BeginDisabled();
 				ImGui::Button("+");
 				ImGui::EndDisabled();
-				Detail::imgui_tooltip("Type is not default constructible, cannot add new item");
+				Detail::imgui_tooltip("Type is not default constructible or container is const, cannot add new item");
 			}
 		}
 		ImGui::SameLine();
 		if (is_removable) {
-			if (item_count > 0) {
-				if (ImGui::Button("-")) {
-					value.pop_back();
-					vec_response.changed();
-					item_count = value.size();
+			if constexpr (is_const == false) {
+				if (item_count > 0) {
+					if (ImGui::Button("-")) {
+						value.pop_back();
+						vec_response.changed();
+						item_count = value.size();
+					}
 				}
+			} else {
+				ImGui::BeginDisabled();
+				ImGui::Button("-");
+				ImGui::EndDisabled();
+				Detail::imgui_tooltip("Value is const, cannot remove item");
 			}
 		}
 
@@ -477,81 +532,89 @@ namespace ImReflect {
 					ImGui::OpenPopup("item_context_menu");
 				}
 
-				if (ImGui::BeginPopup("item_context_menu")) {
+				if constexpr (is_const == false) {
 
-					if (is_removable && ImGui::MenuItem("Remove item")) {
-						value.erase(value.begin() + i);
-						vec_response.changed();
-						ImGui::EndPopup();
-						ImGui::PopID();
-						break; /* Important, as the vector has changed */
-					}
-					//only allow duplicate/insert if type is default constructible
-					if constexpr (copy_constructible) {
-						if (is_insertable && ImGui::MenuItem("Duplicate item")) {
-							value.insert(value.begin() + i + 1, value[i]);
-							vec_response.changed();
-						}
-					} else {
-						ImGui::BeginDisabled();
-						if (ImGui::MenuItem("Duplicate item")) {
-						}
-						ImGui::EndDisabled();
-						Detail::imgui_tooltip("Type is not copy constructible, cannot duplicate item");
-					}
-					ImGui::Separator();
-					//move up/down
-					if (is_reorderable) {
+					if (ImGui::BeginPopup("item_context_menu")) {
 
-						if (ImGui::MenuItem("Move up") && i != 0) {
-							std::swap(value[i], value[i - 1]);
+						if (is_removable && ImGui::MenuItem("Remove item")) {
+							value.erase(value.begin() + i);
 							vec_response.changed();
+							ImGui::EndPopup();
+							ImGui::PopID();
+							break; /* Important, as the vector has changed */
 						}
-						if (ImGui::MenuItem("Move down") && i != static_cast<int>(item_count) - 1) {
-							std::swap(value[i], value[i + 1]);
-							vec_response.changed();
+						//only allow duplicate/insert if type is default constructible
+						if constexpr (copy_constructible) {
+							if (is_insertable && ImGui::MenuItem("Duplicate item")) {
+								value.insert(value.begin() + i + 1, value[i]);
+								vec_response.changed();
+							}
+						} else {
+							ImGui::BeginDisabled();
+							if (ImGui::MenuItem("Duplicate item")) {
+							}
+							ImGui::EndDisabled();
+							Detail::imgui_tooltip("Type is not copy constructible or container is const, cannot duplicate item");
 						}
 						ImGui::Separator();
-						if (ImGui::MenuItem("Move to top") && i != 0) {
-							std::rotate(value.begin(), value.begin() + i, value.begin() + i + 1);
-							vec_response.changed();
-						}
-						if (ImGui::MenuItem("Move to bottom") && i != static_cast<int>(item_count) - 1) {
-							std::rotate(value.begin() + i, value.begin() + i + 1, value.end());
-							vec_response.changed();
-						}
-						ImGui::Separator();
-					}
-					if constexpr (default_constructible) {
-						//only allow insert if type is default constructible
-						//insert above/below
-						if (is_insertable && ImGui::MenuItem("Insert above")) {
-							value.insert(value.begin() + i, T());
-							vec_response.changed();
-						}
-						if (is_insertable && ImGui::MenuItem("Insert below")) {
-							value.insert(value.begin() + i + 1, T());
-							vec_response.changed();
-						}
-					} else {
-						ImGui::BeginDisabled();
-						if (ImGui::MenuItem("Insert above")) {
-						}
-						if (ImGui::MenuItem("Insert below")) {
-						}
-						ImGui::EndDisabled();
-						Detail::imgui_tooltip("Type is not default constructible, cannot insert new item");
-					}
+						//move up/down
+						if (is_reorderable) {
 
-					ImGui::Separator();
-					if (is_removable && ImGui::MenuItem("Clear all")) {
-						value.clear();
-						vec_response.changed();
+							if (ImGui::MenuItem("Move up") && i != 0) {
+								std::swap(value[i], value[i - 1]);
+								vec_response.changed();
+							}
+							if (ImGui::MenuItem("Move down") && i != static_cast<int>(item_count) - 1) {
+								std::swap(value[i], value[i + 1]);
+								vec_response.changed();
+							}
+							ImGui::Separator();
+							if (ImGui::MenuItem("Move to top") && i != 0) {
+								std::rotate(value.begin(), value.begin() + i, value.begin() + i + 1);
+								vec_response.changed();
+							}
+							if (ImGui::MenuItem("Move to bottom") && i != static_cast<int>(item_count) - 1) {
+								std::rotate(value.begin() + i, value.begin() + i + 1, value.end());
+								vec_response.changed();
+							}
+							ImGui::Separator();
+						}
+						if constexpr (default_constructible) {
+							//only allow insert if type is default constructible
+							//insert above/below
+							if (is_insertable && ImGui::MenuItem("Insert above")) {
+								value.insert(value.begin() + i, T());
+								vec_response.changed();
+							}
+							if (is_insertable && ImGui::MenuItem("Insert below")) {
+								value.insert(value.begin() + i + 1, T());
+								vec_response.changed();
+							}
+						} else {
+							ImGui::BeginDisabled();
+							if (ImGui::MenuItem("Insert above")) {
+							}
+							if (ImGui::MenuItem("Insert below")) {
+							}
+							ImGui::EndDisabled();
+							Detail::imgui_tooltip("Type is not default constructible or container is const, cannot insert new item");
+						}
+
+						ImGui::Separator();
+						if (is_removable && ImGui::MenuItem("Clear all")) {
+							value.clear();
+							vec_response.changed();
+							ImGui::EndPopup();
+							ImGui::PopID();
+							break; /* Important, as the vector has changed */
+						}
 						ImGui::EndPopup();
-						ImGui::PopID();
-						break; /* Important, as the vector has changed */
 					}
-					ImGui::EndPopup();
+				} else {
+					if (ImGui::BeginPopup("item_context_menu")) {
+						ImGui::TextDisabled("Value is const, cannot modify items");
+						ImGui::EndPopup();
+					}
 				}
 
 				ImGui::PopID();
@@ -563,4 +626,13 @@ namespace ImReflect {
 		}
 	}
 
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::vector<T>& value, ImSettings& settings, ImResponse& response) {
+		vector_input<T, false>(settings, response, label, value);
+	}
+
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, const std::vector<T>& value, ImSettings& settings, ImResponse& response) {
+		vector_input<T, true>(settings, response, label, value);
+	}
 }

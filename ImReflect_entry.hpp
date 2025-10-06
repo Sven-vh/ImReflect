@@ -70,12 +70,12 @@ namespace ImReflect {
 
 		template<typename T>
 		void InputImpl(const char* label, T& value, ImSettings& settings, ImResponse& response) {
-			type_settings<T>& type_settings = settings.get<T>();
-			type_response<T>& type_response = response.get<T>();
+			auto& type_settings = settings.get<T>();
+			auto& type_response = response.get<T>();
 
 			/* Validate type settings */
 			//TODO: add link to documentation
-			static_assert(std::is_base_of_v<ImReflect::Detail::required<T>, std::remove_reference_t<decltype(type_settings)>>,
+			static_assert(std::is_base_of_v<ImReflect::Detail::required<std::remove_cv_t<T>>, std::remove_reference_t<decltype(type_settings)>>,
 				"ImReflect Error: TypeSettings specialization class must inherit from ImReflect::Detail::required<T>.");
 
 			const bool disabled = type_settings.is_disabled();

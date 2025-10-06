@@ -122,11 +122,13 @@ static void HelpMarker(const char* desc) {
 template<typename T>
 static void primitive_test() {
 	std::type_index info = typeid(T);
-	ImGui::SeparatorText(info.name());
-	ImGui::PushID(info.name());
+	const bool is_const = std::is_const_v<T>;
+	const std::string name = is_const ? std::string("const_") + info.name() : info.name();
+	ImGui::SeparatorText(name.c_str());
+	ImGui::PushID(name.c_str());
 	ImGui::Indent();
 
-	const std::string type_name = info.name();
+	const std::string type_name = name.c_str();
 	const std::string type_label = "my_" + type_name;
 	static T my_var = T(0);
 
@@ -290,18 +292,21 @@ static void format_test() {
 // ========================================
 // Boolean Test
 // ========================================
+template<typename T>
 static void boolean_test() {
-	ImGui::SeparatorText("bool");
+	const bool is_const = std::is_const_v<T>;
+	const std::string name = is_const ? std::string("const_") + typeid(T).name() : typeid(T).name();
+	ImGui::SeparatorText(name.c_str());
 	ImGui::PushID("bool");
 	ImGui::Indent();
 
-	static bool my_bool;
+	static T my_bool;
 
 	ImGui::Text("Default - as_checkbox()");
 	HelpMarker("Will make it a checkbox widget, is default");
 	{
 		auto config = ImSettings();
-		config.push<bool>()
+		config.push<T>()
 			.as_checkbox()
 			.pop();
 		ImReflect::Input("my_bool", my_bool, config);
@@ -313,7 +318,7 @@ static void boolean_test() {
 	HelpMarker("Radio button style");
 	{
 		auto config = ImSettings();
-		config.push<bool>()
+		config.push<T>()
 			.as_radio()
 			.pop();
 		ImReflect::Input("my_bool##radio", my_bool, config);
@@ -323,7 +328,7 @@ static void boolean_test() {
 	HelpMarker("Radio button style with custom text for true/false states");
 	{
 		auto config = ImSettings();
-		config.push<bool>()
+		config.push<T>()
 			.as_radio()
 			.true_text("Yes")
 			.false_text("No")
@@ -337,7 +342,7 @@ static void boolean_test() {
 	HelpMarker("Button style");
 	{
 		auto config = ImSettings();
-		config.push<bool>()
+		config.push<T>()
 			.as_button()
 			.pop();
 		ImReflect::Input("my_bool##button", my_bool, config);
@@ -347,7 +352,7 @@ static void boolean_test() {
 	HelpMarker("Button style with custom text for true/false states");
 	{
 		auto config = ImSettings();
-		config.push<bool>()
+		config.push<T>()
 			.as_button()
 			.true_text("On")
 			.false_text("Off")
@@ -361,7 +366,7 @@ static void boolean_test() {
 	HelpMarker("Dropdown style");
 	{
 		auto config = ImSettings();
-		config.push<bool>()
+		config.push<T>()
 			.as_dropdown()
 			.pop();
 		ImReflect::Input("my_bool##dropdown", my_bool, config);
@@ -371,7 +376,7 @@ static void boolean_test() {
 	HelpMarker("Dropdown style with custom text for true/false states");
 	{
 		auto config = ImSettings();
-		config.push<bool>()
+		config.push<T>()
 			.as_dropdown()
 			.true_text("Enabled")
 			.false_text("Disabled")
@@ -392,18 +397,21 @@ enum class MyEnum {
 	Option3
 };
 
+template<typename E>
 static void enum_test() {
-	ImGui::SeparatorText("enum");
-	ImGui::PushID("enum");
+	const bool is_const = std::is_const_v<E>;
+	const std::string name = is_const ? std::string("const_") + typeid(E).name() : typeid(E).name();
+	ImGui::SeparatorText(name.c_str());
+	ImGui::PushID(name.c_str());
 	ImGui::Indent();
 
-	static MyEnum my_enum;
+	static E my_enum;
 
 	ImGui::Text("Default - as_dropdown()");
 	HelpMarker("Default settings");
 	{
 		auto config = ImSettings();
-		config.push<MyEnum>()
+		config.push<E>()
 			.as_dropdown()
 			.pop();
 		ImReflect::Input("my_enum", my_enum, config);
@@ -415,7 +423,7 @@ static void enum_test() {
 	HelpMarker("Radio button style");
 	{
 		auto config = ImSettings();
-		config.push<MyEnum>()
+		config.push<E>()
 			.as_radio()
 			.pop();
 		ImReflect::Input("my_enum##radio", my_enum, config);
@@ -427,7 +435,7 @@ static void enum_test() {
 	HelpMarker("Slider style");
 	{
 		auto config = ImSettings();
-		config.push<MyEnum>()
+		config.push<E>()
 			.as_slider()
 			.pop();
 		ImReflect::Input("my_enum##slider", my_enum, config);
@@ -439,7 +447,7 @@ static void enum_test() {
 	HelpMarker("Drag style");
 	{
 		auto config = ImSettings();
-		config.push<MyEnum>()
+		config.push<E>()
 			.as_drag()
 			.pop();
 		ImReflect::Input("my_enum##drag", my_enum, config);
@@ -769,12 +777,13 @@ config.push<ImReflect::std_pair>()
 // ========================================
 // std::string
 // ========================================
+template<typename T>
 static void string_test() {
 	ImGui::SeparatorText("String Test");
 	ImGui::PushID("string_test");
 	ImGui::Indent();
 
-	static std::string my_string = "Hello World";
+	static T my_string = "Hello World";
 
 	ImGui::Text("Default");
 	HelpMarker("Default settings, no extra settings given");
@@ -792,7 +801,7 @@ static void string_test() {
 		ImGui::PushID("multiline default");
 
 		ImSettings config;
-		config.push<std::string>()
+		config.push<T>()
 			.as_multiline()
 			.pop();
 
@@ -815,7 +824,7 @@ config.push<std::string>()
 		ImGui::PushID("multiline height");
 
 		ImSettings config;
-		config.push<std::string>()
+		config.push<T>()
 			.as_multiline()
 			.line_count(5) // 5 lines height
 			.pop();
@@ -839,7 +848,7 @@ config.push<std::string>()
 	HelpMarker("Multiline input, auto resize");
 	{
 		ImSettings config;
-		config.push<std::string>()
+		config.push<T>()
 			.as_multiline()
 			.auto_resize()
 			.pop();
@@ -929,6 +938,25 @@ static void pair_test() {
 		ImReflect::Input("five_levels_of_pairs", five_levels_of_pairs, config);
 		ImGui::PopID();
 	}
+
+	ImGui::Text("5 levels of pairs const");
+	HelpMarker("You can also nest pairs");
+	{
+		ImGui::PushID("5 levels of pairs const");
+		using pair5 = std::pair<int, std::pair<int, std::pair<int, std::pair<std::string, std::pair<int, int>>>>>;
+		static const pair5 five_levels_of_pairs = { 1, { 2, { 3, { "Deep", { 4, 5 } } } } };
+		ImSettings config;
+		config.push<std::string>()
+			.as_multiline()
+			.auto_resize()
+			.pop()
+			.push<ImReflect::std_pair>()
+			.min_width(100.0f)
+			.pop();
+		ImReflect::Input("five_levels_of_pairs_const", five_levels_of_pairs, config);
+		ImGui::PopID();
+	}
+
 
 	ImGui::Unindent();
 	ImGui::PopID();
@@ -1054,6 +1082,30 @@ static void tuple_test() {
 		ImReflect::Input("long_tuple", long_tup, config);
 		ImGui::PopID();
 	}
+	ImGui::Text("Long tuple Grid const");
+	HelpMarker("You can have tuples with many elements");
+	{
+		ImGui::PushID("long tuple const");
+		using LongTupleType = std::tuple<
+			int, float, std::string, bool,
+			int, float, std::string, bool,
+			int, float, std::string, bool
+		>;
+		static const LongTupleType long_tup = {
+			1,     2.0f,   "Three",  true,
+			5,     6.0f,   "Seven",  false,
+			9,     10.0f,  "Eleven", true
+		};
+		ImSettings config;
+		config.push<ImReflect::std_tuple>()
+			.as_grid()
+			.columns(4)
+			.min_width(100.0f)
+			.pop();
+		ImReflect::Input("long_tuple_const", long_tup, config);
+		ImGui::PopID();
+	}
+
 	ImGui::Unindent();
 	ImGui::PopID();
 }
@@ -1071,6 +1123,15 @@ static void vector_test() {
 	{
 		ImGui::PushID("default");
 		ImReflect::Input("my_vector", my_vector);
+		ImGui::PopID();
+	}
+
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::vector<int> my_vector_const = { 1, 2, 3, 4, 5 };
+		ImReflect::Input("my_vector_const", my_vector_const);
 		ImGui::PopID();
 	}
 
@@ -1144,18 +1205,29 @@ namespace svh {
 
 			// Integer types
 			primitive_test<int8_t>();
+			primitive_test<const int8_t>();
 			primitive_test<uint8_t>();
+			primitive_test<const uint8_t>();
 			primitive_test<int16_t>();
+			primitive_test<const int16_t>();
 			primitive_test<uint16_t>();
+			primitive_test<const uint16_t>();
 			primitive_test<int32_t>();
+			primitive_test<const int32_t>();
 			primitive_test<uint32_t>();
+			primitive_test<const uint32_t>();
 			primitive_test<int64_t>();
+			primitive_test<const int64_t>();
 			primitive_test<uint64_t>();
+			primitive_test<const uint64_t>();
 
 			// Floating-point types
 			primitive_test<float>();
+			primitive_test<const float>();
 			primitive_test<double>();
+			primitive_test<const double>();
 			primitive_test<long double>();
+			primitive_test<const long double>();
 
 			ImGui::EndTabItem();
 		}
@@ -1167,14 +1239,16 @@ namespace svh {
 		if (ImGui::BeginTabItem("Booleans")) {
 
 			// bool
-			boolean_test();
+			boolean_test<bool>();
+			boolean_test<const bool>();
 
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("Enums")) {
 
 			// Enum
-			enum_test();
+			enum_test<MyEnum>();
+			enum_test<const MyEnum>();
 
 			ImGui::EndTabItem();
 		}
@@ -1204,7 +1278,8 @@ namespace svh {
 		if (ImGui::BeginTabItem("String")) {
 
 			// String test
-			string_test();
+			string_test<std::string>();
+			string_test<const std::string>();
 
 			ImGui::EndTabItem();
 		}
@@ -1231,5 +1306,24 @@ namespace svh {
 		}
 
 		ImGui::EndTabBar();
+
+		//static std::map<int, float> my_map = {
+		//{1, 1.0f},
+		//{2, 2.0f},
+		//{3, 3.0f} };
+		//std::vector<std::pair<const int&, float&>> refs;
+
+		//for (auto& [k, v] : my_map) {
+		//	refs.emplace_back(k, v);
+		//}
+
+		//for(auto& [k, v] : refs) {
+		//	ImGui::Text("Key: %d, Value: %.2f", k, v);
+		//	ImGui::SameLine();
+		//	if (ImGui::Button(("Change##" + std::to_string(k)).c_str())) {
+		//		v += 1.0f;
+		//	}
+		//}
+
 	}
 }

@@ -9,15 +9,15 @@
 /* Helpers */
 namespace ImReflect::Detail {
 
-	template<typename T> /* All numbers except bool */
-	constexpr bool is_numeric_v = (std::is_integral_v<T> || std::is_floating_point_v<T>) && !std::is_same_v<T, bool>;
-	template<typename T>
-	using enable_if_numeric_t = std::enable_if_t<is_numeric_v<T>, void>;
-
 	template<typename T> /* Only bool */
-	constexpr bool is_bool_v = std::is_same_v<T, bool>;
+	constexpr bool is_bool_v = std::is_same_v<std::remove_cv_t<T>, bool>;
 	template<typename T>
 	using enable_if_bool_t = std::enable_if_t<is_bool_v<T>, void>;
+
+	template<typename T> /* All numbers except bool */
+	constexpr bool is_numeric_v = (std::is_integral_v<T> || std::is_floating_point_v<T>) && !is_bool_v<T>;
+	template<typename T>
+	using enable_if_numeric_t = std::enable_if_t<is_numeric_v<std::remove_cv_t<T>>, void>;
 
 	template<typename T>
 	struct imgui_data_type_trait {
@@ -377,8 +377,8 @@ namespace ImReflect {
 	template<typename T>
 	std::enable_if_t<ImReflect::Detail::is_numeric_v<T>, void>
 		tag_invoke(Detail::ImInputLib_t, const char* label, T& value, ImSettings& settings, ImResponse& response) {
-		type_settings<T>& num_settings = settings.get<T>();
-		type_response<T>& num_response = response.get<T>();
+		auto& num_settings = settings.get<T>();
+		auto& num_response = response.get<T>();
 
 		const auto& min = num_settings.get_min();
 		const auto& max = num_settings.get_max();
@@ -387,25 +387,37 @@ namespace ImReflect {
 		constexpr auto data_type = Detail::imgui_data_type_trait<T>::value;
 
 		bool changed = false;
-		if (num_settings.is_slider()) {
-			const auto id = Detail::scope_id("slider");
-			changed = ImGui::SliderScalar(label, data_type, &value, &min, &max, fmt.c_str(), num_settings.get_slider_flags());
-		} else if (num_settings.is_drag()) {
-			const auto id = Detail::scope_id("drag");
-			changed = ImGui::DragScalar(label, data_type, &value, speed, &min, &max, fmt.c_str(), num_settings.get_slider_flags());
-		} else if (num_settings.is_input()) {
-			const auto id = Detail::scope_id("input");
-			const auto& step = num_settings.get_step();
-			const auto& step_fast = num_settings.get_step_fast();
-			changed = ImGui::InputScalar(label, data_type, &value, &step, &step_fast, fmt.c_str(), num_settings.get_input_flags());
-		} else {
-			throw std::runtime_error("Unknown input type");
-		}
+		if constexpr (std::is_const_v<T> == false) {
 
-		/* Clamp if needed */
-		if (num_settings.is_clamped()) {
-			if (value < min) value = min;
-			if (value > max) value = max;
+			if (num_settings.is_slider()) {
+				const auto id = Detail::scope_id("slider");
+				changed = ImGui::SliderScalar(label, data_type, &value, &min, &max, fmt.c_str(), num_settings.get_slider_flags());
+			} else if (num_settings.is_drag()) {
+				const auto id = Detail::scope_id("drag");
+				changed = ImGui::DragScalar(label, data_type, &value, speed, &min, &max, fmt.c_str(), num_settings.get_slider_flags());
+			} else if (num_settings.is_input()) {
+				const auto id = Detail::scope_id("input");
+				const auto& step = num_settings.get_step();
+				const auto& step_fast = num_settings.get_step_fast();
+				changed = ImGui::InputScalar(label, data_type, &value, &step, &step_fast, fmt.c_str(), num_settings.get_input_flags());
+			} else {
+				throw std::runtime_error("Unknown input type");
+			}
+
+			/* Clamp if needed */
+			if (num_settings.is_clamped()) {
+				if (value < min) value = min;
+				if (value > max) value = max;
+			}
+		} else {
+			/* Const value, just display */
+			ImReflect::Detail::text_label(label);
+			ImReflect::Detail::imgui_tooltip("Value is const");
+
+			ImGui::BeginDisabled();
+			ImGui::SameLine();
+			ImGui::Text(fmt.c_str(), value);
+			ImGui::EndDisabled();
 		}
 
 		if (changed) {
@@ -430,45 +442,59 @@ namespace ImReflect {
 	template<typename T>
 	std::enable_if_t<ImReflect::Detail::is_bool_v<T>, void>
 		tag_invoke(Detail::ImInputLib_t, const char* label, T& value, ImSettings& settings, ImResponse& response) {
-		type_settings<T>& bool_settings = settings.get<T>();
-		type_response<T>& bool_response = response.get<T>();
+		auto& bool_settings = settings.get<T>();
+		auto& bool_response = response.get<T>();
+
 		bool changed = false;
-		if (bool_settings.is_checkbox()) {
-			const auto id = Detail::scope_id("checkbox");
 
-			changed = ImGui::Checkbox(label, &value);
-		} else if (bool_settings.is_radio()) {
-			const auto id = Detail::scope_id("radio");
+		if constexpr (std::is_const_v<T> == false) {
 
-			int int_value = value ? 1 : 0;
-			changed = ImGui::RadioButton(bool_settings.get_true_text().c_str(), &int_value, 1);
-			ImGui::SameLine();
-			changed |= ImGui::RadioButton(bool_settings.get_false_text().c_str(), &int_value, 0);
-			value = (int_value != 0);
+			if (bool_settings.is_checkbox()) {
+				const auto id = Detail::scope_id("checkbox");
 
-			ImGui::SameLine();
-			ImReflect::Detail::text_label(label);
-		} else if (bool_settings.is_dropdown()) {
-			const auto id = Detail::scope_id("dropdown");
+				changed = ImGui::Checkbox(label, &value);
+			} else if (bool_settings.is_radio()) {
+				const auto id = Detail::scope_id("radio");
 
-			const char* items[] = { bool_settings.get_false_text().c_str(), bool_settings.get_true_text().c_str() };
-			int int_value = value ? 1 : 0;
-			changed = ImGui::Combo(label, &int_value, items, IM_ARRAYSIZE(items));
+				int int_value = value ? 1 : 0;
+				changed = ImGui::RadioButton(bool_settings.get_true_text().c_str(), &int_value, 1);
+				ImGui::SameLine();
+				changed |= ImGui::RadioButton(bool_settings.get_false_text().c_str(), &int_value, 0);
+				value = (int_value != 0);
 
-			value = (int_value != 0);
-		} else if (bool_settings.is_button()) {
-			const auto id = Detail::scope_id("button");
+				ImGui::SameLine();
+				ImReflect::Detail::text_label(label);
+			} else if (bool_settings.is_dropdown()) {
+				const auto id = Detail::scope_id("dropdown");
 
-			const auto& button_label = value ? bool_settings.get_true_text() : bool_settings.get_false_text();
-			if (ImGui::Button(button_label.c_str())) {
-				value = !value;
-				changed = true;
+				const char* items[] = { bool_settings.get_false_text().c_str(), bool_settings.get_true_text().c_str() };
+				int int_value = value ? 1 : 0;
+				changed = ImGui::Combo(label, &int_value, items, IM_ARRAYSIZE(items));
+
+				value = (int_value != 0);
+			} else if (bool_settings.is_button()) {
+				const auto id = Detail::scope_id("button");
+
+				const auto& button_label = value ? bool_settings.get_true_text() : bool_settings.get_false_text();
+				if (ImGui::Button(button_label.c_str())) {
+					value = !value;
+					changed = true;
+				}
+
+				ImGui::SameLine();
+				ImReflect::Detail::text_label(label);
+			} else {
+				throw std::runtime_error("Unknown input type for bool");
 			}
-
-			ImGui::SameLine();
-			ImReflect::Detail::text_label(label);
 		} else {
-			throw std::runtime_error("Unknown input type for bool");
+			/* Const value, just display */
+			ImReflect::Detail::text_label(label);
+			ImReflect::Detail::imgui_tooltip("Value is const");
+
+			ImGui::BeginDisabled();
+			ImGui::SameLine();
+			ImGui::Text("%s", value ? bool_settings.get_true_text().c_str() : bool_settings.get_false_text().c_str());
+			ImGui::EndDisabled();
 		}
 		if (changed) {
 			bool_response.changed();
@@ -503,14 +529,17 @@ namespace ImReflect {
 	template<typename E>
 	std::enable_if_t<std::is_enum_v<E>, void>
 		tag_invoke(Detail::ImInputLib_t, const char* label, E& value, ImSettings& settings, ImResponse& response) {
-		type_settings<E>& enum_settings = settings.get<E>();
-		type_response<E>& enum_response = response.get<E>();
+		auto& enum_settings = settings.get<E>();
+		auto& enum_response = response.get<E>();
+
+		constexpr bool is_const = std::is_const_v<E>;
 
 		const auto enum_values = magic_enum::enum_values<E>();
 		const auto enum_names = magic_enum::enum_names<E>();
 		const int enum_count = static_cast<int>(enum_values.size());
 
 		bool changed = false;
+		if (is_const) ImGui::BeginDisabled();
 		if (enum_settings.is_radio()) {
 			const auto id = Detail::scope_id("radio_enum");
 
@@ -526,14 +555,16 @@ namespace ImReflect {
 			if (ImGui::BeginChild("##radio_enum", child_size, 0, ImGuiWindowFlags_HorizontalScrollbar)) {
 				for (int i = 0; i < enum_count; ++i) {
 					changed |= ImGui::RadioButton(enum_names[i].data(), &int_value, static_cast<int>(enum_values[i]));
+					if (is_const) ImReflect::Detail::imgui_tooltip("Value is const");
 					if (i < enum_count - 1) ImGui::SameLine();
 				}
-				value = static_cast<E>(int_value);
+				if constexpr (is_const == false) value = static_cast<E>(int_value);
 			}
 
 			ImGui::EndChild();
 			ImGui::SameLine();
-			ImGui::Text("%s", label);
+			ImReflect::Detail::text_label(label);
+			if constexpr (is_const) ImReflect::Detail::imgui_tooltip("Value is const");
 		} else if (enum_settings.is_dropdown()) {
 			const auto id = Detail::scope_id("dropdown_enum");
 
@@ -545,7 +576,8 @@ namespace ImReflect {
 			}
 
 			changed = ImGui::Combo(label, &int_value, item_vec.data(), enum_count);
-			value = static_cast<E>(int_value);
+			if constexpr (is_const == false) value = static_cast<E>(int_value);
+			else ImReflect::Detail::imgui_tooltip("Value is const");
 		} else if (enum_settings.is_slider()) {
 			const auto id = Detail::scope_id("slider_enum");
 
@@ -556,7 +588,8 @@ namespace ImReflect {
 			const char* index_name = magic_enum::enum_name(value).data();
 
 			changed = ImGui::SliderInt(label, &int_value, min, max, index_name);
-			value = static_cast<E>(int_value);
+			if constexpr (is_const == false) value = static_cast<E>(int_value);
+			else ImReflect::Detail::imgui_tooltip("Value is const");
 		} else if (enum_settings.is_drag()) {
 			const auto id = Detail::scope_id("drag_enum");
 
@@ -568,10 +601,12 @@ namespace ImReflect {
 			const char* index_name = magic_enum::enum_name(value).data();
 
 			changed = ImGui::DragInt(label, &int_value, speed, min, max, index_name);
-			value = static_cast<E>(int_value);
+			if constexpr (is_const == false) value = static_cast<E>(int_value);
+			else ImReflect::Detail::imgui_tooltip("Value is const");
 		} else {
 			throw std::runtime_error("Unknown input type for enum");
 		}
+		if (is_const) ImGui::EndDisabled();
 
 		if (changed) {
 			enum_response.changed();
