@@ -20,8 +20,8 @@ namespace svh {
 	// Specialization for member object pointers
 	template<typename M, typename T>
 	struct member_pointer_traits<M T::*> {
-		using member_type = M;
-		using class_type = T;
+		using member_type = std::remove_cv_t<M>;
+		using class_type = std::remove_cv_t<T>;
 	};
 
 	template<auto member>
@@ -104,8 +104,8 @@ namespace svh {
 		template<auto member>
 		auto& push_member() {
 			using traits = member_pointer_traits<decltype(member)>;
-			using MemberType = typename std::remove_cv_t<traits::member_type>;
-			using ClassType = typename std::remove_cv_t<traits::class_type>;
+			using MemberType = typename traits::member_type;
+			using ClassType = typename traits::class_type;
 
 			const std::type_index struct_type = get_type_key<ClassType>();
 			const std::type_index member_type = get_type_key<MemberType>();
