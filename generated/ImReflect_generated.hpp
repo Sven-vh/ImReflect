@@ -1,5 +1,7 @@
 // ============================================================================
 // ImReflect - Single Header File
+// https://github.com/Sven-vh/ImReflect
+//
 // Auto-generated - DO NOT EDIT MANUALLY
 //
 // This file combines all ImReflect headers and external dependencies.
@@ -32,7 +34,7 @@
 
 
 // ============================================================================
-// File: extern/svh/tag_invoke.hpp
+// File: extern\svh\tag_invoke.hpp
 // ============================================================================
 
 //Source: https://github.com/Sven-vh/tag-invoke
@@ -66,7 +68,7 @@ namespace svh {
 } // namespace svh
 
 // ============================================================================
-// File: extern/svh/scope.hpp
+// File: extern\svh\scope.hpp
 // ============================================================================
 
 #include <unordered_map>
@@ -650,7 +652,7 @@ namespace svh {
 #define ________________________________
 
 // ============================================================================
-// File: extern/magic_enum/magic_enum.hpp
+// File: extern\magic_enum\magic_enum.hpp
 // ============================================================================
 
 //  __  __             _        ______                          _____
@@ -2218,7 +2220,7 @@ constexpr E& operator^=(E& lhs, E rhs) noexcept {
 #endif // NEARGYE_MAGIC_ENUM_HPP
 
 // ============================================================================
-// File: extern/visit_struct/visit_struct.hpp
+// File: extern\visit_struct\visit_struct.hpp
 // ============================================================================
 
 //  (C) Copyright 2015 - 2018 Christopher Beck

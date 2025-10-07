@@ -97,6 +97,8 @@ class HeaderCombiner:
         header = [
             "// ============================================================================",
             "// ImReflect - Single Header File",
+            "// https://github.com/Sven-vh/ImReflect",
+            "//",
             "// Auto-generated - DO NOT EDIT MANUALLY",
             "//",
             "// This file combines all ImReflect headers and external dependencies.",
