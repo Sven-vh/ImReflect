@@ -266,7 +266,7 @@ The library is available in two formats:
 1. **Multiple Headers** (traditional): Include ``ImReflect.hpp`` which includes all necessary headers
 2. **Single Header** (recommended): Use ``generated/ImReflect_generated.hpp`` for easier integration
 
-The single header file combines all ImReflect headers and external dependencies into one file. It's automatically generated via GitHub Actions whenever changes are pushed to main.
+The single header file combines all ImReflect headers and external dependencies into one file. It's automatically generated via GitHub Actions whenever a new release is created.
 
 ### Using Multiple Headers
 

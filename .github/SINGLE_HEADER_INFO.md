@@ -31,17 +31,14 @@ The single header includes:
 
 ## Automatic Generation
 
-The single header is automatically regenerated via GitHub Actions whenever:
+The single header is automatically generated via GitHub Actions whenever:
 
-- Changes are pushed to the `main` branch that affect:
-  - Any `ImReflect*.hpp` file
-  - Any file in `extern/` directories
-  - The generation script itself (`scripts/generate_single_header.py`)
+- A new release is created
 
 The workflow:
 1. Runs the Python generation script
-2. Checks if the generated file changed
-3. Commits and pushes the updated file back to the repository (with `[skip ci]` to avoid infinite loops)
+2. Uploads the generated file as a release asset
+3. The file is attached to the release for easy download
 
 ## Manual Generation
 
