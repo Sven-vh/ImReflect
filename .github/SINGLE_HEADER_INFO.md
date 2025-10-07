@@ -4,7 +4,7 @@ This document explains the single header generation feature for ImReflect.
 
 ## Overview
 
-ImReflect now provides an automatically generated single-header version that combines all library headers and external dependencies into one file: `generated/ImReflect_generated.hpp`
+ImReflect now provides an automatically generated single-header version that combines all library headers and external dependencies into one file: `single_header/ImReflect.hpp`
 
 ## What Gets Combined
 
@@ -58,7 +58,7 @@ The Python script (`scripts/generate_single_header.py`):
 4. Preserves ImGui and standard library `#include` directives
 5. Adds file section markers for debugging
 6. Handles UTF-8 BOM characters properly
-7. Outputs to `generated/ImReflect_generated.hpp`
+7. Outputs to `single_header/ImReflect.hpp`
 
 ## Usage Example
 
@@ -75,7 +75,7 @@ You can use:
 #include <imgui.h>
 #include <imgui_internal.h>
 #include <imgui_stdlib.h>
-#include <generated/ImReflect_generated.hpp>
+#include <single_header/ImReflect.hpp>
 ```
 
 ## Benefits
@@ -88,8 +88,8 @@ You can use:
 ## File Structure
 
 ```
-generated/
-├── ImReflect_generated.hpp   # ~4500 lines, auto-generated
+single_header/
+├── ImReflect.hpp   # ~4500 lines, auto-generated
 └── README.md                  # Documentation for the generated directory
 ```
 

@@ -32,6 +32,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: ./generated/ImReflect_generated.hpp
-          asset_name: ImReflect_generated.hpp
+          asset_path: ./single_header/ImReflect.hpp
+          asset_name: ImReflect.hpp
           asset_content_type: text/plain

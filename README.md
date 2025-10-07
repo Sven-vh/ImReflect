@@ -264,7 +264,7 @@ See the [Wiki](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings) for the 
 The library is available in two formats:
 
 1. **Multiple Headers** (traditional): Include ``ImReflect.hpp`` which includes all necessary headers
-2. **Single Header** (recommended): Use ``generated/ImReflect_generated.hpp`` for easier integration
+2. **Single Header** (recommended): Use ``single_header/ImReflect.hpp`` for easier integration
 
 The single header file combines all ImReflect headers and external dependencies into one file. It's automatically generated via GitHub Actions whenever a new release is created.
 
@@ -279,7 +279,7 @@ This includes: ``ImReflect_entry.hpp``, ``ImReflect_helper.hpp``, ``ImReflect_pr
 ### Using Single Header
 
 ```cpp
-#include <generated/ImReflect_generated.hpp>
+#include <single_header/ImReflect.hpp>
 ```
 
 This includes everything in one file for easier integration into your project.
