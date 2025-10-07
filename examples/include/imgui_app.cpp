@@ -1518,11 +1518,6 @@ namespace svh {
 			multiset_test();
 			ImGui::EndTabItem();
 		}
-		if (ImGui::BeginTabItem("ForwardList")) {
-			// ForwardList test
-			forward_list_test();
-			ImGui::EndTabItem();
-		}
 
 		ImGui::EndTabBar();
 	}
