@@ -6,25 +6,28 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   generate:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      
+          python-version: "3.11"
+
       - name: Generate single header
         run: |
           python3 scripts/generate_single_header.py
-      
+
       - name: Upload to release
         if: github.event_name == 'release'
         uses: actions/upload-release-asset@v1
