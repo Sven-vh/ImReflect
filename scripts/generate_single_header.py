@@ -179,8 +179,8 @@ def main():
             print(f"Warning: File not found: {file_path}")
     
     # Generate output
-    output_dir = repo_root / "generated"
-    output_file = output_dir / "ImReflect_generated.hpp"
+    output_dir = repo_root / "single_header"
+    output_file = output_dir / "ImReflect.hpp"
     combiner.generate_combined_header(output_file)
     
     print(f"\nSuccess! Single header generated at: {output_file.relative_to(repo_root)}")
