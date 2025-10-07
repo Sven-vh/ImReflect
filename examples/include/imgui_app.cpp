@@ -1312,6 +1312,63 @@ static void set_test() {
 }
 
 // ========================================
+// std::mulit_set
+// ========================================
+static void multiset_test() {
+	ImGui::SeparatorText("std::multiset Test");
+	ImGui::PushID("multiset_test");
+	ImGui::Indent();
+	static std::multiset<int> my_multiset = { 1, 2, 2, 3, 4, 5 };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_multiset", my_multiset);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::multiset<int> my_multiset_const = { 1, 2, 2, 3, 4, 5 };
+		ImReflect::Input("my_multiset_const", my_multiset_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
+//std::forward_list
+// ========================================
+static void forward_list_test() {
+	ImGui::SeparatorText("std::forward_list Test");
+	ImGui::PushID("forward_list_test");
+	ImGui::Indent();
+	static std::forward_list<int> my_forward_list = { 1, 2, 3, 4, 5 };
+
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_forward_list", my_forward_list);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::forward_list<int> my_forward_list_const = { 1, 2, 3, 4, 5 };
+		ImReflect::Input("my_forward_list_const", my_forward_list_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // std::map
 // ========================================
 static void map_test(){
@@ -1483,6 +1540,16 @@ namespace svh {
 		if (ImGui::BeginTabItem("Set")) {
 			// Set test
 			set_test();
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("MultiSet")) {
+			// MultiSet test
+			multiset_test();
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("ForwardList")) {
+			// ForwardList test
+			forward_list_test();
 			ImGui::EndTabItem();
 		}
 

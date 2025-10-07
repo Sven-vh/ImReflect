@@ -16,6 +16,7 @@
 #include <tuple>
 #include <set>
 #include <unordered_set>
+#include <forward_list>
 
 /* Helpers */
 namespace ImReflect::Detail {
@@ -440,7 +441,7 @@ namespace ImReflect {
 		static std::false_type test_key_type(...);
 		static constexpr bool is_associative = decltype(test_key_type<Container>(0))::value;
 
-		/*  NEW: Check if container allows duplicates */
+		/* Check if container allows duplicates */
 		template<typename C>
 		static auto test_multiset(int) -> decltype(
 			std::declval<C>().insert(std::declval<value_type>()),
@@ -455,6 +456,13 @@ namespace ImReflect {
 		static constexpr bool allows_duplicates = is_associative &&
 			(std::is_same_v<Container, std::multiset<value_type>> ||
 				std::is_same_v<Container, std::unordered_multiset<value_type>>);
+
+		/* Check if container has size */
+		template<typename C>
+		static auto test_size(int) -> decltype(std::declval<C>().size(), std::true_type{});
+		template<typename>
+		static std::false_type test_size(...);
+		static constexpr bool has_size = decltype(test_size<Container>(0))::value;
 	};
 
 	/*  Helper to get element by index for both random access and non-random access containers */
@@ -489,6 +497,7 @@ namespace ImReflect {
 		constexpr bool container_allows_insert = traits::has_insert || traits::has_push_back;
 		constexpr bool container_allows_remove = traits::has_erase;
 		constexpr bool is_fixed_size_container = traits::is_fixed_size;
+		constexpr bool has_size = traits::has_size;
 
 		constexpr bool is_associative = traits::is_associative;
 		constexpr bool supports_reorder = !is_associative; /*  Can't reorder sets */
@@ -513,7 +522,11 @@ namespace ImReflect {
 
 		ImReflect::Detail::text_label(label);
 		ImGui::SameLine();
-		size_t item_count = value.size();
+		size_t item_count = 0;
+		if constexpr (has_size) {
+			item_count = value.size();
+		} else {
+		}
 
 		const auto disabled_plus_button = []() {
 			ImGui::BeginDisabled();
@@ -530,16 +543,7 @@ namespace ImReflect {
 		if constexpr (can_insert) {
 			if (vec_settings.is_insertable()) {
 				if (ImGui::Button("+")) {
-					if constexpr (supports_duplicate) {
-						if constexpr (traits::has_push_back) {
-							value.push_back(T());
-						} else if constexpr (traits::has_insert) {
-							value.insert(value.end(), T());
-						}
-						vec_response.changed();
-					} else {
-						ImGui::OpenPopup("add_item_popup");
-					}
+					ImGui::OpenPopup("add_item_popup");
 				}
 			} else {
 				disabled_plus_button();
@@ -802,10 +806,10 @@ namespace ImReflect {
 			}
 
 			/*  Add item popup (for non-duplicateable types) */
-			if constexpr (can_insert && !supports_duplicate && default_constructible) {
+			if constexpr (can_insert) {
 				if (ImGui::BeginPopup("add_item_popup")) {
 
-					static T temp_value{};
+					T temp_value{};
 
 					if (ImGui::MenuItem("Add new item")) {
 						if constexpr (traits::has_push_back) {
@@ -982,7 +986,35 @@ namespace ImReflect {
 	}
 
 	/* ========================= std::multiset ========================= */
-	//TODO
+	struct std_multiset {};
+
+	template<>
+	struct type_settings<std_multiset> : ImSettings,
+		ImReflect::Detail::required<std_set>,
+		ImReflect::Detail::dropdown<std_set>,
+		ImReflect::Detail::insertable_mixin<std_set>,
+		ImReflect::Detail::removable_mixin<std_set> {
+	};
+
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::multiset<T>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = false;
+		constexpr bool allow_insert = true;
+		constexpr bool allow_remove = true;
+		constexpr bool allow_reorder = false;
+		constexpr bool allow_copy = true;
+		container_input<std_multiset, std::multiset<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+	}
+
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, const std::multiset<T>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = true;
+		constexpr bool allow_insert = false;
+		constexpr bool allow_remove = false;
+		constexpr bool allow_reorder = false;
+		constexpr bool allow_copy = false;
+		container_input<std_multiset, std::multiset<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+	}
 
 	/* ========================= std::map ========================= */
 	struct std_map {};
