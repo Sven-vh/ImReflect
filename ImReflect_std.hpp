@@ -105,9 +105,12 @@ namespace ImReflect::Detail {
 	struct insertable_mixin {
 	private:
 		bool _insertable = true;
+		bool _pop_up_on_insert = true;
 	public:
 		type_settings<T>& insertable(const bool v = true) { _insertable = v; RETURN_THIS; }
 		const bool& is_insertable() const { return _insertable; };
+		type_settings<T>& pop_up_on_insert(const bool v = true) { _pop_up_on_insert = v; RETURN_THIS; }
+		const bool& is_pop_up_on_insert() const { return _pop_up_on_insert; };
 	};
 
 	template<typename T>
@@ -519,6 +522,9 @@ namespace ImReflect {
 		}
 
 		const auto id = Detail::scope_id("container");
+		const auto pop_up_id = ImGui::GetID("add_item_popup");
+
+		static auto insert_item = value.end();
 
 		ImReflect::Detail::text_label(label);
 		ImGui::SameLine();
@@ -543,7 +549,20 @@ namespace ImReflect {
 		if constexpr (can_insert) {
 			if (vec_settings.is_insertable()) {
 				if (ImGui::Button("+")) {
-					ImGui::OpenPopup("add_item_popup");
+					if (vec_settings.is_pop_up_on_insert()) {
+						insert_item = value.end();
+						ImGui::OpenPopup(pop_up_id);
+					} else {
+						if constexpr (traits::has_push_back) {
+							value.push_back(T{});
+							vec_response.changed();
+							item_count = value.size();
+						} else if constexpr (traits::has_insert) {
+							value.insert(value.end(), T{});
+							vec_response.changed();
+							item_count = value.size();
+						}
+					}
 				}
 			} else {
 				disabled_plus_button();
@@ -751,16 +770,27 @@ namespace ImReflect {
 					if constexpr (can_insert) {
 						if (vec_settings.is_insertable() && ImGui::MenuItem("Insert above")) {
 							if constexpr (supports_duplicate) {
-								value.insert(it, T());
-								vec_response.changed();
+								if (vec_settings.is_pop_up_on_insert()) {
+									insert_item = it;
+									ImGui::OpenPopup(pop_up_id);
+								} else {
+									value.insert(it, T());
+									vec_response.changed();
+								}
 							} else {
-								ImGui::OpenPopup("add_item_popup");
+								ImGui::OpenPopup(pop_up_id);
 							}
 						}
 						if (vec_settings.is_insertable() && ImGui::MenuItem("Insert below")) {
 							if constexpr (supports_duplicate) {
-								value.insert(std::next(it), T());
-								vec_response.changed();
+								auto next_it = std::next(it);
+								if (vec_settings.is_pop_up_on_insert()) {
+									insert_item = next_it;
+									ImGui::OpenPopup("add_item_popup");
+								} else {
+									value.insert(next_it, T());
+									vec_response.changed();
+								}
 							} else {
 								ImGui::OpenPopup("add_item_popup");
 							}
@@ -805,20 +835,25 @@ namespace ImReflect {
 				ImGui::PopID();
 			}
 
-			/*  Add item popup (for non-duplicateable types) */
+			/*  Add item */
 			if constexpr (can_insert) {
-				if (ImGui::BeginPopup("add_item_popup")) {
+				if (ImGui::BeginPopupEx(pop_up_id, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings)) {
 
-					T temp_value{};
+					static T temp_value{};
 
 					if (ImGui::MenuItem("Add new item")) {
-						if constexpr (traits::has_push_back) {
-							value.push_back(temp_value);
-						} else if constexpr (traits::has_insert) {
-							value.insert(value.end(), temp_value);
+						if (insert_item != value.end()) {
+							value.insert(insert_item, temp_value);
+						} else {
+							if constexpr (traits::has_push_back) {
+								value.push_back(temp_value);
+							} else if constexpr (traits::has_insert) {
+								value.insert(value.end(), temp_value);
+							}
 						}
 						vec_response.changed();
 						temp_value = T{};
+						insert_item = value.end();
 						ImGui::CloseCurrentPopup();
 					}
 

@@ -131,8 +131,10 @@ namespace ImReflect::Detail {
 				else return "%u";
 			} else if constexpr (std::is_floating_point_v<T>) {
 				return "%.3f";
+			} else {
+
+				return "%d"; // Final fallback
 			}
-			return "%d"; // Final fallback
 		}
 
 		std::string _prefix = "";

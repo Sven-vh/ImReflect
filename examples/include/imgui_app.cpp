@@ -1342,7 +1342,7 @@ static void multiset_test() {
 // ========================================
 // std::map
 // ========================================
-static void map_test(){
+static void map_test() {
 	ImGui::SeparatorText("std::map Test");
 	ImGui::PushID("map_test");
 	ImGui::Indent();
@@ -1502,7 +1502,7 @@ namespace svh {
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("Deque")) {
-		
+
 			// Deque test
 			deque_test();
 
@@ -1516,6 +1516,11 @@ namespace svh {
 		if (ImGui::BeginTabItem("MultiSet")) {
 			// MultiSet test
 			multiset_test();
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Map")) {
+			// Map test
+			map_test();
 			ImGui::EndTabItem();
 		}
 
