@@ -1374,8 +1374,114 @@ static void map_test() {
 }
 
 // ========================================
+// std::unordered_map
+// ========================================
+static void unordered_map_test() {
+	ImGui::SeparatorText("std::unordered_map Test");
+	ImGui::PushID("unordered_map_test");
+	ImGui::Indent();
+	static std::unordered_map<int, float> my_unordered_map = {
+		{1, 1.0f},
+		{2, 2.0f},
+		{3, 3.0f} };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_unordered_map", my_unordered_map);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::unordered_map<int, float> my_unordered_map_const = {
+			{1, 1.0f},
+			{2, 2.0f},
+			{3, 3.0f} };
+		ImReflect::Input("my_unordered_map_const", my_unordered_map_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
+// std::multimap
+// ========================================
+static void multimap_test() {
+	ImGui::SeparatorText("std::multimap Test");
+	ImGui::PushID("multimap_test");
+	ImGui::Indent();
+	static std::multimap<int, float> my_multimap = {
+		{1, 1.0f},
+		{2, 2.0f},
+		{2, 2.5f},
+		{3, 3.0f} };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_multimap", my_multimap);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::multimap<int, float> my_multimap_const = {
+			{1, 1.0f},
+			{2, 2.0f},
+			{2, 2.5f},
+			{3, 3.0f} };
+		ImReflect::Input("my_multimap_const", my_multimap_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
+// std::unordered_multimap
+// ========================================
+static void unordered_multimap_test() {
+	ImGui::SeparatorText("std::unordered_multimap Test");
+	ImGui::PushID("unordered_multimap_test");
+	ImGui::Indent();
+	static std::unordered_multimap<int, float> my_unordered_multimap = {
+		{1, 1.0f},
+		{2, 2.0f},
+		{2, 2.5f},
+		{3, 3.0f} };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_unordered_multimap", my_unordered_multimap);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::unordered_multimap<int, float> my_unordered_multimap_const = {
+			{1, 1.0f},
+			{2, 2.0f},
+			{2, 2.5f},
+			{3, 3.0f} };
+		ImReflect::Input("my_unordered_multimap_const", my_unordered_multimap_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // Main
-// =======================================
+// ========================================
 namespace svh {
 	void imgui_app::render() {
 
@@ -1521,6 +1627,21 @@ namespace svh {
 		if (ImGui::BeginTabItem("Map")) {
 			// Map test
 			map_test();
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Unordered Map")) {
+			// Unordered Map test
+			unordered_map_test();
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("MultiMap")) {
+			// MultiMap test
+			multimap_test();
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Unordered MultiMap")) {
+			// Unordered MultiMap test
+			unordered_multimap_test();
 			ImGui::EndTabItem();
 		}
 

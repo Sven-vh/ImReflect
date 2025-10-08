@@ -1061,6 +1061,177 @@ namespace ImReflect {
 		Detail::container_input<std_multiset, std::multiset<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
+	/* ========================= Key / value container ========================= */
+	/* map, multimap, unordered_map, unordered_multimap */
+
+	namespace Detail {
+		template<typename Container>
+		struct map_traits {
+			using key_type = typename Container::key_type;
+			using mapped_type = typename Container::mapped_type;
+		};
+
+		/* Get map value */
+		template<typename Container, bool is_const>
+		auto& get_map_value(const Container& original_value) {
+			if constexpr (is_const) {
+				return original_value;
+			} else {
+				return const_cast<Container&>(original_value);
+			}
+		}
+
+		/*  Generic map input function */
+		template<typename Tag, typename Container, bool is_const, bool allow_insert, bool allow_remove>
+		static void map_input(const char* label, const Container& original_value, ImSettings& settings, ImResponse& response) {
+			using traits = map_traits<Container>;
+			using K = typename traits::key_type;
+			using V = typename traits::mapped_type;
+
+			auto& map_settings = settings.get<Tag>();
+			auto& map_response = response.get<Tag>();
+
+			/* Get non-const reference if possible */
+			auto& value = get_map_value<Container, is_const>(original_value);
+
+			const auto id = Detail::scope_id("map");
+			const auto pop_up_id = ImGui::GetID("add_map_item_popup");
+
+			ImReflect::Detail::text_label(label);
+
+			ImGui::SameLine();
+
+			// + and - buttons
+			constexpr bool default_constructible = std::is_default_constructible_v<K> && std::is_default_constructible_v<V>;
+			constexpr bool copy_constructible = std::is_copy_constructible_v<K> && std::is_copy_constructible_v<V>;
+
+			constexpr bool can_insert = default_constructible && !is_const && allow_insert;
+			constexpr bool can_remove = copy_constructible && !is_const && allow_remove;
+
+			const auto disabled_plus_button = []() {
+				ImGui::BeginDisabled();
+				ImGui::Button("+");
+				ImGui::EndDisabled();
+				if constexpr (!default_constructible) {
+					Detail::imgui_tooltip("Key or value type is not default constructible or container is const, cannot add new item");
+				} else {
+					Detail::imgui_tooltip("Container is const or insertion disabled in settings, cannot add new item");
+				}
+				};
+
+			/*  Add button */
+			if constexpr (allow_insert && can_insert) {
+				if (ImGui::Button("+")) {
+					ImGui::OpenPopup(pop_up_id);
+				}
+			} else {
+				disabled_plus_button();
+			}
+
+
+			ImGui::SameLine();
+
+			const auto disabled_minus_button = []() {
+				ImGui::BeginDisabled();
+				ImGui::Button("-");
+				ImGui::EndDisabled();
+				if constexpr (!copy_constructible) {
+					Detail::imgui_tooltip("Key or value type is not copy/move constructible or container is const, cannot remove item");
+				} else {
+					Detail::imgui_tooltip("Container is const or removal disabled in settings, cannot remove item");
+				}
+				};
+
+			/*  Remove button */
+			if constexpr (allow_remove && can_remove) {
+				if (!value.empty() && ImGui::Button("-")) {
+					auto it = value.end();
+					--it;
+					value.erase(it);
+					map_response.changed();
+				}
+			} else {
+				disabled_minus_button();
+			}
+
+			int i = 0;
+			for (auto it = value.begin(); it != value.end(); ++it) {
+				const auto& key = it->first;
+				auto& val = it->second;
+
+				auto pair = std::tie(key, val);
+
+				const std::string item_label = std::string("##map_item_") + std::to_string(i);
+				const auto item_id = Detail::scope_id(item_label.c_str());
+
+				ImGui::Text("==");
+
+				if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
+					ImGui::OpenPopup((std::string("map_item_context_") + std::to_string(i)).c_str());
+				}
+
+				ImGui::SameLine();
+				ImReflect::Input(item_label.c_str(), pair, map_settings, map_response);
+
+				/*  Context menu */
+				if (ImGui::BeginPopup((std::string("map_item_context_") + std::to_string(i)).c_str())) {
+					/*  Remove item */
+					if constexpr (can_remove) {
+						if (map_settings.is_removable() && ImGui::MenuItem("Remove item")) {
+							value.erase(it);
+							map_response.changed();
+							ImGui::EndPopup();
+							break;
+						}
+					} else {
+						ImGui::BeginDisabled();
+						ImGui::MenuItem("Remove item");
+						ImGui::EndDisabled();
+						if constexpr (!copy_constructible) Detail::imgui_tooltip("Key or value type is not copy/move constructible or container is const, cannot remove item");
+						else Detail::imgui_tooltip("Container is const or removal disabled in settings, cannot remove item");
+					}
+					/*  Clear all */
+					if constexpr (can_remove) {
+						if (map_settings.is_removable() && ImGui::MenuItem("Clear all")) {
+							value.clear();
+							map_response.changed();
+							ImGui::EndPopup();
+							break;
+						}
+					} else {
+						ImGui::BeginDisabled();
+						ImGui::MenuItem("Clear all");
+						ImGui::EndDisabled();
+						if constexpr (!copy_constructible) Detail::imgui_tooltip("Key or value type is not copy/move constructible or container is const, cannot remove item");
+						else Detail::imgui_tooltip("Container is const or removal disabled in settings, cannot remove item");
+					}
+					ImGui::EndPopup();
+				}
+
+				++i;
+			}
+
+			/*  Add item popup */
+			if constexpr (can_insert) {
+				if (ImGui::BeginPopupEx(pop_up_id, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings)) {
+					static K temp_key{};
+					static V temp_value{};
+					if (ImGui::MenuItem("Add new item")) {
+						value.emplace(temp_key, temp_value);
+						map_response.changed();
+						temp_key = K{};
+						temp_value = V{};
+						ImGui::CloseCurrentPopup();
+					}
+					ImReflect::Input("##new_map_key", temp_key, map_settings, map_response);
+					ImReflect::Input("##new_map_value", temp_value, map_settings, map_response);
+					ImGui::EndPopup();
+				}
+			}
+		}
+	}
+
+
 	/* ========================= std::map ========================= */
 	struct std_map {};
 
@@ -1074,12 +1245,101 @@ namespace ImReflect {
 
 	template<typename K, typename V>
 	void tag_invoke(Detail::ImInputLib_t, const char* label, std::map<K, V>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = false;
+		constexpr bool allow_insert = true;
+		constexpr bool allow_remove = true;
 
+		Detail::map_input<std_map, std::map<K, V>, is_const, allow_insert, allow_remove>(label, value, settings, response);
 	}
 
 	template<typename K, typename V>
 	void tag_invoke(Detail::ImInputLib_t, const char* label, const std::map<K, V>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = true;
+		constexpr bool allow_insert = false;
+		constexpr bool allow_remove = false;
 
+		Detail::map_input<std_map, std::map<K, V>, is_const, allow_insert, allow_remove>(label, value, settings, response);
+	}
+
+	/* ========================= std::unordered_map ========================= */
+	struct std_unordered_map {};
+
+	template<>
+	struct type_settings<std_unordered_map> : ImSettings,
+		ImReflect::Detail::required<std_unordered_map>,
+		ImReflect::Detail::dropdown<std_unordered_map>,
+		ImReflect::Detail::insertable_mixin<std_unordered_map>,
+		ImReflect::Detail::removable_mixin<std_unordered_map> {
+	};
+
+	template<typename K, typename V>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::unordered_map<K, V>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = false;
+		constexpr bool allow_insert = true;
+		constexpr bool allow_remove = true;
+		Detail::map_input<std_unordered_map, std::unordered_map<K, V>, is_const, allow_insert, allow_remove>(label, value, settings, response);
+	}
+
+	template<typename K, typename V>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, const std::unordered_map<K, V>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = true;
+		constexpr bool allow_insert = false;
+		constexpr bool allow_remove = false;
+		Detail::map_input<std_unordered_map, std::unordered_map<K, V>, is_const, allow_insert, allow_remove>(label, value, settings, response);
+	}
+
+	/* ========================= std::multimap ========================= */
+	struct std_multimap {};
+
+	template<>
+	struct type_settings<std_multimap> : ImSettings,
+		ImReflect::Detail::required<std_multimap>,
+		ImReflect::Detail::dropdown<std_multimap>,
+		ImReflect::Detail::insertable_mixin<std_multimap>,
+		ImReflect::Detail::removable_mixin<std_multimap> {
+	};
+
+	template<typename K, typename V>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::multimap<K, V>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = false;
+		constexpr bool allow_insert = true;
+		constexpr bool allow_remove = true;
+		Detail::map_input<std_multimap, std::multimap<K, V>, is_const, allow_insert, allow_remove>(label, value, settings, response);
+	}
+
+	template<typename K, typename V>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, const std::multimap<K, V>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = true;
+		constexpr bool allow_insert = false;
+		constexpr bool allow_remove = false;
+		Detail::map_input<std_multimap, std::multimap<K, V>, is_const, allow_insert, allow_remove>(label, value, settings, response);
+	}
+
+	/* ========================= std::unordered_multimap ========================= */
+	struct std_unordered_multimap {};
+
+	template<>
+	struct type_settings<std_unordered_multimap> : ImSettings,
+		ImReflect::Detail::required<std_unordered_multimap>,
+		ImReflect::Detail::dropdown<std_unordered_multimap>,
+		ImReflect::Detail::insertable_mixin<std_unordered_multimap>,
+		ImReflect::Detail::removable_mixin<std_unordered_multimap> {
+	};
+
+	template<typename K, typename V>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::unordered_multimap<K, V>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = false;
+		constexpr bool allow_insert = true;
+		constexpr bool allow_remove = true;
+		Detail::map_input<std_unordered_multimap, std::unordered_multimap<K, V>, is_const, allow_insert, allow_remove>(label, value, settings, response);
+	}
+
+	template<typename K, typename V>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, const std::unordered_multimap<K, V>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = true;
+		constexpr bool allow_insert = false;
+		constexpr bool allow_remove = false;
+		Detail::map_input<std_unordered_multimap, std::unordered_multimap<K, V>, is_const, allow_insert, allow_remove>(label, value, settings, response);
 	}
 }
 
