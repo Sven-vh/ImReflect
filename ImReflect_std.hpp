@@ -368,9 +368,502 @@ namespace ImReflect {
 		draw_tuple_element_label<std_pair, true>(label, tuple_value, settings, response);
 	}
 
-	/* ========================= std::vector ========================= */
+	/* ========================= Container helper ========================= */
 
+	namespace Detail {
+		constexpr const char* VECTOR_TREE_LABEL = "##vector_tree";
+
+		template<typename T, bool is_const>
+		auto& get_vector_value(const std::vector<T>& original_value) {
+			if constexpr (is_const) {
+				return original_value;
+			} else {
+				return const_cast<std::vector<T>&>(original_value);
+			}
+		}
+
+		template<typename T, bool is_const>
+		auto& get_container_value(const T& original_value) {
+			if constexpr (is_const) {
+				return original_value;
+			} else {
+				return const_cast<T&>(original_value);
+			}
+		}
+
+		/*  Container traits to detect capabilities */
+		template<typename Container>
+		struct container_traits {
+			using value_type = typename Container::value_type;
+			using iterator = typename Container::iterator;
+
+			/*  Detect if container has random access */
+			static constexpr bool has_random_access = std::is_same_v<
+				typename std::iterator_traits<iterator>::iterator_category,
+				std::random_access_iterator_tag
+			>;
+
+			/*  Detect if container has push_back */
+			template<typename C>
+			static auto test_push_back(int) -> decltype(std::declval<C>().push_back(std::declval<value_type>()), std::true_type{});
+			template<typename>
+			static std::false_type test_push_back(...);
+			static constexpr bool has_push_back = decltype(test_push_back<Container>(0))::value;
+
+			/*  Detect if container has insert */
+			template<typename C>
+			static auto test_insert(int) -> decltype(std::declval<C>().insert(std::declval<iterator>(), std::declval<value_type>()), std::true_type{});
+			template<typename>
+			static std::false_type test_insert(...);
+			static constexpr bool has_insert = decltype(test_insert<Container>(0))::value;
+
+			/*  Detect if container has erase */
+			template<typename C>
+			static auto test_erase(int) -> decltype(std::declval<C>().erase(std::declval<iterator>()), std::true_type{});
+			template<typename>
+			static std::false_type test_erase(...);
+			static constexpr bool has_erase = decltype(test_erase<Container>(0))::value;
+
+			/*  Check if it's std::array (fixed size) */
+			static constexpr bool is_fixed_size = !has_insert && !has_erase && !has_push_back;
+
+			template<typename C>
+			static auto test_key_type(int) -> decltype(typename C::key_type{}, std::true_type{});
+			template<typename>
+			static std::false_type test_key_type(...);
+			static constexpr bool is_associative = decltype(test_key_type<Container>(0))::value;
+
+			/* Check if container allows duplicates */
+			template<typename C>
+			static auto test_multiset(int) -> decltype(
+				std::declval<C>().insert(std::declval<value_type>()),
+				typename C::key_compare{},
+				std::is_same<C, std::multiset<typename C::value_type>>{} ||
+				std::is_same<C, std::multimap<typename C::key_type, typename C::mapped_type>>{},
+				std::true_type{}
+				);
+
+			template<typename>
+			static std::false_type test_multiset(...);
+			static constexpr bool allows_duplicates = is_associative &&
+				(std::is_same_v<Container, std::multiset<value_type>> ||
+					std::is_same_v<Container, std::unordered_multiset<value_type>>);
+
+			/* Check if container has size */
+			template<typename C>
+			static auto test_size(int) -> decltype(std::declval<C>().size(), std::true_type{});
+			template<typename>
+			static std::false_type test_size(...);
+			static constexpr bool has_size = decltype(test_size<Container>(0))::value;
+		};
+
+		/*  Helper to get element by index for both random access and non-random access containers */
+		template<typename Container>
+		auto get_element_at(Container& container, size_t index) -> decltype(auto) {
+			if constexpr (container_traits<Container>::has_random_access) {
+				return container[index];
+			} else {
+				auto it = container.begin();
+				std::advance(it, index);
+				return *it;
+			}
+		}
+
+		/*  Generic container input function */
+		template<typename Tag, typename Container, bool is_const, bool allow_insert, bool allow_remove, bool allow_reorder, bool allow_copy>
+		void container_input(const char* label, const Container& original_value, ImReflect::ImSettings& settings, ImReflect::ImResponse& response) {
+			using traits = container_traits<Container>;
+			using T = typename traits::value_type;
+
+			auto& vec_settings = settings.get<Tag>();
+			auto& vec_response = response.get<Tag>();
+
+			/* Get non-const reference if possible */
+			auto& value = get_container_value<Container, is_const>(original_value);
+
+			constexpr bool default_constructible = std::is_default_constructible_v<T>;
+			constexpr bool copy_constructible = std::is_copy_constructible_v<T>;
+			constexpr bool move_constructible = std::is_move_constructible_v<T>;
+
+			/*  Container capabilities */
+			constexpr bool container_allows_insert = traits::has_insert || traits::has_push_back;
+			constexpr bool container_allows_remove = traits::has_erase;
+			constexpr bool is_fixed_size_container = traits::is_fixed_size;
+			constexpr bool has_size = traits::has_size;
+
+			constexpr bool is_associative = traits::is_associative;
+			constexpr bool supports_reorder = !is_associative; /*  Can't reorder sets */
+			constexpr bool supports_duplicate = !is_associative || traits::allows_duplicates;
+
+			/*  Final capabilities */
+			constexpr bool can_insert = default_constructible && !is_const && allow_insert && container_allows_insert && !is_fixed_size_container;
+			constexpr bool can_remove = !is_const && allow_remove && container_allows_remove && !is_fixed_size_container;
+			constexpr bool can_reorder = move_constructible && !is_const && allow_reorder && supports_reorder;
+			constexpr bool can_copy = copy_constructible && !is_const && allow_copy && container_allows_insert && supports_duplicate;
+
+			const bool is_dropdown = vec_settings.is_dropdown();
+			const bool use_min_width = vec_settings.has_min_width();
+			const float min_width = vec_settings.get_min_width();
+
+			float column_width = 0;
+			if (use_min_width) {
+				column_width = min_width;
+			}
+
+			const auto id = Detail::scope_id("container");
+			const auto pop_up_id = ImGui::GetID("add_item_popup");
+
+			static auto insert_item = value.end();
+
+			ImReflect::Detail::text_label(label);
+			ImGui::SameLine();
+			size_t item_count = 0;
+			if constexpr (has_size) {
+				item_count = value.size();
+			} else {
+			}
+
+			const auto disabled_plus_button = []() {
+				ImGui::BeginDisabled();
+				ImGui::Button("+");
+				ImGui::EndDisabled();
+				if constexpr (is_fixed_size_container) {
+					Detail::imgui_tooltip("Container has fixed size, cannot add items");
+				} else {
+					Detail::imgui_tooltip("Type is not default constructible or container is const, cannot add new item");
+				}
+				};
+
+			/*  Add button */
+			if constexpr (can_insert) {
+				if (vec_settings.is_insertable()) {
+					if (ImGui::Button("+")) {
+						if (vec_settings.is_pop_up_on_insert()) {
+							insert_item = value.end();
+							ImGui::OpenPopup(pop_up_id);
+						} else {
+							if constexpr (traits::has_push_back) {
+								value.push_back(T{});
+								vec_response.changed();
+								item_count = value.size();
+							} else if constexpr (traits::has_insert) {
+								value.insert(value.end(), T{});
+								vec_response.changed();
+								item_count = value.size();
+							}
+						}
+					}
+				} else {
+					disabled_plus_button();
+				}
+			} else {
+				disabled_plus_button();
+			}
+
+			ImGui::SameLine();
+
+			const auto disabled_minus_button = []() {
+				ImGui::BeginDisabled();
+				ImGui::Button("-");
+				ImGui::EndDisabled();
+				if constexpr (is_fixed_size_container) {
+					Detail::imgui_tooltip("Container has fixed size, cannot remove items");
+				} else {
+					Detail::imgui_tooltip("Type is not copy/move constructible or container is const, cannot remove item");
+				}
+				};
+
+			/*  Remove button */
+			if constexpr (can_remove) {
+				if (vec_settings.is_removable()) {
+					if (item_count > 0) {
+						if (ImGui::Button("-")) {
+							auto it = value.end();
+							--it;
+							value.erase(it);
+							vec_response.changed();
+							item_count = value.size();
+						}
+					}
+				} else {
+					disabled_minus_button();
+				}
+			} else {
+				disabled_minus_button();
+			}
+
+			bool is_open = true;
+			if (is_dropdown) {
+				is_open = ImGui::TreeNodeEx(VECTOR_TREE_LABEL, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanFullWidth);
+			}
+
+			if (is_open) {
+				if (!is_dropdown) ImGui::Indent();
+
+				/*  Drop zone at beginning (for reordering) */
+				if constexpr (can_reorder) {
+					if (vec_settings.is_reorderable()) {
+						ImGui::BeginChild("##drop_zone_0", ImVec2(0, ImGui::GetStyle().ItemSpacing.y * 0.5f), false);
+						ImGui::EndChild();
+
+						if (ImGui::BeginDragDropTarget()) {
+							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTAINER_ITEM")) {
+								int source_idx = *(const int*)payload->Data;
+								int target_idx = 0;
+
+								if (source_idx != target_idx) {
+									auto src_it = value.begin();
+									std::advance(src_it, source_idx);
+									std::rotate(value.begin(), src_it, std::next(src_it));
+									vec_response.changed();
+								}
+							}
+							ImGui::EndDragDropTarget();
+						}
+					}
+				}
+
+				/*  Iterate through items */
+				int i = 0;
+				for (auto it = value.begin(); it != value.end(); ++it, ++i) {
+					ImGui::PushID(i);
+
+					bool right_clicked = false;
+
+					/*  Drag handle for reordering */
+					if constexpr (can_reorder) {
+						if (vec_settings.is_reorderable()) {
+							ImGui::Text("==");
+							if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
+								ImGui::SetDragDropPayload("CONTAINER_ITEM", &i, sizeof(int));
+								ImGui::PushItemWidth(column_width);
+								ImReflect::Input("##container_item", *it, vec_settings, vec_response);
+								ImGui::PopItemWidth();
+								ImGui::EndDragDropSource();
+							}
+							if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
+								right_clicked = true;
+							}
+							ImGui::SameLine();
+						}
+					}
+
+					/*  Element input */
+					ImGui::PushItemWidth(column_width);
+					ImReflect::Input("##container_item", *it, vec_settings, vec_response);
+					ImGui::PopItemWidth();
+
+					/*  Drop zone between items */
+					const float item_spacing_y = ImGui::GetStyle().ItemSpacing.y;
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() - item_spacing_y);
+					ImGui::BeginChild("##spacer", ImVec2(0, item_spacing_y), false);
+					ImGui::EndChild();
+					ImGui::SetCursorPosY(ImGui::GetCursorPosY() - item_spacing_y);
+
+					/*  Drop target for reordering */
+					if constexpr (can_reorder) {
+						if (vec_settings.is_reorderable()) {
+							if (ImGui::BeginDragDropTarget()) {
+								if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTAINER_ITEM")) {
+									int source_idx = *(const int*)payload->Data;
+									int target_idx = i + 1;
+
+									if (source_idx != target_idx) {
+										auto src_it = value.begin();
+										std::advance(src_it, source_idx);
+										auto tgt_it = value.begin();
+										std::advance(tgt_it, target_idx);
+
+										if (source_idx < target_idx) {
+											std::rotate(src_it, std::next(src_it), tgt_it);
+										} else {
+											std::rotate(tgt_it, src_it, std::next(src_it));
+										}
+										vec_response.changed();
+									}
+								}
+								ImGui::EndDragDropTarget();
+							}
+						}
+					}
+
+					/*  Context menu */
+					if (right_clicked) {
+						ImGui::OpenPopup("item_context_menu");
+					}
+
+
+					if (ImGui::BeginPopup("item_context_menu")) {
+						/*  Remove item */
+						if constexpr (can_remove) {
+							if (vec_settings.is_removable() && ImGui::MenuItem("Remove item")) {
+								value.erase(it);
+								vec_response.changed();
+								ImGui::EndPopup();
+								ImGui::PopID();
+								break;
+							}
+						} else {
+							ImGui::BeginDisabled();
+							ImGui::MenuItem("Remove item");
+							ImGui::EndDisabled();
+
+							if constexpr (is_fixed_size_container) Detail::imgui_tooltip("Container has fixed size, cannot remove item");
+							else Detail::imgui_tooltip("Type is not copy/move constructible, cannot remove item");
+						}
+
+						/*  Duplicate item */
+						if constexpr (can_copy) {
+							if (vec_settings.is_insertable() && ImGui::MenuItem("Duplicate item")) {
+								value.insert(std::next(it), *it);
+								vec_response.changed();
+							}
+						} else {
+							ImGui::BeginDisabled();
+							ImGui::MenuItem("Duplicate item");
+							ImGui::EndDisabled();
+							if constexpr (is_fixed_size_container) Detail::imgui_tooltip("Container has fixed size, cannot duplicate item");
+							else Detail::imgui_tooltip("Type is not copy constructible, cannot duplicate item");
+						}
+
+						ImGui::Separator();
+
+						/*  Move operations */
+						if constexpr (can_reorder) {
+							if (vec_settings.is_reorderable()) {
+								if (ImGui::MenuItem("Move up") && i != 0) {
+									auto prev_it = std::prev(it);
+									std::iter_swap(it, prev_it);
+									vec_response.changed();
+								}
+								if (ImGui::MenuItem("Move down") && i != static_cast<int>(item_count) - 1) {
+									auto next_it = std::next(it);
+									std::iter_swap(it, next_it);
+									vec_response.changed();
+								}
+								ImGui::Separator();
+
+								if (ImGui::MenuItem("Move to top") && i != 0) {
+									std::rotate(value.begin(), it, std::next(it));
+									vec_response.changed();
+								}
+								if (ImGui::MenuItem("Move to bottom") && i != static_cast<int>(item_count) - 1) {
+									std::rotate(it, std::next(it), value.end());
+									vec_response.changed();
+								}
+								ImGui::Separator();
+							}
+						}
+
+						/*  Insert operations */
+						if constexpr (can_insert) {
+							if (vec_settings.is_insertable() && ImGui::MenuItem("Insert above")) {
+								if constexpr (supports_duplicate) {
+									if (vec_settings.is_pop_up_on_insert()) {
+										insert_item = it;
+										ImGui::OpenPopup(pop_up_id);
+									} else {
+										value.insert(it, T());
+										vec_response.changed();
+									}
+								} else {
+									ImGui::OpenPopup(pop_up_id);
+								}
+							}
+							if (vec_settings.is_insertable() && ImGui::MenuItem("Insert below")) {
+								if constexpr (supports_duplicate) {
+									auto next_it = std::next(it);
+									if (vec_settings.is_pop_up_on_insert()) {
+										insert_item = next_it;
+										ImGui::OpenPopup("add_item_popup");
+									} else {
+										value.insert(next_it, T());
+										vec_response.changed();
+									}
+								} else {
+									ImGui::OpenPopup("add_item_popup");
+								}
+							}
+							ImGui::Separator();
+						} else {
+							ImGui::BeginDisabled();
+							ImGui::MenuItem("Insert above");
+							ImGui::EndDisabled();
+							if constexpr (is_fixed_size_container) Detail::imgui_tooltip("Container has fixed size, cannot add items");
+							else Detail::imgui_tooltip("Type is not default constructible or container is const, cannot add new item");
+
+							ImGui::BeginDisabled();
+							ImGui::MenuItem("Insert below");
+							ImGui::EndDisabled();
+							if constexpr (is_fixed_size_container) Detail::imgui_tooltip("Container has fixed size, cannot add items");
+							else Detail::imgui_tooltip("Type is not default constructible or container is const, cannot add new item");
+						}
+
+
+						/*  Clear all */
+						if constexpr (can_remove) {
+							if (vec_settings.is_removable() && ImGui::MenuItem("Clear all")) {
+								value.clear();
+								vec_response.changed();
+								ImGui::EndPopup();
+								ImGui::PopID();
+								break;
+							}
+						} else {
+							ImGui::BeginDisabled();
+							ImGui::MenuItem("Clear all");
+							ImGui::EndDisabled();
+							if constexpr (is_fixed_size_container) Detail::imgui_tooltip("Container has fixed size, cannot remove items");
+							else Detail::imgui_tooltip("Type is not copy/move constructible or container is const, cannot remove item");
+						}
+
+						ImGui::EndPopup();
+					}
+
+
+					ImGui::PopID();
+				}
+
+				/*  Add item */
+				if constexpr (can_insert) {
+					if (ImGui::BeginPopupEx(pop_up_id, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings)) {
+
+						static T temp_value{};
+
+						if (ImGui::MenuItem("Add new item")) {
+							if (insert_item != value.end()) {
+								value.insert(insert_item, temp_value);
+							} else {
+								if constexpr (traits::has_push_back) {
+									value.push_back(temp_value);
+								} else if constexpr (traits::has_insert) {
+									value.insert(value.end(), temp_value);
+								}
+							}
+							vec_response.changed();
+							temp_value = T{};
+							insert_item = value.end();
+							ImGui::CloseCurrentPopup();
+						}
+
+						ImReflect::Input("##new_item_input", temp_value, vec_settings, vec_response);
+
+						ImGui::EndPopup();
+					}
+				}
+
+				if (!is_dropdown) ImGui::Unindent();
+			}
+
+			if (is_dropdown && is_open) {
+				ImGui::TreePop();
+			}
+		}
+	}
+
+	/* ========================= std::vector ========================= */
 	struct std_vector {};
+
 	template<>
 	struct type_settings<std_vector> : ImSettings,
 		ImReflect::Detail::required<std_vector>,
@@ -380,497 +873,6 @@ namespace ImReflect {
 		ImReflect::Detail::removable_mixin<std_vector> {
 	};
 
-	namespace Detail {
-		constexpr const char* VECTOR_TREE_LABEL = "##vector_tree";
-	}
-
-	template<typename T, bool is_const>
-	auto& get_vector_value(const std::vector<T>& original_value) {
-		if constexpr (is_const) {
-			return original_value;
-		} else {
-			return const_cast<std::vector<T>&>(original_value);
-		}
-	}
-
-	template<typename T, bool is_const>
-	auto& get_container_value(const T& original_value) {
-		if constexpr (is_const) {
-			return original_value;
-		} else {
-			return const_cast<T&>(original_value);
-		}
-	}
-
-	/*  Container traits to detect capabilities */
-	template<typename Container>
-	struct container_traits {
-		using value_type = typename Container::value_type;
-		using iterator = typename Container::iterator;
-
-		/*  Detect if container has random access */
-		static constexpr bool has_random_access = std::is_same_v<
-			typename std::iterator_traits<iterator>::iterator_category,
-			std::random_access_iterator_tag
-		>;
-
-		/*  Detect if container has push_back */
-		template<typename C>
-		static auto test_push_back(int) -> decltype(std::declval<C>().push_back(std::declval<value_type>()), std::true_type{});
-		template<typename>
-		static std::false_type test_push_back(...);
-		static constexpr bool has_push_back = decltype(test_push_back<Container>(0))::value;
-
-		/*  Detect if container has insert */
-		template<typename C>
-		static auto test_insert(int) -> decltype(std::declval<C>().insert(std::declval<iterator>(), std::declval<value_type>()), std::true_type{});
-		template<typename>
-		static std::false_type test_insert(...);
-		static constexpr bool has_insert = decltype(test_insert<Container>(0))::value;
-
-		/*  Detect if container has erase */
-		template<typename C>
-		static auto test_erase(int) -> decltype(std::declval<C>().erase(std::declval<iterator>()), std::true_type{});
-		template<typename>
-		static std::false_type test_erase(...);
-		static constexpr bool has_erase = decltype(test_erase<Container>(0))::value;
-
-		/*  Check if it's std::array (fixed size) */
-		static constexpr bool is_fixed_size = !has_insert && !has_erase && !has_push_back;
-
-		template<typename C>
-		static auto test_key_type(int) -> decltype(typename C::key_type{}, std::true_type{});
-		template<typename>
-		static std::false_type test_key_type(...);
-		static constexpr bool is_associative = decltype(test_key_type<Container>(0))::value;
-
-		/* Check if container allows duplicates */
-		template<typename C>
-		static auto test_multiset(int) -> decltype(
-			std::declval<C>().insert(std::declval<value_type>()),
-			typename C::key_compare{},
-			std::is_same<C, std::multiset<typename C::value_type>>{} ||
-			std::is_same<C, std::multimap<typename C::key_type, typename C::mapped_type>>{},
-			std::true_type{}
-			);
-
-		template<typename>
-		static std::false_type test_multiset(...);
-		static constexpr bool allows_duplicates = is_associative &&
-			(std::is_same_v<Container, std::multiset<value_type>> ||
-				std::is_same_v<Container, std::unordered_multiset<value_type>>);
-
-		/* Check if container has size */
-		template<typename C>
-		static auto test_size(int) -> decltype(std::declval<C>().size(), std::true_type{});
-		template<typename>
-		static std::false_type test_size(...);
-		static constexpr bool has_size = decltype(test_size<Container>(0))::value;
-	};
-
-	/*  Helper to get element by index for both random access and non-random access containers */
-	template<typename Container>
-	auto get_element_at(Container& container, size_t index) -> decltype(auto) {
-		if constexpr (container_traits<Container>::has_random_access) {
-			return container[index];
-		} else {
-			auto it = container.begin();
-			std::advance(it, index);
-			return *it;
-		}
-	}
-
-	/*  Generic container input function */
-	template<typename Tag, typename Container, bool is_const, bool allow_insert, bool allow_remove, bool allow_reorder, bool allow_copy>
-	void container_input(const char* label, const Container& original_value, ImReflect::ImSettings& settings, ImReflect::ImResponse& response) {
-		using traits = container_traits<Container>;
-		using T = typename traits::value_type;
-
-		auto& vec_settings = settings.get<Tag>();
-		auto& vec_response = response.get<Tag>();
-
-		/* Get non-const reference if possible */
-		auto& value = get_container_value<Container, is_const>(original_value);
-
-		constexpr bool default_constructible = std::is_default_constructible_v<T>;
-		constexpr bool copy_constructible = std::is_copy_constructible_v<T>;
-		constexpr bool move_constructible = std::is_move_constructible_v<T>;
-
-		/*  Container capabilities */
-		constexpr bool container_allows_insert = traits::has_insert || traits::has_push_back;
-		constexpr bool container_allows_remove = traits::has_erase;
-		constexpr bool is_fixed_size_container = traits::is_fixed_size;
-		constexpr bool has_size = traits::has_size;
-
-		constexpr bool is_associative = traits::is_associative;
-		constexpr bool supports_reorder = !is_associative; /*  Can't reorder sets */
-		constexpr bool supports_duplicate = !is_associative || traits::allows_duplicates;
-
-		/*  Final capabilities */
-		constexpr bool can_insert = default_constructible && !is_const && allow_insert && container_allows_insert && !is_fixed_size_container;
-		constexpr bool can_remove = !is_const && allow_remove && container_allows_remove && !is_fixed_size_container;
-		constexpr bool can_reorder = move_constructible && !is_const && allow_reorder && supports_reorder;
-		constexpr bool can_copy = copy_constructible && !is_const && allow_copy && container_allows_insert && supports_duplicate;
-
-		const bool is_dropdown = vec_settings.is_dropdown();
-		const bool use_min_width = vec_settings.has_min_width();
-		const float min_width = vec_settings.get_min_width();
-
-		float column_width = 0;
-		if (use_min_width) {
-			column_width = min_width;
-		}
-
-		const auto id = Detail::scope_id("container");
-		const auto pop_up_id = ImGui::GetID("add_item_popup");
-
-		static auto insert_item = value.end();
-
-		ImReflect::Detail::text_label(label);
-		ImGui::SameLine();
-		size_t item_count = 0;
-		if constexpr (has_size) {
-			item_count = value.size();
-		} else {
-		}
-
-		const auto disabled_plus_button = []() {
-			ImGui::BeginDisabled();
-			ImGui::Button("+");
-			ImGui::EndDisabled();
-			if constexpr (is_fixed_size_container) {
-				Detail::imgui_tooltip("Container has fixed size, cannot add items");
-			} else {
-				Detail::imgui_tooltip("Type is not default constructible or container is const, cannot add new item");
-			}
-			};
-
-		/*  Add button */
-		if constexpr (can_insert) {
-			if (vec_settings.is_insertable()) {
-				if (ImGui::Button("+")) {
-					if (vec_settings.is_pop_up_on_insert()) {
-						insert_item = value.end();
-						ImGui::OpenPopup(pop_up_id);
-					} else {
-						if constexpr (traits::has_push_back) {
-							value.push_back(T{});
-							vec_response.changed();
-							item_count = value.size();
-						} else if constexpr (traits::has_insert) {
-							value.insert(value.end(), T{});
-							vec_response.changed();
-							item_count = value.size();
-						}
-					}
-				}
-			} else {
-				disabled_plus_button();
-			}
-		} else {
-			disabled_plus_button();
-		}
-
-		ImGui::SameLine();
-
-		const auto disabled_minus_button = []() {
-			ImGui::BeginDisabled();
-			ImGui::Button("-");
-			ImGui::EndDisabled();
-			if constexpr (is_fixed_size_container) {
-				Detail::imgui_tooltip("Container has fixed size, cannot remove items");
-			} else {
-				Detail::imgui_tooltip("Type is not copy/move constructible or container is const, cannot remove item");
-			}
-			};
-
-		/*  Remove button */
-		if constexpr (can_remove) {
-			if (vec_settings.is_removable()) {
-				if (item_count > 0) {
-					if (ImGui::Button("-")) {
-						auto it = value.end();
-						--it;
-						value.erase(it);
-						vec_response.changed();
-						item_count = value.size();
-					}
-				}
-			} else {
-				disabled_minus_button();
-			}
-		} else {
-			disabled_minus_button();
-		}
-
-		bool is_open = true;
-		if (is_dropdown) {
-			is_open = ImGui::TreeNodeEx(Detail::VECTOR_TREE_LABEL, ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_SpanFullWidth);
-		}
-
-		if (is_open) {
-			if (!is_dropdown) ImGui::Indent();
-
-			/*  Drop zone at beginning (for reordering) */
-			if constexpr (can_reorder) {
-				if (vec_settings.is_reorderable()) {
-					ImGui::BeginChild("##drop_zone_0", ImVec2(0, ImGui::GetStyle().ItemSpacing.y * 0.5f), false);
-					ImGui::EndChild();
-
-					if (ImGui::BeginDragDropTarget()) {
-						if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTAINER_ITEM")) {
-							int source_idx = *(const int*)payload->Data;
-							int target_idx = 0;
-
-							if (source_idx != target_idx) {
-								auto src_it = value.begin();
-								std::advance(src_it, source_idx);
-								std::rotate(value.begin(), src_it, std::next(src_it));
-								vec_response.changed();
-							}
-						}
-						ImGui::EndDragDropTarget();
-					}
-				}
-			}
-
-			/*  Iterate through items */
-			int i = 0;
-			for (auto it = value.begin(); it != value.end(); ++it, ++i) {
-				ImGui::PushID(i);
-
-				bool right_clicked = false;
-
-				/*  Drag handle for reordering */
-				if constexpr (can_reorder) {
-					if (vec_settings.is_reorderable()) {
-						ImGui::Text("==");
-						if (ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)) {
-							ImGui::SetDragDropPayload("CONTAINER_ITEM", &i, sizeof(int));
-							ImGui::PushItemWidth(column_width);
-							ImReflect::Input("##container_item", *it, vec_settings, vec_response);
-							ImGui::PopItemWidth();
-							ImGui::EndDragDropSource();
-						}
-						if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Right)) {
-							right_clicked = true;
-						}
-						ImGui::SameLine();
-					}
-				}
-
-				/*  Element input */
-				ImGui::PushItemWidth(column_width);
-				ImReflect::Input("##container_item", *it, vec_settings, vec_response);
-				ImGui::PopItemWidth();
-
-				/*  Drop zone between items */
-				const float item_spacing_y = ImGui::GetStyle().ItemSpacing.y;
-				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - item_spacing_y);
-				ImGui::BeginChild("##spacer", ImVec2(0, item_spacing_y), false);
-				ImGui::EndChild();
-				ImGui::SetCursorPosY(ImGui::GetCursorPosY() - item_spacing_y);
-
-				/*  Drop target for reordering */
-				if constexpr (can_reorder) {
-					if (vec_settings.is_reorderable()) {
-						if (ImGui::BeginDragDropTarget()) {
-							if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("CONTAINER_ITEM")) {
-								int source_idx = *(const int*)payload->Data;
-								int target_idx = i + 1;
-
-								if (source_idx != target_idx) {
-									auto src_it = value.begin();
-									std::advance(src_it, source_idx);
-									auto tgt_it = value.begin();
-									std::advance(tgt_it, target_idx);
-
-									if (source_idx < target_idx) {
-										std::rotate(src_it, std::next(src_it), tgt_it);
-									} else {
-										std::rotate(tgt_it, src_it, std::next(src_it));
-									}
-									vec_response.changed();
-								}
-							}
-							ImGui::EndDragDropTarget();
-						}
-					}
-				}
-
-				/*  Context menu */
-				if (right_clicked) {
-					ImGui::OpenPopup("item_context_menu");
-				}
-
-
-				if (ImGui::BeginPopup("item_context_menu")) {
-					/*  Remove item */
-					if constexpr (can_remove) {
-						if (vec_settings.is_removable() && ImGui::MenuItem("Remove item")) {
-							value.erase(it);
-							vec_response.changed();
-							ImGui::EndPopup();
-							ImGui::PopID();
-							break;
-						}
-					} else {
-						ImGui::BeginDisabled();
-						ImGui::MenuItem("Remove item");
-						ImGui::EndDisabled();
-
-						if constexpr (is_fixed_size_container) Detail::imgui_tooltip("Container has fixed size, cannot remove item");
-						else Detail::imgui_tooltip("Type is not copy/move constructible, cannot remove item");
-					}
-
-					/*  Duplicate item */
-					if constexpr (can_copy) {
-						if (vec_settings.is_insertable() && ImGui::MenuItem("Duplicate item")) {
-							value.insert(std::next(it), *it);
-							vec_response.changed();
-						}
-					} else {
-						ImGui::BeginDisabled();
-						ImGui::MenuItem("Duplicate item");
-						ImGui::EndDisabled();
-						if constexpr (is_fixed_size_container) Detail::imgui_tooltip("Container has fixed size, cannot duplicate item");
-						else Detail::imgui_tooltip("Type is not copy constructible, cannot duplicate item");
-					}
-
-					ImGui::Separator();
-
-					/*  Move operations */
-					if constexpr (can_reorder) {
-						if (vec_settings.is_reorderable()) {
-							if (ImGui::MenuItem("Move up") && i != 0) {
-								auto prev_it = std::prev(it);
-								std::iter_swap(it, prev_it);
-								vec_response.changed();
-							}
-							if (ImGui::MenuItem("Move down") && i != static_cast<int>(item_count) - 1) {
-								auto next_it = std::next(it);
-								std::iter_swap(it, next_it);
-								vec_response.changed();
-							}
-							ImGui::Separator();
-
-							if (ImGui::MenuItem("Move to top") && i != 0) {
-								std::rotate(value.begin(), it, std::next(it));
-								vec_response.changed();
-							}
-							if (ImGui::MenuItem("Move to bottom") && i != static_cast<int>(item_count) - 1) {
-								std::rotate(it, std::next(it), value.end());
-								vec_response.changed();
-							}
-							ImGui::Separator();
-						}
-					}
-
-					/*  Insert operations */
-					if constexpr (can_insert) {
-						if (vec_settings.is_insertable() && ImGui::MenuItem("Insert above")) {
-							if constexpr (supports_duplicate) {
-								if (vec_settings.is_pop_up_on_insert()) {
-									insert_item = it;
-									ImGui::OpenPopup(pop_up_id);
-								} else {
-									value.insert(it, T());
-									vec_response.changed();
-								}
-							} else {
-								ImGui::OpenPopup(pop_up_id);
-							}
-						}
-						if (vec_settings.is_insertable() && ImGui::MenuItem("Insert below")) {
-							if constexpr (supports_duplicate) {
-								auto next_it = std::next(it);
-								if (vec_settings.is_pop_up_on_insert()) {
-									insert_item = next_it;
-									ImGui::OpenPopup("add_item_popup");
-								} else {
-									value.insert(next_it, T());
-									vec_response.changed();
-								}
-							} else {
-								ImGui::OpenPopup("add_item_popup");
-							}
-						}
-						ImGui::Separator();
-					} else {
-						ImGui::BeginDisabled();
-						ImGui::MenuItem("Insert above");
-						ImGui::EndDisabled();
-						if constexpr (is_fixed_size_container) Detail::imgui_tooltip("Container has fixed size, cannot add items");
-						else Detail::imgui_tooltip("Type is not default constructible or container is const, cannot add new item");
-
-						ImGui::BeginDisabled();
-						ImGui::MenuItem("Insert below");
-						ImGui::EndDisabled();
-						if constexpr (is_fixed_size_container) Detail::imgui_tooltip("Container has fixed size, cannot add items");
-						else Detail::imgui_tooltip("Type is not default constructible or container is const, cannot add new item");
-					}
-
-
-					/*  Clear all */
-					if constexpr (can_remove) {
-						if (vec_settings.is_removable() && ImGui::MenuItem("Clear all")) {
-							value.clear();
-							vec_response.changed();
-							ImGui::EndPopup();
-							ImGui::PopID();
-							break;
-						}
-					} else {
-						ImGui::BeginDisabled();
-						ImGui::MenuItem("Clear all");
-						ImGui::EndDisabled();
-						if constexpr (is_fixed_size_container) Detail::imgui_tooltip("Container has fixed size, cannot remove items");
-						else Detail::imgui_tooltip("Type is not copy/move constructible or container is const, cannot remove item");
-					}
-
-					ImGui::EndPopup();
-				}
-
-
-				ImGui::PopID();
-			}
-
-			/*  Add item */
-			if constexpr (can_insert) {
-				if (ImGui::BeginPopupEx(pop_up_id, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings)) {
-
-					static T temp_value{};
-
-					if (ImGui::MenuItem("Add new item")) {
-						if (insert_item != value.end()) {
-							value.insert(insert_item, temp_value);
-						} else {
-							if constexpr (traits::has_push_back) {
-								value.push_back(temp_value);
-							} else if constexpr (traits::has_insert) {
-								value.insert(value.end(), temp_value);
-							}
-						}
-						vec_response.changed();
-						temp_value = T{};
-						insert_item = value.end();
-						ImGui::CloseCurrentPopup();
-					}
-
-					ImReflect::Input("##new_item_input", temp_value, vec_settings, vec_response);
-
-					ImGui::EndPopup();
-				}
-			}
-
-			if (!is_dropdown) ImGui::Unindent();
-		}
-
-		if (is_dropdown && is_open) {
-			ImGui::TreePop();
-		}
-	}
-
 	template<typename T>
 	void tag_invoke(Detail::ImInputLib_t, const char* label, std::vector<T>& value, ImSettings& settings, ImResponse& response) {
 		constexpr bool is_const = false;
@@ -879,7 +881,7 @@ namespace ImReflect {
 		constexpr bool all_reorder = true;
 		constexpr bool allow_copy = true;
 
-		container_input<std_vector, std::vector<T>, is_const, allow_insert, allow_remove, all_reorder, allow_copy>(label, value, settings, response);
+		Detail::container_input<std_vector, std::vector<T>, is_const, allow_insert, allow_remove, all_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	template<typename T>
@@ -890,7 +892,7 @@ namespace ImReflect {
 		constexpr bool all_reorder = false;
 		constexpr bool allow_copy = false;
 
-		container_input<std_vector, std::vector<T>, is_const, allow_insert, allow_remove, all_reorder, allow_copy>(label, value, settings, response);
+		Detail::container_input<std_vector, std::vector<T>, is_const, allow_insert, allow_remove, all_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	/* ========================= std::array ========================= */
@@ -911,7 +913,7 @@ namespace ImReflect {
 		constexpr bool allow_reorder = true;
 		constexpr bool allow_copy = false;
 
-		container_input<std_array, std::array<T, N>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+		Detail::container_input<std_array, std::array<T, N>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	template<typename T, std::size_t N>
@@ -922,7 +924,7 @@ namespace ImReflect {
 		constexpr bool allow_reorder = false;
 		constexpr bool allow_copy = false;
 
-		container_input<std_array, std::array<T, N>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+		Detail::container_input<std_array, std::array<T, N>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	/* ========================= std::list ========================= */
@@ -944,7 +946,8 @@ namespace ImReflect {
 		constexpr bool allow_remove = true;
 		constexpr bool allow_reorder = true;
 		constexpr bool allow_copy = true;
-		container_input<std_list, std::list<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+
+		Detail::container_input<std_list, std::list<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	template<typename T>
@@ -954,7 +957,8 @@ namespace ImReflect {
 		constexpr bool allow_remove = false;
 		constexpr bool allow_reorder = false;
 		constexpr bool allow_copy = false;
-		container_input<std_list, std::list<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+
+		Detail::container_input<std_list, std::list<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	/* ========================= std::deque ========================= */
@@ -976,7 +980,8 @@ namespace ImReflect {
 		constexpr bool allow_remove = true;
 		constexpr bool allow_reorder = true;
 		constexpr bool allow_copy = true;
-		container_input<std_deque, std::deque<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+
+		Detail::container_input<std_deque, std::deque<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	template<typename T>
@@ -986,7 +991,8 @@ namespace ImReflect {
 		constexpr bool allow_remove = false;
 		constexpr bool allow_reorder = false;
 		constexpr bool allow_copy = false;
-		container_input<std_deque, std::deque<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+
+		Detail::container_input<std_deque, std::deque<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	/* ========================= std::set ========================= */
@@ -1007,7 +1013,8 @@ namespace ImReflect {
 		constexpr bool allow_remove = true;
 		constexpr bool allow_reorder = false;
 		constexpr bool allow_copy = true;
-		container_input<std_set, std::set<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+
+		Detail::container_input<std_set, std::set<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	template<typename T>
@@ -1017,7 +1024,8 @@ namespace ImReflect {
 		constexpr bool allow_remove = false;
 		constexpr bool allow_reorder = false;
 		constexpr bool allow_copy = false;
-		container_input<std_set, std::set<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+
+		Detail::container_input<std_set, std::set<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	/* ========================= std::multiset ========================= */
@@ -1038,7 +1046,8 @@ namespace ImReflect {
 		constexpr bool allow_remove = true;
 		constexpr bool allow_reorder = false;
 		constexpr bool allow_copy = true;
-		container_input<std_multiset, std::multiset<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+
+		Detail::container_input<std_multiset, std::multiset<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	template<typename T>
@@ -1048,7 +1057,8 @@ namespace ImReflect {
 		constexpr bool allow_remove = false;
 		constexpr bool allow_reorder = false;
 		constexpr bool allow_copy = false;
-		container_input<std_multiset, std::multiset<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+
+		Detail::container_input<std_multiset, std::multiset<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	/* ========================= std::map ========================= */
