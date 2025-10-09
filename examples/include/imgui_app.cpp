@@ -1426,6 +1426,34 @@ static void set_test() {
 }
 
 // ========================================
+// std::unordered_set
+// ========================================
+static void unordered_set_test() {
+	ImGui::SeparatorText("std::unordered_set Test");
+	ImGui::PushID("unordered_set_test");
+	ImGui::Indent();
+	static std::unordered_set<int> my_unordered_set = { 1, 2, 3, 4, 5 };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_unordered_set", my_unordered_set);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::unordered_set<int> my_unordered_set_const = { 1, 2, 3, 4, 5 };
+		ImReflect::Input("my_unordered_set_const", my_unordered_set_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // std::mulit_set
 // ========================================
 static void multiset_test() {
@@ -1447,6 +1475,34 @@ static void multiset_test() {
 		ImGui::PushID("default const");
 		static const std::multiset<int> my_multiset_const = { 1, 2, 2, 3, 4, 5 };
 		ImReflect::Input("my_multiset_const", my_multiset_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
+// std::unordered_multiset
+// ========================================
+static void unordered_multiset_test() {
+	ImGui::SeparatorText("std::unordered_multiset Test");
+	ImGui::PushID("unordered_multiset_test");
+	ImGui::Indent();
+	static std::unordered_multiset<int> my_unordered_multiset = { 1, 2, 2, 3, 4, 5 };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_unordered_multiset", my_unordered_multiset);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::unordered_multiset<int> my_unordered_multiset_const = { 1, 2, 2, 3, 4, 5 };
+		ImReflect::Input("my_unordered_multiset_const", my_unordered_multiset_const);
 		ImGui::PopID();
 	}
 	ImGui::Unindent();
@@ -1746,9 +1802,19 @@ namespace svh {
 			set_test();
 			ImGui::EndTabItem();
 		}
+		if (ImGui::BeginTabItem("Unordered Set")) {
+			// Unordered Set test
+			unordered_set_test();
+			ImGui::EndTabItem();
+		}
 		if (ImGui::BeginTabItem("MultiSet")) {
 			// MultiSet test
 			multiset_test();
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Unordered MultiSet")) {
+			// Unordered MultiSet test
+			unordered_multiset_test();
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("Map")) {

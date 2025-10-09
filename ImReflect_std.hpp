@@ -1090,6 +1090,37 @@ namespace ImReflect {
 		Detail::container_input<std_set, std::set<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
+	/* ========================= std::unordered_set ========================= */
+	struct std_unordered_set {};
+
+	template<>
+	struct type_settings<std_unordered_set> : ImSettings,
+		ImReflect::Detail::required<std_set>,
+		ImReflect::Detail::dropdown<std_set>,
+		ImReflect::Detail::insertable_mixin<std_set>,
+		ImReflect::Detail::removable_mixin<std_set> {
+	};
+
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::unordered_set<T>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = false;
+		constexpr bool allow_insert = true;
+		constexpr bool allow_remove = true;
+		constexpr bool allow_reorder = false;
+		constexpr bool allow_copy = true;
+		Detail::container_input<std_unordered_set, std::unordered_set<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+	}
+
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, const std::unordered_set<T>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = true;
+		constexpr bool allow_insert = false;
+		constexpr bool allow_remove = false;
+		constexpr bool allow_reorder = false;
+		constexpr bool allow_copy = false;
+		Detail::container_input<std_unordered_set, std::unordered_set<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+	}
+
 	/* ========================= std::multiset ========================= */
 	struct std_multiset {};
 
@@ -1121,6 +1152,37 @@ namespace ImReflect {
 		constexpr bool allow_copy = false;
 
 		Detail::container_input<std_multiset, std::multiset<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+	}
+
+	/* ========================= std::unordered_multiset ========================= */
+	struct std_unordered_multiset {};
+	
+	template<>
+	struct type_settings<std_unordered_multiset> : ImSettings,
+		ImReflect::Detail::required<std_set>,
+		ImReflect::Detail::dropdown<std_set>,
+		ImReflect::Detail::insertable_mixin<std_set>,
+		ImReflect::Detail::removable_mixin<std_set> {
+	};
+
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::unordered_multiset<T>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = false;
+		constexpr bool allow_insert = true;
+		constexpr bool allow_remove = true;
+		constexpr bool allow_reorder = false;
+		constexpr bool allow_copy = true;
+		Detail::container_input<std_unordered_multiset, std::unordered_multiset<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+	}
+
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, const std::unordered_multiset<T>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = true;
+		constexpr bool allow_insert = false;
+		constexpr bool allow_remove = false;
+		constexpr bool allow_reorder = false;
+		constexpr bool allow_copy = false;
+		Detail::container_input<std_unordered_multiset, std::unordered_multiset<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	/* ========================= Key / value container ========================= */
