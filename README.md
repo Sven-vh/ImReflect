@@ -7,13 +7,18 @@
 A reflection-based wrapper for ImGui that automatically generates ImGui UI.
 
 > [!NOTE]
-> This is WIP. It currently only supports primitive types, booleans, and enums.
+> This is still WIP. It currently supports primitive types, booleans, enums, structs, std sequence containers (vector), and std associative containers (map). See [Wiki](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings) for all supported types.
 >
 > I'm making this as part of my university project.
 
 # Basic Usage
+
+Get the latest single header from the [releases](https://github.com/Sven-vh/ImReflect/releases) page. This file should include everything you need, including the [external libraries](#Dependencies).
+
 ## Simple Struct Reflection
 ```cpp
+#include "ImReflect.hpp"
+
 struct GameSettings {
     int volume = 50;
     float sensitivity = 1.0f;
@@ -34,7 +39,7 @@ That's basically it!
 
 ## Configurable ImGui Settings
 
-The ``ImSettings`` struct provides a way to customize the ImGui widgets. It uses a *Fluent Builder Pattern** design to allow for easy configurations.
+The ``ImSettings`` struct provides a way to customize the ImGui widgets. It uses a *Fluent Builder Pattern* design to allow for easy configurations.
 
 ### Types
 
@@ -134,9 +139,8 @@ See the [Wiki](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings) for the 
 
 ### Custom Functionality
 
-As of right now the library supports only primitive types. I plan on adding most std types too, like ``vector``, ``map``, ``pair``, etc.
+As of right now, the library supports most C++ and std types. However, if you need more customization, the library offers the ability to add your own custom type functions without touching the library. For example:
 
-However, if you need more customization, the library offers the ability to add your own custom type functions without touching the library. For example:
 ```cpp
 struct Transform {
 	vec3 position;
@@ -212,7 +216,7 @@ A couple of things are important to note here.
 
 ### Overwrite
 
-If you don't like the way I'm drawing a type or need more customizations, you can overwrite the default implementation. Simply implement a tag_invoke function of said type, and your implementation will be called instead. For example, overriding ``int``:
+If you don't like the way I've implemented a type or need more customizations, you can overwrite the default implementation. Simply implement a tag_invoke function of said type, and your implementation will be called instead. For example, overriding ``int``:
 
 ```cpp
 void tag_invoke(ImReflect::ImInput_t, const char* label, int& value, ImSettings& settings, ImResponse& response) {
@@ -228,7 +232,7 @@ struct ImReflect::type_settings<int> : ImSettings {
 };
 ```
 
-Note that this **overwrites** the default implementation, so the default settings can not be used anymore. A workaround for this is to go to the default implementation and copy the classes it inherits from.
+Note that this **overwrites** the default settings implementation, so the settings ImReflect specified can not be used anymore. A workaround for this is to go to the default implementation and copy the classes it inherits from.
 
 ### Order of Operations
 
@@ -238,7 +242,7 @@ ImReflect has a defined way of checking for specific type implementations.
 2. Library implementations, made by me, the author.
 3. Reflection, using the ``IMGUI_REFLECT`` macro.
 
-As said before, this allows you to easily overwrite my implementations since it first checks if you, the user, has made one. If not, it checks my implementations, and after that, it checks if it's reflected.
+As said before, this allows you to easily overwrite my implementations since it first checks if you, the user, has made one. If not, it checks the ImReflect implementations, and after that, it checks if it's reflected.
 
 If none of these are implemented, it will call a static_assert in ``ImReflect::Detail::InputImpl()``with the error message
 
@@ -263,8 +267,8 @@ See the [Wiki](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings) for the 
 
 The library is available in two formats:
 
-1. **Multiple Headers** (traditional): Include ``ImReflect.hpp`` which includes all necessary headers
-2. **Single Header** (recommended): Use ``single_header/ImReflect.hpp`` for easier integration
+1. **Multiple Headers** (traditional): Download all header files, including extern and include ``ImReflect.hpp``.
+2. **Single Header** (recommended): Get the latest ``ImReflect.hpp`` from the [releases](https://github.com/Sven-vh/ImReflect/releases) page.
 
 The single header file combines all ImReflect headers and external dependencies into one file. It's automatically generated via GitHub Actions whenever a new release is created.
 
@@ -289,7 +293,7 @@ This includes everything in one file for easier integration into your project.
 - [magic_enum](https://github.com/Neargye/magic_enum) (for enum reflection)
 - [visit_struct](https://github.com/cbeck88/visit_struct) (for struct reflection)
 
-**Note:** The single header includes the external dependencies (magic_enum, visit_struct, svh), but you still need to include ImGui headers separately.
+**Note:** The single header includes the external dependencies (magic_enum, visit_struct, svh), but you still need to include ImGui separately.
 
 ## Fluent Builder Pattern
 
