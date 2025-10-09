@@ -138,6 +138,15 @@ namespace ImReflect::Detail {
 		type_settings<T>& removable(const bool v = true) { _removable = v; RETURN_THIS; }
 		const bool& is_removable() const { return _removable; };
 	};
+
+	template<typename T>
+	struct resettable_mixin {
+	private:
+		bool _resettable = false;
+	public:
+		type_settings<T>& resettable(const bool v = true) { _resettable = v; RETURN_THIS; }
+		const bool& is_resettable() const { return _resettable; };
+	};
 }
 
 /* Input fields for std types */
@@ -1464,6 +1473,44 @@ namespace ImReflect {
 		constexpr bool allow_insert = false;
 		constexpr bool allow_remove = false;
 		Detail::map_input<std_unordered_multimap, std::unordered_multimap<K, V>, is_const, allow_insert, allow_remove>(label, value, settings, response);
+	}
+
+	/* ========================= std::optional ========================= */
+	struct std_optional {};
+
+	template<>
+	struct type_settings<std_optional> : ImSettings,
+		ImReflect::Detail::required<std_optional>,
+		ImReflect::Detail::resettable_mixin<std_optional> {
+	};
+
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::optional<T>& value, ImSettings& settings, ImResponse& response) {
+		auto& opt_settings = settings.get<std_optional>();
+		auto& opt_response = response.get<std_optional>();
+
+		ImReflect::Detail::text_label(label);
+		ImGui::SameLine();
+
+		const bool was_engaged = value.has_value();
+		
+		bool engaged = was_engaged;
+		ImGui::Checkbox("##optional_engaged", &engaged);
+		Detail::imgui_tooltip("Toggle whether the optional has a value");
+		ImGui::SameLine();
+		if (engaged) {
+			if (!was_engaged) {
+				value = T{};
+				opt_response.changed();
+			}
+			ImReflect::Input("##optional_value", *value, opt_settings, opt_response);
+		} else {
+			if (was_engaged) {
+				value.reset();
+				opt_response.changed();
+			}
+			ImGui::TextDisabled("<nullopt>");
+		}
 	}
 }
 

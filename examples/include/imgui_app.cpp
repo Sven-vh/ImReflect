@@ -1650,6 +1650,52 @@ static void unordered_multimap_test() {
 }
 
 // ========================================
+// std::optional
+// ========================================
+static void optional_test() {
+	ImGui::SeparatorText("std::optional Test");
+	ImGui::PushID("optional_test");
+	ImGui::Indent();
+
+	static std::optional<int> my_optional = 42;
+
+	ImGui::Text("std::optional<int>");
+	HelpMarker("Optional integer, you can toggle if it has a value or not");
+	{
+		ImGui::PushID("optional int");
+		ImReflect::Input("my_optional", my_optional);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	static std::optional<std::string> my_optional_string = "Hello World";
+
+	ImGui::Text("std::optional<std::string>");
+	HelpMarker("Optional string, you can toggle if it has a value or not");
+	{
+		ImGui::PushID("optional string");
+		ImReflect::Input("my_optional_string", my_optional_string);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	static std::optional<MyTypes> my_optional_struct = MyTypes{ 1, 2, 3.0f, 4.0f, true, false };
+
+	ImGui::Text("std::optional<Struct>");
+	HelpMarker("Optional struct, you can toggle if it has a value or not");
+	{
+		ImGui::PushID("optional struct");
+		ImReflect::Input("my_optional_struct", my_optional_struct);
+		ImGui::PopID();
+	}
+
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // Main
 // ========================================
 namespace svh {
@@ -1835,6 +1881,11 @@ namespace svh {
 		if (ImGui::BeginTabItem("Unordered MultiMap")) {
 			// Unordered MultiMap test
 			unordered_multimap_test();
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Optional")) {
+			// Optional test
+			optional_test();
 			ImGui::EndTabItem();
 		}
 
