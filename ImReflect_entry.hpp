@@ -138,6 +138,56 @@ namespace ImReflect {
 	void Input(const char* label, T& value, ImSettings& settings, ImResponse& response) {
 		Detail::InputImpl(label, value, settings, response);
 	}
+
+
+	/* Pointer inputs */
+	template<typename T>
+	ImResponse Input(const char* label, T* value) {
+		if (value) {
+			return Input(label, *value);
+		} else {
+			ImSettings settings;
+			ImResponse response;
+			ImGui::TextDisabled("%s: ", label);
+			ImGui::SameLine();
+			ImGui::TextDisabled("nullptr");
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+				ImGui::SetTooltip("Value is nullptr");
+			}
+			return response;
+		}
+	}
+
+	template<typename T>
+	ImResponse Input(const char* label, T* value, ImSettings& settings) {
+		if (value) {
+			return Input(label, *value, settings);
+		} else {
+			ImResponse response;
+			ImGui::TextDisabled("%s: ", label);
+			ImGui::SameLine();
+			ImGui::TextDisabled("nullptr");
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+				ImGui::SetTooltip("Value is nullptr");
+			}
+			return response;
+		}
+	}
+
+	template<typename T>
+	ImResponse Input(const char* label, T* value, ImSettings& settings, ImResponse& response) {
+		if (value) {
+			Detail::InputImpl(label, *value, settings, response);
+		} else {
+			ImGui::TextDisabled("%s: ", label);
+			ImGui::SameLine();
+			ImGui::TextDisabled("nullptr");
+			if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+				ImGui::SetTooltip("Value is nullptr");
+			}
+		}
+		return response;
+	}
 }
 
 namespace ImReflect {

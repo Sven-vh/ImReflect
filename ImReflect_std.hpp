@@ -36,7 +36,7 @@ namespace ImReflect::Detail {
 		int _line_count = -1; /* -1 = imgui default, 0 = auto resize, >0 line height*/
 
 	public:
-		type_settings<T>& as_multiline(const bool v = true) { _multi_line = v; RETURN_THIS; }
+		type_settings<T>& as_multiline() { _multi_line = true; RETURN_THIS; }
 		type_settings<T>& auto_resize(const bool v = true) { _multi_line = v; _line_count = v ? 0 : -1; RETURN_THIS; }
 		/* -1 = imgui default, 0 = auto resize, >0 line height*/
 		type_settings<T>& line_count(int count) { _multi_line = true; _line_count = count; RETURN_THIS; }

@@ -458,6 +458,39 @@ static void enum_test() {
 }
 
 // ========================================
+// Pointer Test
+// ========================================
+static void pointer_test() {
+	const std::string name = "Pointer";
+
+	ImGui::SeparatorText((name + "*").c_str());
+	ImGui::PushID((name + "*").c_str());
+	ImGui::Indent();
+
+	static int my_value = 42;
+	static int* invalid_ptr = nullptr;
+	static int* my_ptr = invalid_ptr;
+
+	ImGui::Text("Pointer - nullptr");
+	HelpMarker("Pointer is nullptr, nothing to edit");
+	{
+		ImReflect::Input("my_ptr", invalid_ptr);
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Pointer - valid");
+	HelpMarker("Pointer is valid, you can edit the value it points to");
+	{
+		my_ptr = &my_value;
+		ImReflect::Input("my_ptr", my_ptr);
+	}
+
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // Simple Test
 // ========================================
 
@@ -1538,6 +1571,12 @@ namespace svh {
 			// Enum
 			enum_test<MyEnum>();
 			enum_test<const MyEnum>();
+
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Pointers")) {
+
+			pointer_test();
 
 			ImGui::EndTabItem();
 		}
