@@ -22,8 +22,25 @@
 namespace ImReflect::Detail {
 	template<typename T> /* All numbers except bool */
 	constexpr bool is_string_type_v = std::is_same_v<std::remove_cv_t<T>, std::string>;
+
 	template<typename T>
 	using enable_if_string_t = std::enable_if_t<is_string_type_v<T>, void>;
+
+	/* Is Smart pointers */
+	template<typename T>
+	struct is_smart_pointer_impl : std::false_type {};
+	template<typename T>
+	struct is_smart_pointer_impl<std::shared_ptr<T>> : std::true_type {};
+	template<typename T>
+	struct is_smart_pointer_impl<std::unique_ptr<T>> : std::true_type {};
+	template<typename T>
+	struct is_smart_pointer_impl<std::weak_ptr<T>> : std::true_type {};
+
+	template<typename T>
+	constexpr bool is_smart_pointer_v = Detail::is_smart_pointer_impl<std::remove_cv_t<T>>::value;
+
+	template<typename T>
+	using enable_if_smart_pointer_t = std::enable_if_t<is_smart_pointer_v<T>, void>;
 }
 
 /* Generic settings for types */
@@ -182,6 +199,51 @@ namespace ImReflect {
 			string_response.changed();
 		}
 		ImReflect::Detail::check_input_states(string_response);
+	}
+
+	/* ========================= Smart pointers ========================= */
+	template<typename T>
+	struct type_settings<T, Detail::enable_if_smart_pointer_t<T>> : ImSettings,
+		ImReflect::Detail::required<T> {
+	};
+
+	template<typename T>
+	std::enable_if_t<Detail::is_smart_pointer_v<T>>
+		tag_invoke(Detail::ImInputLib_t, const char* label, T& value, ImSettings& settings, ImResponse& response) {
+		auto& ptr_settings = settings.get<T>();
+		auto& ptr_response = response.get<T>();
+
+		//constexpr bool is_const = std::is_const_v<T>;
+
+		if constexpr (std::is_same_v<std::remove_cv_t<T>, std::weak_ptr<typename T::element_type>>) {
+			if (value.expired() == false) {
+				auto shared_value = value.lock();
+				if (shared_value) {
+					ImReflect::Input(label, *shared_value, ptr_settings, ptr_response);
+				} else {
+					ImGui::TextDisabled("%s: ", label);
+					ImGui::SameLine();
+					ImGui::TextDisabled("expired");
+					ImReflect::Detail::imgui_tooltip("Value is expired");
+				}
+			} else {
+				ImGui::TextDisabled("%s: ", label);
+				ImGui::SameLine();
+				ImGui::TextDisabled("nullptr");
+				ImReflect::Detail::imgui_tooltip("Value is nullptr");
+			}
+		} else {
+			if (value) {
+				ImReflect::Input(label, *value, ptr_settings, ptr_response);
+			} else {
+				ImGui::TextDisabled("%s: ", label);
+				ImGui::SameLine();
+				ImGui::TextDisabled("nullptr");
+				ImReflect::Detail::imgui_tooltip("Value is nullptr");
+			}
+		}
+
+		ImReflect::Detail::check_input_states(ptr_response);
 	}
 
 	/* ========================= std::tuple render methods, also used by std::pair ========================= */

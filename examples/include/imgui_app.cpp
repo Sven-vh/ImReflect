@@ -911,6 +911,87 @@ config.push<std::string>()
 }
 
 // ========================================
+// Smart pointers
+// ========================================
+
+static void smart_pointer_test() {
+	// Shared, unique, weak
+	ImGui::SeparatorText("Smart Pointer Test");
+	ImGui::Indent();
+	ImGui::PushID("smart_pointer_test");
+
+	static std::shared_ptr<int> shared_ptr = std::make_shared<int>(42);
+
+	ImGui::Text("std::shared_ptr");
+	HelpMarker("Shared pointer, you can edit the value it points to");
+	{
+		ImGui::PushID("shared_ptr");
+		ImReflect::Input("shared_ptr", shared_ptr);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+
+	ImGui::Text("std::unique_ptr");
+	HelpMarker("Unique pointer, you can edit the value it points to");
+	{
+		ImGui::PushID("unique_ptr");
+		static std::unique_ptr<float> unique_ptr = std::make_unique<float>(3.14f);
+		ImReflect::Input("unique_ptr", unique_ptr);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+
+	ImGui::Text("std::weak_ptr");
+	HelpMarker("Weak pointer, you can edit the value it points to if it is not expired");
+	{
+		ImGui::PushID("weak_ptr");
+		static std::weak_ptr<int> weak_ptr = shared_ptr;
+		ImReflect::Input("weak_ptr", weak_ptr);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("std::shared_ptr nullptr");
+	HelpMarker("Shared pointer is nullptr, nothing to edit");
+	{
+		ImGui::PushID("shared_ptr nullptr");
+		static std::shared_ptr<int> null_shared_ptr = nullptr;
+		ImReflect::Input("null_shared_ptr", null_shared_ptr);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("std::unique_ptr nullptr");
+	HelpMarker("Unique pointer is nullptr, nothing to edit");
+	{
+		ImGui::PushID("unique_ptr nullptr");
+		static std::unique_ptr<float> null_unique_ptr = nullptr;
+		ImReflect::Input("null_unique_ptr", null_unique_ptr);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("std::weak_ptr expired");
+	HelpMarker("Weak pointer is expired, nothing to edit");
+	{
+		ImGui::PushID("weak_ptr expired");
+		static std::weak_ptr<int> expired_weak_ptr;
+		ImReflect::Input("expired_weak_ptr", expired_weak_ptr);
+		ImGui::PopID();
+	}
+
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // std::pair
 // ========================================
 static void pair_test() {
@@ -1608,6 +1689,13 @@ namespace svh {
 			// String test
 			string_test<std::string>();
 			string_test<const std::string>();
+
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Smart Pointers")) {
+
+			// Smart Pointer test
+			smart_pointer_test();
 
 			ImGui::EndTabItem();
 		}
