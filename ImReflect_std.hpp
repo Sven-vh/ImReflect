@@ -495,6 +495,13 @@ namespace ImReflect {
 			static std::false_type test_erase(...);
 			static constexpr bool has_erase = decltype(test_erase<Container>(0))::value;
 
+			/*  Detect if container has pop front */
+			template<typename C>
+			static auto test_pop_front(int) -> decltype(std::declval<C>().pop_front(), std::true_type{});
+			template<typename>
+			static std::false_type test_pop_front(...);
+			static constexpr bool has_pop_front = decltype(test_pop_front<Container>(0))::value;
+
 			/*  Detect if container has push_front */
 			template<typename C>
 			static auto test_push_front(int) -> decltype(std::declval<C>().push_front(std::declval<value_type>()), std::true_type{});
@@ -565,7 +572,7 @@ namespace ImReflect {
 
 			/*  Container capabilities */
 			constexpr bool container_allows_insert = traits::has_insert || traits::has_push_back || traits::push_front;
-			constexpr bool container_allows_remove = traits::has_erase;
+			constexpr bool container_allows_remove = traits::has_erase || traits::has_pop_front;
 			constexpr bool is_fixed_size_container = traits::is_fixed_size;
 			constexpr bool has_size = traits::has_size;
 
@@ -657,13 +664,18 @@ namespace ImReflect {
 			/*  Remove button */
 			if constexpr (can_remove) {
 				if (vec_settings.is_removable()) {
-					if (item_count > 0) {
+					if (item_count > 0 || traits::has_pop_front) {
 						if (ImGui::Button("-")) {
-							auto it = value.end();
-							--it;
-							value.erase(it);
-							vec_response.changed();
-							item_count = value.size();
+							if constexpr (traits::has_erase) {
+								auto it = value.end();
+								--it;
+								value.erase(it);
+								vec_response.changed();
+								item_count = value.size();
+							} else {
+								value.pop_front();
+								vec_response.changed();
+							}
 						}
 					}
 				} else {
@@ -778,7 +790,13 @@ namespace ImReflect {
 						/*  Remove item */
 						if constexpr (can_remove) {
 							if (vec_settings.is_removable() && ImGui::MenuItem("Remove item")) {
-								value.erase(it);
+								//value.erase(it);
+								if constexpr (traits::has_erase) {
+									it = value.erase(it);
+								} else {
+									value.pop_front();
+									it = value.begin();
+								}
 								vec_response.changed();
 								ImGui::EndPopup();
 								ImGui::PopID();
