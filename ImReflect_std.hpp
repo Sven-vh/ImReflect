@@ -17,6 +17,7 @@
 #include <set>
 #include <unordered_set>
 #include <forward_list>
+#include <variant>
 
 /* Helpers */
 namespace ImReflect::Detail {
@@ -1603,5 +1604,69 @@ namespace ImReflect {
 			ImGui::TextDisabled("<nullopt>");
 		}
 	}
+
+	/* ========================= std::variant ========================= */
+	struct std_variant {};
+
+	template<>
+	struct type_settings<std_variant> : ImSettings,
+		ImReflect::Detail::required<std_variant>,
+		ImReflect::Detail::dropdown<std_variant> {
+	};
+
+	template<typename... Types>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::variant<Types...>& value, ImSettings& settings, ImResponse& response) {
+		auto& var_settings = settings.get<std_variant>();
+		auto& var_response = response.get<std_variant>();
+		ImReflect::Detail::text_label(label);
+		ImGui::SameLine();
+
+		constexpr size_t type_count = sizeof...(Types);
+		const int current_type = static_cast<int>(value.index());
+
+		// Create compile-time array of type names
+		static const char* type_names[] = { typeid(Types).name()... };
+
+		const std::string combo_label = std::string("##variant_type_");
+
+		if (type_count <= 1) {
+			ImGui::TextDisabled(type_names[0]);
+			Detail::imgui_tooltip("Variant has only one type, cannot change type");
+		} else {
+			const char* current_name = current_type >= 0 && current_type < type_count
+				? type_names[current_type]
+				: "<valueless>";
+			ImGui::PushItemWidth(ImGui::CalcTextSize(current_name).x + 30.0f);
+			if (ImGui::BeginCombo(combo_label.c_str(), current_name)) {
+				int i = 0;
+				([&]() {
+					const bool is_selected = (current_type == i);
+					if (ImGui::Selectable(type_names[i], is_selected)) {
+						if (!is_selected) {
+							value.template emplace<Types>();
+							var_response.changed();
+						}
+					}
+					if (is_selected) ImGui::SetItemDefaultFocus();
+					++i;
+					}(), ...);
+				ImGui::EndCombo();
+			}
+			ImGui::PopItemWidth();
+		}
+
+		ImGui::SameLine();
+		if (current_type >= 0) {
+			std::visit([&](auto& val) {
+				using T = std::decay_t<decltype(val)>;
+				ImReflect::Input("##variant_value", val, var_settings, var_response);
+				}, value);
+		} else {
+			ImGui::TextDisabled("<valueless>");
+			Detail::imgui_tooltip("Variant is in a valueless state due to an exception during a type change, cannot edit value");
+		}
+	}
+
+
 }
 

@@ -1724,6 +1724,26 @@ static void optional_test() {
 }
 
 // ========================================
+// std::variant
+// ========================================
+static void variant_test() {
+	ImGui::SeparatorText("std::variant Test");
+	ImGui::PushID("variant_test");
+	ImGui::Indent();
+	using MyVariantType = std::variant<int, float, std::string, MyTypes>;
+	static MyVariantType my_variant = 42;
+	ImGui::Text("std::variant<int, float, std::string, MyTypes>");
+	HelpMarker("Variant that can hold int, float, string or MyTypes struct");
+	{
+		ImGui::PushID("variant");
+		ImReflect::Input("my_variant", my_variant);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // Main
 // ========================================
 namespace svh {
@@ -1921,6 +1941,11 @@ namespace svh {
 		if (ImGui::BeginTabItem("Optional")) {
 			// Optional test
 			optional_test();
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Variant")) {
+			// Variant test
+			variant_test();
 			ImGui::EndTabItem();
 		}
 
