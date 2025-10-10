@@ -495,8 +495,22 @@ namespace ImReflect {
 			static std::false_type test_erase(...);
 			static constexpr bool has_erase = decltype(test_erase<Container>(0))::value;
 
+			/*  Detect if container has pop front */
+			template<typename C>
+			static auto test_pop_front(int) -> decltype(std::declval<C>().pop_front(), std::true_type{});
+			template<typename>
+			static std::false_type test_pop_front(...);
+			static constexpr bool has_pop_front = decltype(test_pop_front<Container>(0))::value;
+
+			/*  Detect if container has push_front */
+			template<typename C>
+			static auto test_push_front(int) -> decltype(std::declval<C>().push_front(std::declval<value_type>()), std::true_type{});
+			template<typename>
+			static std::false_type test_push_front(...);
+			static constexpr bool push_front = decltype(test_push_front<Container>(0))::value;
+
 			/*  Check if it's std::array (fixed size) */
-			static constexpr bool is_fixed_size = !has_insert && !has_erase && !has_push_back;
+			static constexpr bool is_fixed_size = !has_insert && !has_erase && !has_push_back && !push_front;
 
 			template<typename C>
 			static auto test_key_type(int) -> decltype(typename C::key_type{}, std::true_type{});
@@ -557,8 +571,8 @@ namespace ImReflect {
 			constexpr bool move_constructible = std::is_move_constructible_v<T>;
 
 			/*  Container capabilities */
-			constexpr bool container_allows_insert = traits::has_insert || traits::has_push_back;
-			constexpr bool container_allows_remove = traits::has_erase;
+			constexpr bool container_allows_insert = traits::has_insert || traits::has_push_back || traits::push_front;
+			constexpr bool container_allows_remove = traits::has_erase || traits::has_pop_front;
 			constexpr bool is_fixed_size_container = traits::is_fixed_size;
 			constexpr bool has_size = traits::has_size;
 
@@ -621,6 +635,9 @@ namespace ImReflect {
 								value.insert(value.end(), T{});
 								vec_response.changed();
 								item_count = value.size();
+							} else if constexpr (traits::push_front) {
+								value.push_front(T{});
+								vec_response.changed();
 							}
 						}
 					}
@@ -647,13 +664,18 @@ namespace ImReflect {
 			/*  Remove button */
 			if constexpr (can_remove) {
 				if (vec_settings.is_removable()) {
-					if (item_count > 0) {
+					if (item_count > 0 || traits::has_pop_front) {
 						if (ImGui::Button("-")) {
-							auto it = value.end();
-							--it;
-							value.erase(it);
-							vec_response.changed();
-							item_count = value.size();
+							if constexpr (traits::has_erase) {
+								auto it = value.end();
+								--it;
+								value.erase(it);
+								vec_response.changed();
+								item_count = value.size();
+							} else {
+								value.pop_front();
+								vec_response.changed();
+							}
 						}
 					}
 				} else {
@@ -768,7 +790,13 @@ namespace ImReflect {
 						/*  Remove item */
 						if constexpr (can_remove) {
 							if (vec_settings.is_removable() && ImGui::MenuItem("Remove item")) {
-								value.erase(it);
+								//value.erase(it);
+								if constexpr (traits::has_erase) {
+									it = value.erase(it);
+								} else {
+									value.pop_front();
+									it = value.begin();
+								}
 								vec_response.changed();
 								ImGui::EndPopup();
 								ImGui::PopID();
@@ -786,7 +814,11 @@ namespace ImReflect {
 						/*  Duplicate item */
 						if constexpr (can_copy) {
 							if (vec_settings.is_insertable() && ImGui::MenuItem("Duplicate item")) {
-								value.insert(std::next(it), *it);
+								if constexpr (traits::push_front) {
+									value.push_front(*it);
+								} else {
+									value.insert(std::next(it), *it);
+								}
 								vec_response.changed();
 							}
 						} else {
@@ -834,8 +866,18 @@ namespace ImReflect {
 										insert_item = it;
 										ImGui::OpenPopup(pop_up_id);
 									} else {
-										value.insert(it, T());
-										vec_response.changed();
+										/*value.insert(it, T());
+										vec_response.changed();*/
+										if constexpr (traits::has_push_back) {
+											value.push_back(T{});
+											vec_response.changed();
+										} else if constexpr (traits::has_insert) {
+											value.insert(it, T{});
+											vec_response.changed();
+										} else if constexpr (traits::push_front) {
+											value.push_front(T{});
+											vec_response.changed();
+										}
 									}
 								} else {
 									ImGui::OpenPopup(pop_up_id);
@@ -848,8 +890,18 @@ namespace ImReflect {
 										insert_item = next_it;
 										ImGui::OpenPopup("add_item_popup");
 									} else {
-										value.insert(next_it, T());
-										vec_response.changed();
+										/*value.insert(next_it, T());
+										vec_response.changed();*/
+										if constexpr (traits::has_push_back) {
+											value.push_back(T{});
+											vec_response.changed();
+										} else if constexpr (traits::has_insert) {
+											value.insert(next_it, T{});
+											vec_response.changed();
+										} else if constexpr (traits::push_front) {
+											value.push_front(T{});
+											vec_response.changed();
+										}
 									}
 								} else {
 									ImGui::OpenPopup("add_item_popup");
@@ -903,12 +955,20 @@ namespace ImReflect {
 
 						if (ImGui::MenuItem("Add new item")) {
 							if (insert_item != value.end()) {
-								value.insert(insert_item, temp_value);
+								if constexpr (traits::has_push_back) {
+									value.push_back(temp_value);
+								} else if constexpr (traits::has_insert) {
+									value.insert(insert_item, temp_value);
+								} else if constexpr (traits::push_front) {
+									value.push_front(temp_value);
+								}
 							} else {
 								if constexpr (traits::has_push_back) {
 									value.push_back(temp_value);
 								} else if constexpr (traits::has_insert) {
 									value.insert(value.end(), temp_value);
+								} else if constexpr (traits::push_front) {
+									value.push_front(temp_value);
 								}
 							}
 							vec_response.changed();
@@ -1030,6 +1090,37 @@ namespace ImReflect {
 		constexpr bool allow_copy = false;
 
 		Detail::container_input<std_list, std::list<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+	}
+
+	/* ========================= std::forward_list ========================= */
+	struct std_forward_list {};
+
+	template<>
+	struct type_settings<std_forward_list> : ImSettings,
+		ImReflect::Detail::required<std_forward_list>,
+		ImReflect::Detail::dropdown<std_forward_list>,
+		ImReflect::Detail::insertable_mixin<std_forward_list>,
+		ImReflect::Detail::removable_mixin<std_forward_list> {
+	};
+
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::forward_list<T>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = false;
+		constexpr bool allow_insert = true;
+		constexpr bool allow_remove = true;
+		constexpr bool allow_reorder = false;
+		constexpr bool allow_copy = true;
+		Detail::container_input<std_forward_list, std::forward_list<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
+	}
+
+	template<typename T>
+	void tag_invoke(Detail::ImInputLib_t, const char* label, const std::forward_list<T>& value, ImSettings& settings, ImResponse& response) {
+		constexpr bool is_const = true;
+		constexpr bool allow_insert = false;
+		constexpr bool allow_remove = false;
+		constexpr bool allow_reorder = false;
+		constexpr bool allow_copy = false;
+		Detail::container_input<std_forward_list, std::forward_list<T>, is_const, allow_insert, allow_remove, allow_reorder, allow_copy>(label, value, settings, response);
 	}
 
 	/* ========================= std::deque ========================= */
@@ -1165,7 +1256,7 @@ namespace ImReflect {
 
 	/* ========================= std::unordered_multiset ========================= */
 	struct std_unordered_multiset {};
-	
+
 	template<>
 	struct type_settings<std_unordered_multiset> : ImSettings,
 		ImReflect::Detail::required<std_set>,
@@ -1493,7 +1584,7 @@ namespace ImReflect {
 		ImGui::SameLine();
 
 		const bool was_engaged = value.has_value();
-		
+
 		bool engaged = was_engaged;
 		ImGui::Checkbox("##optional_engaged", &engaged);
 		Detail::imgui_tooltip("Toggle whether the optional has a value");

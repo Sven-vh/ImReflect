@@ -1370,6 +1370,34 @@ static void list_test() {
 }
 
 // ========================================
+// std::forward_list
+// ========================================
+static void forward_list_test() {
+	ImGui::SeparatorText("std::forward_list Test");
+	ImGui::PushID("forward_list_test");
+	ImGui::Indent();
+	static std::forward_list<int> my_forward_list = { 1, 2, 3, 4, 5 };
+	ImGui::Text("Default");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default");
+		ImReflect::Input("my_forward_list", my_forward_list);
+		ImGui::PopID();
+	}
+	ImGui::NewLine();
+	ImGui::Text("Default const");
+	HelpMarker("Default settings, no extra settings given");
+	{
+		ImGui::PushID("default const");
+		static const std::forward_list<int> my_forward_list_const = { 1, 2, 3, 4, 5 };
+		ImReflect::Input("my_forward_list_const", my_forward_list_const);
+		ImGui::PopID();
+	}
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // std::deque
 // ========================================
 static void deque_test() {
@@ -1834,6 +1862,13 @@ namespace svh {
 			// List test
 			list_test();
 
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Forward List")) {
+		
+			// Forward List test
+			forward_list_test();
+			
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("Deque")) {
