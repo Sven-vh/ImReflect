@@ -537,7 +537,7 @@ namespace ImReflect {
 		constexpr bool is_const = std::is_const_v<E>;
 
 		const auto enum_values = magic_enum::enum_values<E>();
-		const auto enum_names = magic_enum::enum_names<E>();
+		const auto& enum_names = magic_enum::enum_names<E>();
 		const int enum_count = static_cast<int>(enum_values.size());
 
 		bool changed = false;

@@ -1624,7 +1624,6 @@ namespace ImReflect {
 		constexpr size_t type_count = sizeof...(Types);
 		const int current_type = static_cast<int>(value.index());
 
-		// Create compile-time array of type names
 		static const char* type_names[] = { typeid(Types).name()... };
 
 		const std::string combo_label = std::string("##variant_type_");
@@ -1643,7 +1642,13 @@ namespace ImReflect {
 					const bool is_selected = (current_type == i);
 					if (ImGui::Selectable(type_names[i], is_selected)) {
 						if (!is_selected) {
-							value.template emplace<Types>();
+							constexpr bool can_default_construct = std::is_default_constructible_v<Types>;
+							if constexpr (!can_default_construct) {
+								Detail::imgui_tooltip("Type is not default constructible, cannot change type");
+								return;
+							} else {
+								value.template emplace<Types>();
+							}
 							var_response.changed();
 						}
 					}
