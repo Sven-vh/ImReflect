@@ -817,6 +817,62 @@ config.push<ImReflect::std_pair>()
 }
 
 // ========================================
+// Result Test
+// ========================================
+static void result_test() {
+	ImGui::SeparatorText("Result Test");
+	ImGui::PushID("result_test");
+	ImGui::Indent();
+
+	ImGui::Text("ImResponse");
+	HelpMarker("You can capture the ImResponse from the Input function to see if the value was changed");
+	{
+		const std::string code = R"(static int my_int = 0;
+ImResponse response = ImReflect::Input("my_int", my_int);
+if (response.get<int>().is_changed()) {
+	// value was changed
+})";
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("Output:");
+		static int my_int = 0;
+		ImResponse response = ImReflect::Input("my_int", my_int);
+
+		const auto& int_response = response.get<int>();
+		ImGui::Text("is_changed: %s", int_response.is_changed() ? "true" : "false");
+		ImGui::Text("is_hovered: %s", int_response.is_hovered() ? "true" : "false");
+		ImGui::Text("is_active: %s", int_response.is_active() ? "true" : "false");
+		ImGui::Text("is_focused: %s", int_response.is_focused() ? "true" : "false");
+		ImGui::Text("is_clicked left: %s", int_response.is_clicked(0) ? "true" : "false");
+		ImGui::Text("is_clicked right: %s", int_response.is_clicked(1) ? "true" : "false");
+		ImGui::Text("is_clicked middle: %s", int_response.is_clicked(2) ? "true" : "false");
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("ImResponse - struct");
+	HelpMarker("You can also capture the ImResponse for a struct, and check if specific members were changed");
+	{
+		const std::string code = R"(static MyStruct my_struct;
+ImResponse response = ImReflect::Input("my_struct", my_struct);
+const auto& struct_response = response.get<MyStruct>();
+if (struct_response.get_member<&MyStruct::a>().is_changed()) {
+	// member a was changed
+})";
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("Output:");
+		static MyStruct my_struct;
+		ImResponse response = ImReflect::Input("my_struct", my_struct);
+		const auto& struct_response = response.get<MyStruct>();
+		ImGui::Text("a is_changed: %s", struct_response.get_member<&MyStruct::a>().is_changed() ? "true" : "false");
+		ImGui::Text("b is_changed: %s", struct_response.get_member<&MyStruct::b>().is_changed() ? "true" : "false");
+		ImGui::Text("c is_changed: %s", struct_response.get_member<&MyStruct::c>().is_changed() ? "true" : "false");
+	}
+
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // std::string
 // ========================================
 template<typename T>
@@ -1834,6 +1890,13 @@ namespace svh {
 
 			ImGui::EndTabItem();
 		}
+		if (ImGui::BeginTabItem("Result Test")) {
+
+			// Result Test
+			result_test();
+
+			ImGui::EndTabItem();
+		}
 		if (ImGui::BeginTabItem("String")) {
 
 			// String test
@@ -1885,10 +1948,10 @@ namespace svh {
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("Forward List")) {
-		
+
 			// Forward List test
 			forward_list_test();
-			
+
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("Deque")) {
