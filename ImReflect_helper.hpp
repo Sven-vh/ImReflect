@@ -5,6 +5,10 @@
 
 /* Usefull helper functions */
 namespace ImReflect::Detail {
+	namespace Internal {
+		constexpr int mouse_button_count = 3; // (0=left, 1=right, 2=middle)
+	}
+
 	/* Helper macro to return *this as derived type */
 #define RETURN_THIS return static_cast<type_settings<T>&>(*this)
 #define RETURN_THIS_T(...) return static_cast<type_settings<__VA_ARGS__>&>(*this)
@@ -117,5 +121,110 @@ namespace ImReflect::Detail {
 		type_settings<T>& callback_edit(const bool v = true) { set_flag(ImGuiInputTextFlags_CallbackEdit, v); RETURN_THIS; }
 
 		const ImGuiInputTextFlags& get_input_flags() const { return _flags; }
+	};
+}
+
+/* Shared Generic responses */
+namespace ImReflect::Detail {
+	struct response_base {
+		virtual ~response_base() = default;
+		virtual void changed() = 0;
+		virtual void hovered() = 0;
+		virtual void active() = 0;
+		virtual void activated() = 0;
+		virtual void deactivated() = 0;
+		virtual void deactivated_after_edit() = 0;
+		virtual void clicked(ImGuiMouseButton button) = 0;
+		virtual void double_clicked(ImGuiMouseButton button) = 0;
+		virtual void focused() = 0;
+	};
+
+	template<typename T>
+	struct required_response : ImResponse, response_base {
+	private:
+		bool _is_changed = false;
+		bool _is_hovered = false;
+		bool _is_active = false;
+		bool _is_activated = false;
+		bool _is_deactivated = false;
+		bool _is_deactivated_after_edit = false;
+		bool _is_clicked[Internal::mouse_button_count] = { false };
+		bool _is_double_clicked[Internal::mouse_button_count] = { false };
+		bool _is_focused = false;
+
+		/* Helper to chain calls to parent */
+		template<typename Method, typename... Args>
+		void chain_to_parent(Method method, Args... args) {  // Note: no perfect forwarding
+			if (this->has_parent()) {
+				auto* p = dynamic_cast<response_base*>(this->parent);
+				if (p) {
+					std::invoke(method, p, args...);
+				}
+			}
+		}
+
+	public:
+		/* Setters */
+		void changed() override {
+			_is_changed = true;
+			chain_to_parent(&response_base::changed);
+		}
+		void hovered() override {
+			_is_hovered = true;
+			chain_to_parent(&response_base::hovered);
+		}
+		void active() override {
+			_is_active = true;
+			chain_to_parent(&response_base::active);
+		}
+		void activated() override {
+			_is_activated = true;
+			chain_to_parent(&response_base::activated);
+		}
+		void deactivated() override {
+			_is_deactivated = true;
+			chain_to_parent(&response_base::deactivated);
+		}
+		void deactivated_after_edit() override {
+			_is_deactivated_after_edit = true;
+			chain_to_parent(&response_base::deactivated_after_edit);
+		}
+		void clicked(ImGuiMouseButton button) override {
+			if (button >= 0 && button < Internal::mouse_button_count) {
+				_is_clicked[button] = true;
+			}
+			chain_to_parent(&response_base::clicked, button);
+		}
+		void double_clicked(ImGuiMouseButton button) override {
+			if (button >= 0 && button < Internal::mouse_button_count) {
+				_is_double_clicked[button] = true;
+			}
+			chain_to_parent(&response_base::double_clicked, button);
+		}
+		void focused() override {
+			_is_focused = true;
+			chain_to_parent(&response_base::focused);
+		}
+
+		/* Getters */
+		bool is_changed() const { return _is_changed; }
+		bool is_hovered() const { return _is_hovered; }
+		bool is_active() const { return _is_active; }
+		bool is_activated() const { return _is_activated; }
+		bool is_deactivated() const { return _is_deactivated; }
+		bool is_deactivated_after_edit() const { return _is_deactivated_after_edit; }
+		bool is_clicked(ImGuiMouseButton button) const {
+			if (button >= 0 && button < Internal::mouse_button_count) {
+				return _is_clicked[button];
+			}
+			return false;
+		}
+		bool is_double_clicked(ImGuiMouseButton button) const {
+			if (button >= 0 && button < Internal::mouse_button_count) {
+				return _is_double_clicked[button];
+			}
+			return false;
+		}
+		bool is_focused() const { return _is_focused; }
 	};
 }
