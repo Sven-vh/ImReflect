@@ -441,8 +441,38 @@ namespace ImReflect {
 	}
 
 	/* ========================= Container helper ========================= */
-
 	namespace Detail {
+		struct container_response {
+		private:
+			static constexpr size_t INVALID_INDEX = static_cast<size_t>(-1);
+
+			size_t _inserted_index = INVALID_INDEX;
+			size_t _erased_index = INVALID_INDEX;
+
+			struct move_info {
+				size_t from = INVALID_INDEX;
+				size_t to = INVALID_INDEX;
+			};
+
+			move_info _moved_info;
+
+		public:
+			bool has_inserted() const { return _inserted_index != INVALID_INDEX; }
+			bool has_erased() const { return _erased_index != INVALID_INDEX; }
+			bool has_moved() const { return _moved_info.from != INVALID_INDEX && _moved_info.to != INVALID_INDEX; }
+
+			size_t get_inserted_index() const { return _inserted_index; }
+			size_t get_erased_index() const { return _erased_index; }
+			move_info get_moved_info() const { return _moved_info; }
+
+			void inserted_index(const size_t index) { _inserted_index = index; }
+			void erased_index(const size_t index) { _erased_index = index; }
+			void moved_index(const size_t from, const size_t to) {
+				_moved_info.from = from;
+				_moved_info.to = to;
+			}
+		};
+
 		constexpr const char* VECTOR_TREE_LABEL = "##vector_tree";
 
 		template<typename T, bool is_const>
@@ -631,13 +661,16 @@ namespace ImReflect {
 							if constexpr (traits::has_push_back) {
 								value.push_back(T{});
 								vec_response.changed();
+								vec_response.inserted_index(value.size() - 1);
 								item_count = value.size();
 							} else if constexpr (traits::has_insert) {
 								value.insert(value.end(), T{});
 								vec_response.changed();
+								vec_response.inserted_index(value.size() - 1);
 								item_count = value.size();
 							} else if constexpr (traits::push_front) {
 								value.push_front(T{});
+								vec_response.inserted_index(0);
 								vec_response.changed();
 							}
 						}
@@ -672,9 +705,11 @@ namespace ImReflect {
 								--it;
 								value.erase(it);
 								vec_response.changed();
+								vec_response.erased_index(value.size());
 								item_count = value.size();
 							} else {
 								value.pop_front();
+								vec_response.erased_index(0);
 								vec_response.changed();
 							}
 						}
@@ -710,6 +745,7 @@ namespace ImReflect {
 									std::advance(src_it, source_idx);
 									std::rotate(value.begin(), src_it, std::next(src_it));
 									vec_response.changed();
+									vec_response.moved_index(source_idx, target_idx);
 								}
 							}
 							ImGui::EndDragDropTarget();
@@ -770,8 +806,10 @@ namespace ImReflect {
 
 										if (source_idx < target_idx) {
 											std::rotate(src_it, std::next(src_it), tgt_it);
+											vec_response.moved_index(source_idx, target_idx - 1);
 										} else {
 											std::rotate(tgt_it, src_it, std::next(src_it));
+											vec_response.moved_index(source_idx, target_idx);
 										}
 										vec_response.changed();
 									}
@@ -799,6 +837,7 @@ namespace ImReflect {
 									it = value.begin();
 								}
 								vec_response.changed();
+								vec_response.erased_index(i);
 								ImGui::EndPopup();
 								ImGui::PopID();
 								break;
@@ -839,21 +878,25 @@ namespace ImReflect {
 									auto prev_it = std::prev(it);
 									std::iter_swap(it, prev_it);
 									vec_response.changed();
+									vec_response.moved_index(i, i - 1);
 								}
 								if (ImGui::MenuItem("Move down") && i != static_cast<int>(item_count) - 1) {
 									auto next_it = std::next(it);
 									std::iter_swap(it, next_it);
 									vec_response.changed();
+									vec_response.moved_index(i, i + 1);
 								}
 								ImGui::Separator();
 
 								if (ImGui::MenuItem("Move to top") && i != 0) {
 									std::rotate(value.begin(), it, std::next(it));
 									vec_response.changed();
+									vec_response.moved_index(i, 0);
 								}
 								if (ImGui::MenuItem("Move to bottom") && i != static_cast<int>(item_count) - 1) {
 									std::rotate(it, std::next(it), value.end());
 									vec_response.changed();
+									vec_response.moved_index(i, item_count - 1);
 								}
 								ImGui::Separator();
 							}
@@ -871,14 +914,15 @@ namespace ImReflect {
 										vec_response.changed();*/
 										if constexpr (traits::has_push_back) {
 											value.push_back(T{});
-											vec_response.changed();
+											vec_response.inserted_index(value.size() - 1);
 										} else if constexpr (traits::has_insert) {
 											value.insert(it, T{});
-											vec_response.changed();
+											vec_response.inserted_index(std::distance(value.begin(), it));
 										} else if constexpr (traits::push_front) {
 											value.push_front(T{});
-											vec_response.changed();
+											vec_response.inserted_index(0);
 										}
+										vec_response.changed();
 									}
 								} else {
 									ImGui::OpenPopup(pop_up_id);
@@ -895,14 +939,15 @@ namespace ImReflect {
 										vec_response.changed();*/
 										if constexpr (traits::has_push_back) {
 											value.push_back(T{});
-											vec_response.changed();
+											vec_response.inserted_index(value.size() - 1);
 										} else if constexpr (traits::has_insert) {
 											value.insert(next_it, T{});
-											vec_response.changed();
+											vec_response.inserted_index(std::distance(value.begin(), next_it));
 										} else if constexpr (traits::push_front) {
 											value.push_front(T{});
-											vec_response.changed();
+											vec_response.inserted_index(0);
 										}
+										vec_response.changed();
 									}
 								} else {
 									ImGui::OpenPopup("add_item_popup");
@@ -958,18 +1003,24 @@ namespace ImReflect {
 							if (insert_item != value.end()) {
 								if constexpr (traits::has_push_back) {
 									value.push_back(temp_value);
+									vec_response.inserted_index(value.size() - 1);
 								} else if constexpr (traits::has_insert) {
 									value.insert(insert_item, temp_value);
+									vec_response.inserted_index(value.size() - 1);
 								} else if constexpr (traits::push_front) {
 									value.push_front(temp_value);
+									vec_response.inserted_index(0);
 								}
 							} else {
 								if constexpr (traits::has_push_back) {
 									value.push_back(temp_value);
+									vec_response.inserted_index(value.size() - 1);
 								} else if constexpr (traits::has_insert) {
 									value.insert(value.end(), temp_value);
+									vec_response.inserted_index(value.size() - 1);
 								} else if constexpr (traits::push_front) {
 									value.push_front(temp_value);
+									vec_response.inserted_index(0);
 								}
 							}
 							vec_response.changed();
@@ -1005,6 +1056,12 @@ namespace ImReflect {
 		ImReflect::Detail::removable_mixin<std_vector> {
 	};
 
+	template<>
+	struct type_response<std_vector> :
+		ImReflect::Detail::required_response<std_vector>,
+		ImReflect::Detail::container_response {
+	};
+
 	template<typename T>
 	void tag_invoke(Detail::ImInputLib_t, const char* label, std::vector<T>& value, ImSettings& settings, ImResponse& response) {
 		constexpr bool is_const = false;
@@ -1032,9 +1089,15 @@ namespace ImReflect {
 
 	template<>
 	struct type_settings<std_array> : ImSettings,
-		ImReflect::Detail::required<std_vector>,
-		ImReflect::Detail::dropdown<std_vector>,
-		ImReflect::Detail::reorderable_mixin<std_vector> {
+		ImReflect::Detail::required<std_array>,
+		ImReflect::Detail::dropdown<std_array>,
+		ImReflect::Detail::reorderable_mixin<std_array> {
+	};
+
+	template<>
+	struct type_response<std_array> :
+		ImReflect::Detail::required_response<std_array>,
+		ImReflect::Detail::container_response {
 	};
 
 	template<typename T, std::size_t N>
@@ -1071,6 +1134,12 @@ namespace ImReflect {
 		ImReflect::Detail::removable_mixin<std_list> {
 	};
 
+	template<>
+	struct type_response<std_list> :
+		ImReflect::Detail::required_response<std_list>,
+		ImReflect::Detail::container_response {
+	};
+
 	template<typename T>
 	void tag_invoke(Detail::ImInputLib_t, const char* label, std::list<T>& value, ImSettings& settings, ImResponse& response) {
 		constexpr bool is_const = false;
@@ -1104,6 +1173,12 @@ namespace ImReflect {
 		ImReflect::Detail::removable_mixin<std_forward_list> {
 	};
 
+	template<>
+	struct type_response<std_forward_list> :
+		ImReflect::Detail::required_response<std_forward_list>,
+		ImReflect::Detail::container_response {
+	};
+
 	template<typename T>
 	void tag_invoke(Detail::ImInputLib_t, const char* label, std::forward_list<T>& value, ImSettings& settings, ImResponse& response) {
 		constexpr bool is_const = false;
@@ -1134,6 +1209,12 @@ namespace ImReflect {
 		ImReflect::Detail::reorderable_mixin<std_deque>,
 		ImReflect::Detail::insertable_mixin<std_deque>,
 		ImReflect::Detail::removable_mixin<std_deque> {
+	};
+
+	template<>
+	struct type_response<std_deque> :
+		ImReflect::Detail::required_response<std_deque>,
+		ImReflect::Detail::container_response {
 	};
 
 	template<typename T>
@@ -1169,6 +1250,12 @@ namespace ImReflect {
 		ImReflect::Detail::removable_mixin<std_set> {
 	};
 
+	template<>
+	struct type_response<std_set> :
+		ImReflect::Detail::required_response<std_set>,
+		ImReflect::Detail::container_response {
+	};
+
 	template<typename T>
 	void tag_invoke(Detail::ImInputLib_t, const char* label, std::set<T>& value, ImSettings& settings, ImResponse& response) {
 		constexpr bool is_const = false;
@@ -1196,10 +1283,16 @@ namespace ImReflect {
 
 	template<>
 	struct type_settings<std_unordered_set> : ImSettings,
-		ImReflect::Detail::required<std_set>,
-		ImReflect::Detail::dropdown<std_set>,
-		ImReflect::Detail::insertable_mixin<std_set>,
-		ImReflect::Detail::removable_mixin<std_set> {
+		ImReflect::Detail::required<std_unordered_set>,
+		ImReflect::Detail::dropdown<std_unordered_set>,
+		ImReflect::Detail::insertable_mixin<std_unordered_set>,
+		ImReflect::Detail::removable_mixin<std_unordered_set> {
+	};
+
+	template<>
+	struct type_response<std_unordered_set> :
+		ImReflect::Detail::required_response<std_unordered_set>,
+		ImReflect::Detail::container_response {
 	};
 
 	template<typename T>
@@ -1227,10 +1320,16 @@ namespace ImReflect {
 
 	template<>
 	struct type_settings<std_multiset> : ImSettings,
-		ImReflect::Detail::required<std_set>,
-		ImReflect::Detail::dropdown<std_set>,
-		ImReflect::Detail::insertable_mixin<std_set>,
-		ImReflect::Detail::removable_mixin<std_set> {
+		ImReflect::Detail::required<std_multiset>,
+		ImReflect::Detail::dropdown<std_multiset>,
+		ImReflect::Detail::insertable_mixin<std_multiset>,
+		ImReflect::Detail::removable_mixin<std_multiset> {
+	};
+
+	template<>
+	struct type_response<std_multiset> :
+		ImReflect::Detail::required_response<std_multiset>,
+		ImReflect::Detail::container_response {
 	};
 
 	template<typename T>
@@ -1260,10 +1359,16 @@ namespace ImReflect {
 
 	template<>
 	struct type_settings<std_unordered_multiset> : ImSettings,
-		ImReflect::Detail::required<std_set>,
-		ImReflect::Detail::dropdown<std_set>,
-		ImReflect::Detail::insertable_mixin<std_set>,
-		ImReflect::Detail::removable_mixin<std_set> {
+		ImReflect::Detail::required<std_unordered_multiset>,
+		ImReflect::Detail::dropdown<std_unordered_multiset>,
+		ImReflect::Detail::insertable_mixin<std_unordered_multiset>,
+		ImReflect::Detail::removable_mixin<std_unordered_multiset> {
+	};
+
+	template<>
+	struct type_response<std_unordered_multiset> :
+		ImReflect::Detail::required_response<std_unordered_multiset>,
+		ImReflect::Detail::container_response {
 	};
 
 	template<typename T>
@@ -1642,8 +1747,7 @@ namespace ImReflect {
 					const bool is_selected = (current_type == i);
 					if (ImGui::Selectable(type_names[i], is_selected)) {
 						if (!is_selected) {
-							constexpr bool can_default_construct = std::is_default_constructible_v<Types>;
-							if constexpr (!can_default_construct) {
+							if constexpr (!std::is_default_constructible_v<Types>) {
 								Detail::imgui_tooltip("Type is not default constructible, cannot change type");
 								return;
 							} else {
@@ -1675,3 +1779,59 @@ namespace ImReflect {
 
 }
 
+/* ========================= Category registration ========================= */
+
+/* Unfinished containers to alias type traits */
+template<> struct svh::category_template<std::pair> { using type = ImReflect::std_pair; };
+template<> struct svh::category_template<std::tuple> { using type = ImReflect::std_tuple; };
+template<> struct svh::category_template<std::vector> { using type = ImReflect::std_vector; };
+/* Arry doesn't work because of the size template parameter */
+template<> struct svh::category_template<std::list> { using type = ImReflect::std_list; };
+template<> struct svh::category_template<std::forward_list> { using type = ImReflect::std_forward_list; };
+template<> struct svh::category_template<std::deque> { using type = ImReflect::std_deque; };
+template<> struct svh::category_template<std::set> { using type = ImReflect::std_set; };
+template<> struct svh::category_template<std::unordered_set> { using type = ImReflect::std_unordered_set; };
+template<> struct svh::category_template<std::multiset> { using type = ImReflect::std_multiset; };
+template<> struct svh::category_template<std::unordered_multiset> { using type = ImReflect::std_unordered_multiset; };
+template<> struct svh::category_template<std::map> { using type = ImReflect::std_map; };
+template<> struct svh::category_template<std::unordered_map> { using type = ImReflect::std_unordered_map; };
+template<> struct svh::category_template<std::multimap> { using type = ImReflect::std_multimap; };
+template<> struct svh::category_template<std::unordered_multimap> { using type = ImReflect::std_unordered_multimap; };
+template<> struct svh::category_template<std::optional> { using type = ImReflect::std_optional; };
+template<> struct svh::category_template<std::variant> { using type = ImReflect::std_variant; };
+
+/* Specializations for concrete types */
+template<typename T1, typename T2>
+struct svh::category<std::pair<T1, T2>> { using type = ImReflect::std_pair; };
+template<typename... Types>
+struct svh::category<std::tuple<Types...>> { using type = ImReflect::std_tuple; };
+template<typename T, typename Alloc>
+struct svh::category<std::vector<T, Alloc>> { using type = ImReflect::std_vector; };
+template<typename T, std::size_t N>
+struct svh::category<std::array<T, N>> { using type = ImReflect::std_array; };
+template<typename T, typename Alloc>
+struct svh::category<std::list<T, Alloc>> { using type = ImReflect::std_list; };
+template<typename T, typename Alloc>
+struct svh::category<std::forward_list<T, Alloc>> { using type = ImReflect::std_forward_list; };
+template<typename T, typename Alloc>
+struct svh::category<std::deque<T, Alloc>> { using type = ImReflect::std_deque; };
+template<typename Key, typename Compare, typename Alloc>
+struct svh::category<std::set<Key, Compare, Alloc>> { using type = ImReflect::std_set; };
+template<typename Key, typename Hash, typename KeyEqual, typename Alloc>
+struct svh::category<std::unordered_set<Key, Hash, KeyEqual, Alloc>> { using type = ImReflect::std_unordered_set; };
+template<typename Key, typename Compare, typename Alloc>
+struct svh::category<std::multiset<Key, Compare, Alloc>> { using type = ImReflect::std_multiset; };
+template<typename Key, typename Hash, typename KeyEqual, typename Alloc>
+struct svh::category<std::unordered_multiset<Key, Hash, KeyEqual, Alloc>> { using type = ImReflect::std_unordered_multiset; };
+template<typename Key, typename T, typename Compare, typename Alloc>
+struct svh::category<std::map<Key, T, Compare, Alloc>> { using type = ImReflect::std_map; };
+template<typename Key, typename T, typename Hash, typename KeyEqual, typename Alloc>
+struct svh::category<std::unordered_map<Key, T, Hash, KeyEqual, Alloc>> { using type = ImReflect::std_unordered_map; };
+template<typename Key, typename T, typename Compare, typename Alloc>
+struct svh::category<std::multimap<Key, T, Compare, Alloc>> { using type = ImReflect::std_multimap; };
+template<typename Key, typename T, typename Hash, typename KeyEqual, typename Alloc>
+struct svh::category<std::unordered_multimap<Key, T, Hash, KeyEqual, Alloc>> { using type = ImReflect::std_unordered_multimap; };
+template<typename T>
+struct svh::category<std::optional<T>> { using type = ImReflect::std_optional; };
+template<typename... Types>
+struct svh::category<std::variant<Types...>> { using type = ImReflect::std_variant; };

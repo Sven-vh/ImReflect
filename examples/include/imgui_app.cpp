@@ -798,12 +798,12 @@ config.push<float>()
 		ImGui::PushID("min width pair");
 		static std::pair<int, float> my_pair = { 42, 3.14f };
 		ImSettings config;
-		config.push<ImReflect::std_pair>()
+		config.push<std::pair>()
 			.min_width(200.0f)
 			.pop();
 		const std::string code = R"(static std::pair<int, float> my_pair = { 42, 3.14f };
 ImSettings config;
-config.push<ImReflect::std_pair>()
+config.push<std::pair>()
 	.min_width(200.0f)
 .pop();)";
 		IMGUI_SAMPLE_MULTI_CODE(code);
@@ -827,6 +827,7 @@ static void result_test() {
 	ImGui::Text("ImResponse");
 	HelpMarker("You can capture the ImResponse from the Input function to see if the value was changed");
 	{
+		ImGui::PushID("imresponse int");
 		const std::string code = R"(static int my_int = 0;
 ImResponse response = ImReflect::Input("my_int", my_int);
 if (response.get<int>().is_changed()) {
@@ -845,6 +846,7 @@ if (response.get<int>().is_changed()) {
 		ImGui::Text("is_clicked left: %s", int_response.is_clicked(0) ? "true" : "false");
 		ImGui::Text("is_clicked right: %s", int_response.is_clicked(1) ? "true" : "false");
 		ImGui::Text("is_clicked middle: %s", int_response.is_clicked(2) ? "true" : "false");
+		ImGui::PopID();
 	}
 
 	ImGui::NewLine();
@@ -852,6 +854,7 @@ if (response.get<int>().is_changed()) {
 	ImGui::Text("ImResponse - struct");
 	HelpMarker("You can also capture the ImResponse for a struct, and check if specific members were changed");
 	{
+		ImGui::PushID("imresponse struct");
 		const std::string code = R"(static MyStruct my_struct;
 ImResponse response = ImReflect::Input("my_struct", my_struct);
 const auto& struct_response = response.get<MyStruct>();
@@ -862,10 +865,10 @@ if (struct_response.get_member<&MyStruct::a>().is_changed()) {
 		ImGui::Text("Output:");
 		static MyStruct my_struct;
 		ImResponse response = ImReflect::Input("my_struct", my_struct);
-		const auto& struct_response = response.get<MyStruct>();
-		ImGui::Text("a is_changed: %s", struct_response.get_member<&MyStruct::a>().is_changed() ? "true" : "false");
-		ImGui::Text("b is_changed: %s", struct_response.get_member<&MyStruct::b>().is_changed() ? "true" : "false");
-		ImGui::Text("c is_changed: %s", struct_response.get_member<&MyStruct::c>().is_changed() ? "true" : "false");
+		ImGui::Text("a is_changed: %s", response.get_member<&MyStruct::a>().is_changed() ? "true" : "false");
+		ImGui::Text("b is_changed: %s", response.get_member<&MyStruct::b>().is_changed() ? "true" : "false");
+		ImGui::Text("c is_changed: %s", response.get_member<&MyStruct::c>().is_changed() ? "true" : "false");
+		ImGui::PopID();
 	}
 
 	ImGui::Unindent();
@@ -1072,7 +1075,7 @@ static void pair_test() {
 		static std::pair<std::pair<std::string, float>, int> nested_pair = { {"Nested", 3.14f}, 7 };
 
 		ImSettings config;
-		config.push<ImReflect::std_pair>()
+		config.push<std::pair>()
 			.as_dropdown(false)
 			____.push<float>()
 			________.min(0.0f)
@@ -1110,7 +1113,7 @@ static void pair_test() {
 			.as_multiline()
 			.auto_resize()
 			.pop()
-			.push<ImReflect::std_pair>()
+			.push<std::pair>()
 			.min_width(100.0f)
 			.pop();
 
@@ -1129,7 +1132,7 @@ static void pair_test() {
 			.as_multiline()
 			.auto_resize()
 			.pop()
-			.push<ImReflect::std_pair>()
+			.push<std::pair>()
 			.min_width(100.0f)
 			.pop();
 		ImReflect::Input("five_levels_of_pairs_const", five_levels_of_pairs, config);
@@ -1155,7 +1158,7 @@ static void tuple_test() {
 		ImGui::PushID("default");
 
 		ImSettings config;
-		config.push<ImReflect::std_tuple>()
+		config.push<std::tuple>()
 			.as_dropdown(true)
 			.pop();
 
@@ -1168,8 +1171,8 @@ static void tuple_test() {
 		ImGui::PushID("nested tuple");
 		static std::tuple<std::tuple<std::string, float>, int> nested_tuple = { {"Nested", 3.14f}, 7 };
 		ImSettings config;
-		config.push<ImReflect::std_tuple>()
-			.as_dropdown(false)
+		config.push<std::tuple>()
+			____.as_dropdown(false)
 			____.push<float>()
 			________.min(0.0f)
 			________.max(10.0f)
@@ -1202,7 +1205,7 @@ static void tuple_test() {
 			.as_multiline()
 			.auto_resize()
 			.pop()
-			.push<ImReflect::std_tuple>()
+			.push<std::tuple>()
 			.as_dropdown(true)
 			.pop();
 		ImReflect::Input("five_levels_of_tuples", five_levels_of_tuples, config);
@@ -1252,7 +1255,7 @@ static void tuple_test() {
 		};
 
 		ImSettings config;
-		config.push<ImReflect::std_tuple>()
+		config.push<std::tuple>()
 			.as_grid()
 			.columns(4)
 			.min_width(100.0f)
@@ -1276,7 +1279,7 @@ static void tuple_test() {
 			9,     10.0f,  "Eleven", true
 		};
 		ImSettings config;
-		config.push<ImReflect::std_tuple>()
+		config.push<std::tuple>()
 			.as_grid()
 			.columns(4)
 			.min_width(100.0f)
@@ -1321,12 +1324,22 @@ static void vector_test() {
 	{
 		ImGui::PushID("vector dropdown");
 		ImSettings config;
-		config.push<ImReflect::std_vector>()
-			.as_dropdown()
+		config.push<std::vector>()
+			____.as_dropdown()
+			____.push<int>()
+			________.min(0)
+			________.max(100)
+			________.as_slider()
+			____.pop()
 			.pop();
 		const std::string code = R"(ImSettings config;
-config.push<ImReflect::std_vector>()
+config.push<std::vector>()
 	.as_dropdown()
+	.push<int>()
+		.min(0)
+		.max(100)
+		.as_slider()
+	.pop()
 .pop();)";
 		IMGUI_SAMPLE_MULTI_CODE(code);
 		ImGui::Text("Output:");
@@ -1364,6 +1377,35 @@ config.push<ImReflect::std_vector>()
 		ImGui::PopID();
 	}
 
+	ImGui::NewLine();
+
+	ImGui::Text("Vector response");
+	HelpMarker("You can capture the ImResponse when editing vectors");
+	{
+		ImGui::PushID("vector response");
+		static std::vector<int> vector = { 1, 2, 3, 4, 5 };
+		ImResponse response = ImReflect::Input("vector_response", vector);
+		const auto& vec_response = response.get<std::vector>();
+
+		ImGui::Text("Check Console!");
+		if (vec_response.is_changed()) {
+			printf("Vector was changed, new size: %zu\n", vector.size());
+		}
+		if (vec_response.has_inserted()) {
+			printf("Vector has element inserted at index: %zu\n", vec_response.get_inserted_index());
+		}
+		if (vec_response.has_erased()) {
+			printf("Vector has element erased at index: %zu\n", vec_response.get_erased_index());
+		}
+		if (vec_response.has_moved()) {
+			auto move_info = vec_response.get_moved_info();
+			printf("Vector has element moved from index %zu to index %zu\n", move_info.from, move_info.to);
+		}
+
+
+
+		ImGui::PopID();
+	}
 
 	ImGui::Unindent();
 	ImGui::PopID();
