@@ -4,70 +4,127 @@
 
 # ImReflect
 
-A reflection-based wrapper for ImGui that automatically generates ImGui UI.
+**Reflection-based ImGui wrapper.**
 
-# Basic Usage
+Automatically generate ImGui widgets for your structs and types.
 
-Get the latest single header from the [releases](https://github.com/Sven-vh/ImReflect/releases) page. This file should include everything you need, including the [external libraries](#Dependencies).
-
-## Struct Reflection
 ```cpp
-#include "ImReflect.hpp"
-
 struct GameSettings {
     int volume = 50;
     float sensitivity = 1.0f;
     bool fullscreen = false;
 };
-// Specify which member variables need to be displayed
 IMGUI_REFLECT(GameSettings, volume, sensitivity, fullscreen)
 
-// In your render loop
-GameSettings settings;
+// Single Call:
 ImReflect::Input("Settings", settings);
 ```
 
 <img width="604" height="238" alt="image" src="https://github.com/user-attachments/assets/b9d7d7fd-c13f-49c2-9e6b-48c6a443d5f6" />
 
-That's basically it!
+---
 
-## Types
+## Features
 
-ImReflect includes a wide range of supported types. Simply call ``ImReflect::Input`` with a label and type and it should get displayed correctly. See [Wiki](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings) for all supported types.
+- 🎯 **Less boilerplate** - One macro, automatic UI
+- 🔧 **Configurable** - Fluent builder API for customizing widgets
+- 📦 **Batteries included** - Works with primitives, enums, STL containers, smart pointers
+- 🎨 **Extensible** - Add your own types without modifying the library
+- 📄 **Single header** - Drop in and go
+
+**[📖 All Types](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings)** | **[📦 Download Latest Release](https://github.com/Sven-vh/ImReflect/releases)**
+
+---
+
+## Quick Start
+
+### 1. Installation
+
+Download the single header from [releases](https://github.com/Sven-vh/ImReflect/releases):
 
 ```cpp
+#include "ImReflect.hpp"
+```
+
+### 2. Reflect Your Struct
+
+```cpp
+struct GameSettings {
+    int volume = 50;
+    float sensitivity = 1.0f;
+    bool fullscreen = false;
+};
+IMGUI_REFLECT(GameSettings, volume, sensitivity, fullscreen)
+```
+
+### 3. Render UI
+
+```cpp
+GameSettings settings;
+ImReflect::Input("Settings", settings);
+```
+
+Done! ImReflect automatically generates appropriate widgets for each member.
+
+---
+
+## Supported Types
+
+**Most standard types work out of the box.** See [Wiki](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings) for complete reference.
+
+```cpp
+// Primitives
 static bool my_bool = true;
-ImReflect::Input("my_bool", my_bool);
+ImReflect::Input("my bool", my_bool);
 
 static int my_int = 42;
-ImReflect::Input("my_int", my_int);
+ImReflect::Input("my int", my_int);
 
 static float my_float = 3.14f;
-ImReflect::Input("my_float", my_float);
+ImReflect::Input("my float", my_float);
 
 static std::string my_string = "Hello ImReflect!";
-ImReflect::Input("my_string", my_string);
+ImReflect::Input("my string", my_string);
 
 static MyEnum my_enum = MyEnum::Option1;
-ImReflect::Input("my_enum", my_enum);
+ImReflect::Input("my enum", my_enum);
 ```
 
 <img width="385" height="181" alt="image" src="https://github.com/user-attachments/assets/b8f52294-9125-481d-b0df-b3f164eafd42" />
 
-## Configurable ImGui Settings
+---
 
-The ``ImSettings`` struct provides a way to customize the ImGui widgets. It uses a *Fluent Builder Pattern* design to allow for easy configurations.
+**Most of STL is also included.**
 
-### Types
+```cpp
+std::tuple<int, float, std::string> my_tuple = { 1, 2.0f, "three" };
+ImReflect::Input("my tuple", my_tuple);
 
-All ints will now be a slider ranging from 0 to 100.
+std::map<std::string, float> my_map = { {"one", 1.0f}, {"two", 2.0f} };
+ImReflect::Input("my map", my_map);
+
+std::vector<int> my_vec = { 1, 2, 3 };
+ImReflect::Input("my vec", my_vec);
+```
+
+<img width="540" height="358" alt="image" src="https://github.com/user-attachments/assets/1b067972-9ae5-45ab-9c43-96f3e5b83d47" />
+
+---
+
+## Configuration
+
+Customize widgets using the fluent builder pattern.
+
+### Global Type Settings
+
+Apply settings to all instances of a type:
 
 ```cpp
 auto config = ImSettings();
-config.push<int>()
+config.push()
+    .as_slider()
     .min(0)
     .max(100)
-    .as_slider()
 .pop();
 
 GameSettings settings;
@@ -76,35 +133,32 @@ ImReflect::Input("Settings", settings, config);
 
 <img width="602" height="236" alt="image" src="https://github.com/user-attachments/assets/5ac0e439-8021-49f9-876e-5ef7be06e214" />
 
-### Member variables
+### Per-Member Settings
 
-If you want settings for a specific member variable, you can call ``push_member``. These settings will be only for the pushed member.
+Configure specific struct members:
 
 ```cpp
 auto config = ImSettings();
-config.push_member<&GameSettings::volume>()
+config.push_member()
+    .as_slider()
     .min(0)
     .max(100)
-    .as_slider()
 .pop()
-.push_member<&GameSettings::sensitivity>()
+.push_member()
+    .as_drag()
     .min(0.1f)
     .max(5.0f)
-    .as_drag()
 .pop();
 
-GameSettings settings;
 ImReflect::Input("Settings", settings, config);
 ```
 
-### Enum Handling
+### Enum Widgets
 
-The library uses [``magic_enum.hpp``](https://github.com/Neargye/magic_enum) for automatic enum support.
+Choose how enums are displayed:
 
 ```cpp
-enum class GraphicsQuality {
-    Low, Medium, High, Ultra
-};
+enum class GraphicsQuality { Low, Medium, High, Ultra };
 
 struct Graphics {
     GraphicsQuality quality = GraphicsQuality::Medium;
@@ -113,15 +167,15 @@ struct Graphics {
 };
 IMGUI_REFLECT(Graphics, quality, shadows, textures)
 
-ImSettings config = ImSettings();
-config.push_member<&Graphics::quality>()
+auto config = ImSettings();
+config.push_member()
     .as_dropdown()  // Dropdown menu
 .pop()
-.push_member<&Graphics::shadows>()
-    .as_slider()     // Slider control
+.push_member()
+    .as_slider()    // Slider control
 .pop()
-.push_member<&Graphics::textures>()
-    .as_radio()    // Radio buttons
+.push_member()
+    .as_radio()     // Radio buttons
 .pop();
 
 static Graphics gfx;
@@ -130,205 +184,170 @@ ImReflect::Input("Graphics", gfx, config);
 
 <img width="604" height="238" alt="image" src="https://github.com/user-attachments/assets/1f0e5b6e-1e03-4e44-9fb2-bfcddd08ed48" />
 
+---
 
-### Response Handling
+## Response Handling
 
-``ImReflect::Input`` returns a ``ImResponse`` type. With an ``ImResponse`` you can check if anything changed.
+Track user interactions with return values:
 
 ```cpp
 PlayerStats stats;
 ImResponse response = ImReflect::Input("Player", stats);
 
-// Check if PlayerStats changed
-if (response.get<PlayerStats>().is_changed()) {
-    printf("Player stats changed!\n");
+// Check if entire struct changed
+if (response.get().is_changed()) {
+    SaveGame();
 }
 
-// Check if ANY int inside PlayerStats changed
-if (response.get<int>().is_changed()) {
-    printf("Player stats changed!\n");
+// Check if any int member changed
+if (response.get().is_changed()) {
+    UpdateUI();
 }
 
-// Check specific member variable changed
-if (response.get_member<&PlayerStats::health>().is_changed()) {
+// Check specific member
+if (response.get_member().is_changed()) {
     printf("Health changed to: %d\n", stats.health);
 }
 ```
 
-### Supported Types
+---
 
-See the [Wiki](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings) for the supported types and functions.
+## Advanced Usage
 
-### Custom Functionality
+### Custom Types
 
-As of right now, the library supports most C++ and std types. However, if you need more customization, the library offers the ability to add your own custom type functions without touching the library. For example:
+Add support for your own types using tag invoke:
 
 ```cpp
 struct Transform {
-	vec3 position;
-	vec3 rotation;
-	vec3 scale;
-	std::string name = "Foo";
+    vec3 position, rotation, scale;
+    std::string name = "Foo";
 };
 
 void tag_invoke(ImReflect::ImInput_t, const char* label, Transform& value, ImSettings& settings, ImResponse& response) {
-	ImGui::SeparatorText(label);
-	ImGui::Text(value.name.c_str());
-
-	ImGui::InputFloat3("Position", &value.position.x);
-	ImGui::InputFloat3("Rotation", &value.rotation.x);
-	ImGui::InputFloat3("Scale", &value.scale.x);
+    ImGui::SeparatorText(label);
+    ImGui::Text(value.name.c_str());
+    ImGui::InputFloat3("Position", &value.position.x);
+    ImGui::InputFloat3("Rotation", &value.rotation.x);
+    ImGui::InputFloat3("Scale", &value.scale.x);
 }
 ```
 
-ImReflect will find this function using Tag Invoke and gets called when it receives a Transform.
+### Custom Settings
 
-**Important**, to be able to find your function, it needs to be defined exactly like this:
+Add configurable settings for your custom types:
 
-```cpp
-void tag_invoke(ImReflect::ImInput_t, const char* label, {YOUR_TYPE}& value, ImSettings& settings, ImResponse& response) { }
-```
-
-Additionally, it's also possible to add your custom settings. So when someone calls ``push<YOUR_TYPE>``, they can set custom settings. If we use the ``Transform`` example:
 ```cpp
 template<>
-struct ImReflect::type_settings<Transform> : ImSettings {
+struct ImReflect::type_settings : ImSettings {
 private:
-	bool _change_name = false;
+    bool _show_name = true;
 
 public:
-	// Setters
-	type_settings<Transform>& change_name(bool value) { 
-		_change_name = value; 
-		RETURN_THIS_T(Transform); 
-	}
-
-	// Getters
-	bool get_change_name() const {
-		return _change_name;
-	}
+    type_settings& show_name(bool value) { 
+        _show_name = value; 
+        RETURN_THIS_T(Transform); 
+    }
+    
+    bool get_show_name() const { return _show_name; }
 };
 
 void tag_invoke(ImReflect::ImInput_t, const char* label, Transform& value, ImSettings& settings, ImResponse& response) {
-	auto& transform_settings = settings.get<Transform>();
-	//...
-	if (transform_settings.get_change_name()) {
-		ImGui::InputText("Name", &value.name);
-	} else {
-		ImGui::Text(value.name.c_str());
-	}
-	//...
+    auto& transform_settings = settings.get();
+    
+    ImGui::SeparatorText(label);
+    if (transform_settings.get_show_name()) {
+        ImGui::InputText("Name", &value.name);
+    }
+    // ... rest of implementation
 }
 
-// Somewhere in your code
+// Usage
 auto config = ImSettings();
-config.push<Transform>()
-		.change_name(true)
-	.pop();
+config.push()
+    .show_name(false)
+.pop();
 
 static Transform t;
 ImReflect::Input("My Transform", t, config);
 ```
 
-A couple of things are important to note here.
-1. It needs a ``template<>`` above it.
-2. The struct needs to be defined as ``ImReflect::type_settings<YOUR_TYPE>``.
-3. Has to inherit from ``ImSettings``, so you can chain pushes.
-4. The setter functions need to return ``type_settings<YOUR_TYPE>&`` to be able to chain fnctions.
+**Requirements for custom settings:**
+- Use `template<>` specialization
+- Define as `ImReflect::type_settings<YOUR_TYPE>`
+- Inherit from `ImSettings`
+- Return `type_settings<YOUR_TYPE>&` from setters for chaining
 
-### Overwrite
+### Overriding Built-in Types
 
-If you don't like the way I've implemented a type or need more customizations, you can overwrite the default implementation. Simply implement a tag_invoke function of said type, and your implementation will be called instead. For example, overriding ``int``:
+Don't like the default implementation? Override it:
 
 ```cpp
 void tag_invoke(ImReflect::ImInput_t, const char* label, int& value, ImSettings& settings, ImResponse& response) {
-    // Your implementation
+    // Your custom implementation for int
 }
 ```
 
-You can also overwrite the int settings by implementing:
-```cpp
-template<>
-struct ImReflect::type_settings<int> : ImSettings {
-    // Getters and setters
-};
+---
+
+## Resolution Order
+
+When rendering a type, ImReflect searches in this order:
+
+1. **User implementations** - Your `tag_invoke` functions
+2. **Library implementations** - Built-in ImReflect types
+3. **Reflection** - Types with `IMGUI_REFLECT` macro
+
+This means you can always override library behavior with your own implementations.
+
+**If no implementation is found:**
+```
+error C2338: No suitable Input implementation found for type T
 ```
 
-Note that this **overwrites** the default settings implementation, so the settings ImReflect specified can not be used anymore. A workaround for this is to go to the default implementation and copy the classes it inherits from.
+Check the console for the missing type. If it should be supported, [open an issue](https://github.com/Sven-vh/ImReflect/issues)!
 
-### Order of Operations
-
-ImReflect has a defined way of checking for specific type implementations.
-
-1. User defined implementations with ``tag_invoke(ImReflect::ImInput_t, ...)``
-2. Library implementations, made by me, the author.
-3. Reflection, using the ``IMGUI_REFLECT`` macro.
-
-As said before, this allows you to easily overwrite my implementations since it first checks if you, the user, has made one. If not, it checks the ImReflect implementations, and after that, it checks if it's reflected.
-
-If none of these are implemented, it will call a static_assert in ``ImReflect::Detail::InputImpl()``with the error message
-
-```
-'error C2338: static_assert failed: 'No suitable Input implementation found for type T'
-```
-
-Check the console to see which type is not implemented. If you think this type should be supported, feel free to open an issue or draft a PR!
-
-## API Reference
-
-### Core Functions
-
-- `ImReflect::Input(label, value)` - Render UI for a reflected struct with default settings
-- `ImReflect::Input(label, value, settings)` - Render UI with custom settings
-
-### Settings configurations
-
-See the [Wiki](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings) for the supported types and functions.
+---
 
 ## Building
 
-The library is available in two formats:
+### Option 1: Single Header (Recommended)
 
-1. **Multiple Headers** (traditional): Download all header files, including extern and include ``ImReflect.hpp``.
-2. **Single Header** (recommended): Get the latest ``ImReflect.hpp`` from the [releases](https://github.com/Sven-vh/ImReflect/releases) page.
-
-The single header file combines all ImReflect headers and external dependencies into one file. It's automatically generated via GitHub Actions whenever a new release is created.
-
-### Using Multiple Headers
+Download `ImReflect.hpp` from [releases](https://github.com/Sven-vh/ImReflect/releases):
 
 ```cpp
-#include <ImReflect.hpp>
+#include "ImReflect.hpp"
 ```
 
-This includes: ``ImReflect_entry.hpp``, ``ImReflect_helper.hpp``, ``ImReflect_primitives.hpp``, ``ImReflect_std.hpp``, and the extern folder dependencies.
+Includes all dependencies except ImGui.
 
-### Using Single Header
+### Option 2: Multiple Headers
+
+Clone the repository and include the main header:
 
 ```cpp
-#include <single_header/ImReflect.hpp>
+#include 
 ```
 
-This includes everything in one file for easier integration into your project.
+This includes: `ImReflect_entry.hpp`, `ImReflect_helper.hpp`, `ImReflect_primitives.hpp`, `ImReflect_std.hpp`, and external dependencies.
 
 ### Dependencies
-- [ImGui](https://github.com/ocornut/imgui) (duh)
-- [magic_enum](https://github.com/Neargye/magic_enum) (for enum reflection)
-- [visit_struct](https://github.com/cbeck88/visit_struct) (for struct reflection)
 
-**Note:** The single header includes the external dependencies (magic_enum, visit_struct, svh), but you still need to include ImGui separately.
+- **[ImGui](https://github.com/ocornut/imgui)** - You need to include this separately
+- **[magic_enum](https://github.com/Neargye/magic_enum)** - Included in single header
+- **[visit_struct](https://github.com/cbeck88/visit_struct)** - Included in single header
 
-## Fluent Builder Pattern
+## Documentation
 
-For this project, I developed a new way of using the Builder Pattern. For more info on how it works, see:
-
-https://github.com/Sven-vh/fluent-builder-pattern
+- **[Type Settings Reference](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings)** - Complete API documentation
+- **[Fluent Builder Pattern](https://github.com/Sven-vh/fluent-builder-pattern)** - Details on the configuration system
 
 ## Contributing
 
-I'm open to all feedback, issues, and suggestions!
-
-As I said, this project is part of my university project, so everything here is a learning experience for me.
+Feedback, issues, and pull requests are welcome! This project is part of my university work, so everything is a learning experience.
 
 ## License
 
-MIT, see [LICENSE](https://github.com/Sven-vh/ImReflect/blob/main/LICENSE). However, as a student, it would be greatly appreciated if you would give credit or let me know what you're using it for. This motivates me to keep working on open-source projects.
+**MIT License** - See [LICENSE](https://github.com/Sven-vh/ImReflect/blob/main/LICENSE)
+
+As a student, credit or a quick note about what you're using it for is greatly appreciated! It motivates me to keep contributing to open source!
