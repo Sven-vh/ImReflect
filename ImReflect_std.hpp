@@ -75,6 +75,19 @@ namespace ImReflect::Detail {
 		const bool& is_dropdown() const { return _dropdown; };
 	};
 
+	/// <summary>
+	/// Whether or not to put a newline between label and input field
+	/// </summary>
+	/// <typeparam name="T"></typeparam>
+	template<typename T>
+	struct same_line_mixin {
+	private:
+		bool _same_line = false;
+	public:
+		type_settings<T>& same_line(const bool v = true) { _same_line = v; RETURN_THIS; }
+		const bool& on_same_line() const { return _same_line; };
+	};
+
 	enum class TupleRenderMode {
 		Line,
 		Grid
@@ -357,8 +370,11 @@ namespace ImReflect {
 		/* Get non-const reference if possible */
 		auto& value = get_tuple_value<Tag, is_const, Ts...>(original_value);
 
+		const float label_width = ImGui::CalcTextSize(label, NULL, true).x;
+		const bool same_line = tuple_settings.on_same_line() || label_width == 0.0f;
+
 		Detail::text_label(label);
-		ImGui::SameLine();
+		if(same_line) ImGui::SameLine();
 
 		const auto id = Detail::scope_id("tuple");
 
@@ -399,6 +415,7 @@ namespace ImReflect {
 	template<>
 	struct type_settings<std_tuple> : ImSettings,
 		ImReflect::Detail::required<std_tuple>,
+		ImReflect::Detail::same_line_mixin<std_tuple>,
 		ImReflect::Detail::dropdown<std_tuple>,
 		ImReflect::Detail::line_mixin<std_tuple>,
 		ImReflect::Detail::grid_mixin<std_tuple> {
@@ -422,6 +439,7 @@ namespace ImReflect {
 	template<>
 	struct type_settings<std_pair> : ImSettings,
 		ImReflect::Detail::required<std_pair>,
+		ImReflect::Detail::same_line_mixin<std_pair>,
 		ImReflect::Detail::dropdown<std_pair>,
 		ImReflect::Detail::line_mixin<std_pair>,
 		ImReflect::Detail::grid_mixin<std_pair> {
@@ -727,7 +745,7 @@ namespace ImReflect {
 			}
 
 			if (is_open) {
-				if (!is_dropdown) ImGui::Indent();
+				//if (!is_dropdown) ImGui::Indent();
 
 				/*  Drop zone at beginning (for reordering) */
 				if constexpr (can_reorder) {
@@ -1501,6 +1519,7 @@ namespace ImReflect {
 				}
 
 				ImGui::SameLine();
+				map_settings.push<std::tuple>().same_line(true);
 				ImReflect::Input(item_label.c_str(), pair, map_settings, map_response);
 
 				/*  Context menu */
