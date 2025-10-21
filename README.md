@@ -6,16 +6,11 @@
 
 A reflection-based wrapper for ImGui that automatically generates ImGui UI.
 
-> [!NOTE]
-> This is still WIP. It currently supports primitive types, booleans, enums, structs, std sequence containers (vector), and std associative containers (map). See [Wiki](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings) for all supported types.
->
-> I'm making this as part of my university project.
-
 # Basic Usage
 
 Get the latest single header from the [releases](https://github.com/Sven-vh/ImReflect/releases) page. This file should include everything you need, including the [external libraries](#Dependencies).
 
-## Simple Struct Reflection
+## Struct Reflection
 ```cpp
 #include "ImReflect.hpp"
 
@@ -24,18 +19,40 @@ struct GameSettings {
     float sensitivity = 1.0f;
     bool fullscreen = false;
 };
-// Specify which member variables need to be shown
+// Specify which member variables need to be displayed
 IMGUI_REFLECT(GameSettings, volume, sensitivity, fullscreen)
 
-GameSettings settings;
-
 // In your render loop
+GameSettings settings;
 ImReflect::Input("Settings", settings);
 ```
 
 <img width="604" height="238" alt="image" src="https://github.com/user-attachments/assets/b9d7d7fd-c13f-49c2-9e6b-48c6a443d5f6" />
 
 That's basically it!
+
+## Types
+
+ImReflect includes a wide range of supported types. Simply call ``ImReflect::Input`` with a label and type and it should get displayed correctly. See [Wiki](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings) for all supported types.
+
+```cpp
+static bool my_bool = true;
+ImReflect::Input("my_bool", my_bool);
+
+static int my_int = 42;
+ImReflect::Input("my_int", my_int);
+
+static float my_float = 3.14f;
+ImReflect::Input("my_float", my_float);
+
+static std::string my_string = "Hello ImReflect!";
+ImReflect::Input("my_string", my_string);
+
+static MyEnum my_enum = MyEnum::Option1;
+ImReflect::Input("my_enum", my_enum);
+```
+
+<img width="385" height="181" alt="image" src="https://github.com/user-attachments/assets/b8f52294-9125-481d-b0df-b3f164eafd42" />
 
 ## Configurable ImGui Settings
 
@@ -96,7 +113,7 @@ struct Graphics {
 };
 IMGUI_REFLECT(Graphics, quality, shadows, textures)
 
-auto config = ImSettings();
+ImSettings config = ImSettings();
 config.push_member<&Graphics::quality>()
     .as_dropdown()  // Dropdown menu
 .pop()
@@ -116,18 +133,23 @@ ImReflect::Input("Graphics", gfx, config);
 
 ### Response Handling
 
-This is still a WIP, but as of right now, you can check if something has changed:
+``ImReflect::Input`` returns a ``ImResponse`` type. With an ``ImResponse`` you can check if anything changed.
 
 ```cpp
 PlayerStats stats;
-auto response = ImReflect::Input("Player", stats);
+ImResponse response = ImReflect::Input("Player", stats);
 
-// Check if any field changed
+// Check if PlayerStats changed
 if (response.get<PlayerStats>().is_changed()) {
     printf("Player stats changed!\n");
 }
 
-// Check specific field interactions WIP
+// Check if ANY int inside PlayerStats changed
+if (response.get<int>().is_changed()) {
+    printf("Player stats changed!\n");
+}
+
+// Check specific member variable changed
 if (response.get_member<&PlayerStats::health>().is_changed()) {
     printf("Health changed to: %d\n", stats.health);
 }
