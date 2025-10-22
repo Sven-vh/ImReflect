@@ -121,7 +121,7 @@ Apply settings to all instances of a type:
 
 ```cpp
 auto config = ImSettings();
-config.push()
+config.push<int>()
     .as_slider()
     .min(0)
     .max(100)
@@ -139,15 +139,15 @@ Configure specific struct members:
 
 ```cpp
 auto config = ImSettings();
-config.push_member()
+config.push_member<&GameSettings::volume>()
     .as_slider()
     .min(0)
     .max(100)
 .pop()
-.push_member()
+.push_member<&GameSettings::sensitivity>()
     .as_drag()
     .min(0.1f)
-    .max(5.0f)
+    .max(2.0f)
 .pop();
 
 ImReflect::Input("Settings", settings, config);
@@ -168,13 +168,13 @@ struct Graphics {
 IMGUI_REFLECT(Graphics, quality, shadows, textures)
 
 auto config = ImSettings();
-config.push_member()
+config.push_member<&Graphics::quality>()
     .as_dropdown()  // Dropdown menu
 .pop()
-.push_member()
+.push_member<&Graphics::shadows>()
     .as_slider()    // Slider control
 .pop()
-.push_member()
+.push_member<&Graphics::textures>()
     .as_radio()     // Radio buttons
 .pop();
 
@@ -191,22 +191,28 @@ ImReflect::Input("Graphics", gfx, config);
 Track user interactions with return values:
 
 ```cpp
-PlayerStats stats;
-ImResponse response = ImReflect::Input("Player", stats);
+struct GameSettings {
+    int volume = 50;
+    float sensitivity = 1.0f;
+    bool fullscreen = false;
+};
+
+GameSettings settings;
+ImResponse response = ImReflect::Input("Settings", settings);
 
 // Check if entire struct changed
-if (response.get().is_changed()) {
-    SaveGame();
+if (response.get<GameSettings>().is_changed()) {
+    // settings has changed
 }
 
 // Check if any int member changed
-if (response.get().is_changed()) {
-    UpdateUI();
+if (response.get<int>().is_changed()) {
+    // any int has changed
 }
 
 // Check specific member
-if (response.get_member().is_changed()) {
-    printf("Health changed to: %d\n", stats.health);
+if (response.get_member<&GameSettings::volume>().is_changed()) {
+    // volume specifically has changed
 }
 ```
 
@@ -239,12 +245,12 @@ Add configurable settings for your custom types:
 
 ```cpp
 template<>
-struct ImReflect::type_settings : ImSettings {
+struct ImReflect::type_settings<Transform> : ImSettings {
 private:
     bool _show_name = true;
 
 public:
-    type_settings& show_name(bool value) { 
+    type_settings<Transform>& show_name(bool value) { 
         _show_name = value; 
         RETURN_THIS_T(Transform); 
     }
@@ -253,7 +259,7 @@ public:
 };
 
 void tag_invoke(ImReflect::ImInput_t, const char* label, Transform& value, ImSettings& settings, ImResponse& response) {
-    auto& transform_settings = settings.get();
+    auto& transform_settings = settings.get<Transform>();
     
     ImGui::SeparatorText(label);
     if (transform_settings.get_show_name()) {
@@ -292,7 +298,7 @@ void tag_invoke(ImReflect::ImInput_t, const char* label, int& value, ImSettings&
 
 ## Resolution Order
 
-When rendering a type, ImReflect searches in this order:
+When rendering a type, ImReflect searches in this order at compile time:
 
 1. **User implementations** - Your `tag_invoke` functions
 2. **Library implementations** - Built-in ImReflect types
@@ -305,7 +311,7 @@ This means you can always override library behavior with your own implementation
 error C2338: No suitable Input implementation found for type T
 ```
 
-Check the console for the missing type. If it should be supported, [open an issue](https://github.com/Sven-vh/ImReflect/issues)!
+Check the console for the missing type. If you think it should be supported, [open an issue](https://github.com/Sven-vh/ImReflect/issues)!
 
 ---
 
