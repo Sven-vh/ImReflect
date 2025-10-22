@@ -167,8 +167,7 @@ namespace ImReflect::Detail {
 namespace ImReflect {
 	/* ========================= std::string ========================= */
 	template<typename T>
-	struct type_settings<T, Detail::enable_if_string_t<T>> : ImSettings,
-		ImReflect::Detail::required<std::string>,
+	struct type_settings<T, Detail::enable_if_string_t<T>> : ImRequired<T>,
 		ImReflect::Detail::input_flags<std::string>,
 		ImReflect::Detail::text_input<std::string> {
 	};
@@ -226,8 +225,7 @@ namespace ImReflect {
 
 	/* ========================= Smart pointers ========================= */
 	template<typename T>
-	struct type_settings<T, Detail::enable_if_smart_pointer_t<T>> : ImSettings,
-		ImReflect::Detail::required<T> {
+	struct type_settings<T, Detail::enable_if_smart_pointer_t<T>> : ImRequired<T> {
 	};
 
 	template<typename T>
@@ -374,7 +372,7 @@ namespace ImReflect {
 		const bool same_line = tuple_settings.on_same_line() || label_width == 0.0f;
 
 		Detail::text_label(label);
-		if(same_line) ImGui::SameLine();
+		if (same_line) ImGui::SameLine();
 
 		const auto id = Detail::scope_id("tuple");
 
@@ -413,8 +411,7 @@ namespace ImReflect {
 	struct std_tuple {};
 
 	template<>
-	struct type_settings<std_tuple> : ImSettings,
-		ImReflect::Detail::required<std_tuple>,
+	struct type_settings<std_tuple> : ImRequired<std_tuple>,
 		ImReflect::Detail::same_line_mixin<std_tuple>,
 		ImReflect::Detail::dropdown<std_tuple>,
 		ImReflect::Detail::line_mixin<std_tuple>,
@@ -437,8 +434,7 @@ namespace ImReflect {
 	struct std_pair {};
 
 	template<>
-	struct type_settings<std_pair> : ImSettings,
-		ImReflect::Detail::required<std_pair>,
+	struct type_settings<std_pair> : ImRequired<std_pair>,
 		ImReflect::Detail::same_line_mixin<std_pair>,
 		ImReflect::Detail::dropdown<std_pair>,
 		ImReflect::Detail::line_mixin<std_pair>,
@@ -1066,8 +1062,7 @@ namespace ImReflect {
 	struct std_vector {};
 
 	template<>
-	struct type_settings<std_vector> : ImSettings,
-		ImReflect::Detail::required<std_vector>,
+	struct type_settings<std_vector> : ImRequired<std_vector>,
 		ImReflect::Detail::dropdown<std_vector>,
 		ImReflect::Detail::reorderable_mixin<std_vector>,
 		ImReflect::Detail::insertable_mixin<std_vector>,
@@ -1106,8 +1101,7 @@ namespace ImReflect {
 	struct std_array {};
 
 	template<>
-	struct type_settings<std_array> : ImSettings,
-		ImReflect::Detail::required<std_array>,
+	struct type_settings<std_array> : ImRequired<std_array>,
 		ImReflect::Detail::dropdown<std_array>,
 		ImReflect::Detail::reorderable_mixin<std_array> {
 	};
@@ -1144,8 +1138,7 @@ namespace ImReflect {
 	struct std_list {};
 
 	template<>
-	struct type_settings<std_list> : ImSettings,
-		ImReflect::Detail::required<std_list>,
+	struct type_settings<std_list> : ImRequired<std_list>,
 		ImReflect::Detail::dropdown<std_list>,
 		ImReflect::Detail::reorderable_mixin<std_list>,
 		ImReflect::Detail::insertable_mixin<std_list>,
@@ -1184,8 +1177,7 @@ namespace ImReflect {
 	struct std_forward_list {};
 
 	template<>
-	struct type_settings<std_forward_list> : ImSettings,
-		ImReflect::Detail::required<std_forward_list>,
+	struct type_settings<std_forward_list> : ImRequired<std_forward_list>,
 		ImReflect::Detail::dropdown<std_forward_list>,
 		ImReflect::Detail::insertable_mixin<std_forward_list>,
 		ImReflect::Detail::removable_mixin<std_forward_list> {
@@ -1221,8 +1213,7 @@ namespace ImReflect {
 	struct std_deque {};
 
 	template<>
-	struct type_settings<std_deque> : ImSettings,
-		ImReflect::Detail::required<std_deque>,
+	struct type_settings<std_deque> : ImRequired<std_deque>,
 		ImReflect::Detail::dropdown<std_deque>,
 		ImReflect::Detail::reorderable_mixin<std_deque>,
 		ImReflect::Detail::insertable_mixin<std_deque>,
@@ -1261,8 +1252,7 @@ namespace ImReflect {
 	struct std_set {};
 
 	template<>
-	struct type_settings<std_set> : ImSettings,
-		ImReflect::Detail::required<std_set>,
+	struct type_settings<std_set> : ImRequired<std_set>,
 		ImReflect::Detail::dropdown<std_set>,
 		ImReflect::Detail::insertable_mixin<std_set>,
 		ImReflect::Detail::removable_mixin<std_set> {
@@ -1300,8 +1290,7 @@ namespace ImReflect {
 	struct std_unordered_set {};
 
 	template<>
-	struct type_settings<std_unordered_set> : ImSettings,
-		ImReflect::Detail::required<std_unordered_set>,
+	struct type_settings<std_unordered_set> : ImRequired<std_unordered_set>,
 		ImReflect::Detail::dropdown<std_unordered_set>,
 		ImReflect::Detail::insertable_mixin<std_unordered_set>,
 		ImReflect::Detail::removable_mixin<std_unordered_set> {
@@ -1337,8 +1326,7 @@ namespace ImReflect {
 	struct std_multiset {};
 
 	template<>
-	struct type_settings<std_multiset> : ImSettings,
-		ImReflect::Detail::required<std_multiset>,
+	struct type_settings<std_multiset> : ImRequired<std_multiset>,
 		ImReflect::Detail::dropdown<std_multiset>,
 		ImReflect::Detail::insertable_mixin<std_multiset>,
 		ImReflect::Detail::removable_mixin<std_multiset> {
@@ -1376,8 +1364,7 @@ namespace ImReflect {
 	struct std_unordered_multiset {};
 
 	template<>
-	struct type_settings<std_unordered_multiset> : ImSettings,
-		ImReflect::Detail::required<std_unordered_multiset>,
+	struct type_settings<std_unordered_multiset> : ImRequired<std_unordered_multiset>,
 		ImReflect::Detail::dropdown<std_unordered_multiset>,
 		ImReflect::Detail::insertable_mixin<std_unordered_multiset>,
 		ImReflect::Detail::removable_mixin<std_unordered_multiset> {
@@ -1585,8 +1572,7 @@ namespace ImReflect {
 	struct std_map {};
 
 	template<>
-	struct type_settings<std_map> : ImSettings,
-		ImReflect::Detail::required<std_map>,
+	struct type_settings<std_map> : ImRequired<std_map>,
 		ImReflect::Detail::dropdown<std_map>,
 		ImReflect::Detail::insertable_mixin<std_map>,
 		ImReflect::Detail::removable_mixin<std_map> {
@@ -1614,8 +1600,7 @@ namespace ImReflect {
 	struct std_unordered_map {};
 
 	template<>
-	struct type_settings<std_unordered_map> : ImSettings,
-		ImReflect::Detail::required<std_unordered_map>,
+	struct type_settings<std_unordered_map> : ImRequired<std_unordered_map>,
 		ImReflect::Detail::dropdown<std_unordered_map>,
 		ImReflect::Detail::insertable_mixin<std_unordered_map>,
 		ImReflect::Detail::removable_mixin<std_unordered_map> {
@@ -1641,8 +1626,7 @@ namespace ImReflect {
 	struct std_multimap {};
 
 	template<>
-	struct type_settings<std_multimap> : ImSettings,
-		ImReflect::Detail::required<std_multimap>,
+	struct type_settings<std_multimap> : ImRequired<std_multimap>,
 		ImReflect::Detail::dropdown<std_multimap>,
 		ImReflect::Detail::insertable_mixin<std_multimap>,
 		ImReflect::Detail::removable_mixin<std_multimap> {
@@ -1668,8 +1652,7 @@ namespace ImReflect {
 	struct std_unordered_multimap {};
 
 	template<>
-	struct type_settings<std_unordered_multimap> : ImSettings,
-		ImReflect::Detail::required<std_unordered_multimap>,
+	struct type_settings<std_unordered_multimap> : ImRequired<std_unordered_multimap>,
 		ImReflect::Detail::dropdown<std_unordered_multimap>,
 		ImReflect::Detail::insertable_mixin<std_unordered_multimap>,
 		ImReflect::Detail::removable_mixin<std_unordered_multimap> {
@@ -1695,8 +1678,7 @@ namespace ImReflect {
 	struct std_optional {};
 
 	template<>
-	struct type_settings<std_optional> : ImSettings,
-		ImReflect::Detail::required<std_optional>,
+	struct type_settings<std_optional> : ImRequired<std_optional>,
 		ImReflect::Detail::resettable_mixin<std_optional> {
 	};
 
@@ -1733,8 +1715,7 @@ namespace ImReflect {
 	struct std_variant {};
 
 	template<>
-	struct type_settings<std_variant> : ImSettings,
-		ImReflect::Detail::required<std_variant>,
+	struct type_settings<std_variant> : ImRequired<std_variant>,
 		ImReflect::Detail::dropdown<std_variant> {
 	};
 

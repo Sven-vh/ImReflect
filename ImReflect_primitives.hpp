@@ -361,9 +361,8 @@ namespace ImReflect {
 
 	/* ========================= all integral types except bool ========================= */
 	template<typename T>
-	struct type_settings<T, Detail::enable_if_numeric_t<T>> : ImSettings,
+	struct type_settings<T, Detail::enable_if_numeric_t<T>> : ImRequired<T>,
 		/* Need to specify ``ImReflect`` before Detail::min_max otherwise intellisense wont work */
-		ImReflect::Detail::required<T>,
 		ImReflect::Detail::min_max<T>,
 		ImReflect::Detail::drag_speed<T>,
 		ImReflect::Detail::input_widget<T>,
@@ -430,8 +429,7 @@ namespace ImReflect {
 
 	/* ========================= bool ========================= */
 	template<typename T>
-	struct type_settings<T, Detail::enable_if_bool_t<T>> : ImSettings,
-		ImReflect::Detail::required<T>,
+	struct type_settings<T, Detail::enable_if_bool_t<T>> : ImRequired<T>,
 		ImReflect::Detail::checkbox_widget<T>,
 		ImReflect::Detail::radio_widget<T>,
 		ImReflect::Detail::button_widget<T>,
@@ -513,8 +511,7 @@ namespace ImReflect {
 
 	/* ========================= enums ========================= */
 	template<typename E>
-	struct type_settings<E, std::enable_if_t<std::is_enum_v<E>, void>> : ImSettings,
-		ImReflect::Detail::required<E>,
+	struct type_settings<E, std::enable_if_t<std::is_enum_v<E>, void>> : ImRequired<E>,
 		ImReflect::Detail::radio_widget<E>,
 		ImReflect::Detail::dropdown_widget<E>,
 		ImReflect::Detail::drag_widget<E>,

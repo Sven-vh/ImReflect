@@ -4,94 +4,6 @@
 
 #include <ImReflect.hpp>
 
-
-
-//template<>
-//struct ImReflect::type_settings<MyStruct> : ImSettings {
-//private:
-//	bool _a_setting = false;
-//	int _b_setting = 42;
-//
-//public:
-//	type_settings<MyStruct>& a_setting(bool v) { _a_setting = v; RETURN_THIS_T(MyStruct); }
-//	type_settings<MyStruct>& b_setting(int v) { _b_setting = v; RETURN_THIS_T(MyStruct); }
-//};
-
-//enum class Difficulty {
-//	Easy,
-//	Medium,
-//	Hard
-//};
-//
-//struct GameSettings {
-//	int			volume = 50;
-//	//float		sensitivity = 1.0f;
-//	bool		fullscreen = false;
-//	Difficulty	difficulty = Difficulty::Medium;
-//};
-//IMGUI_REFLECT(GameSettings, volume, /*sensitivity,*/ fullscreen, difficulty)
-
-//struct vec3 {
-//	float x, y, z;
-//};
-//
-//namespace MyNamespace {
-//	struct Transform {
-//		vec3 position;
-//		vec3 rotation;
-//		vec3 scale;
-//		std::string name = "Foo";
-//	};
-//}
-//
-//template<>
-//struct ImReflect::type_settings<MyNamespace::Transform> : ImSettings {
-//private:
-//	bool _change_name = false;
-//
-//public:
-//	type_settings<MyNamespace::Transform>& change_name(bool value) {
-//		_change_name = value;
-//		RETURN_THIS_T(MyNamespace::Transform);
-//	}
-//
-//	bool get_change_name() const {
-//		return _change_name;
-//	}
-//};
-//
-//void tag_invoke(ImReflect::ImInput_t, const char* label, MyNamespace::Transform& value, ImSettings& settings, ImResponse& response) {
-//	auto& transform_settings = settings.get<MyNamespace::Transform>();
-//
-//	ImGui::SeparatorText(label);
-//
-//	if (transform_settings.get_change_name()) {
-//		//ImGui::InputText("Name", &value.name);
-//	} else {
-//		ImGui::Text(value.name.c_str());
-//	}
-//
-//	ImGui::InputFloat3("Position", &value.position.x);
-//	ImGui::InputFloat3("Rotation", &value.rotation.x);
-//	ImGui::InputFloat3("Scale", &value.scale.x);
-//}
-
-//template<>
-//struct ImReflect::type_settings<int> : ImSettings {
-//private:
-//	int _multiplier = 1;
-//public:
-//	type_settings<int>& multiplier(int v) { _multiplier = v; RETURN_THIS_T(int); }
-//	int get_multiplier() const { return _multiplier; }
-//};
-//
-//void tag_invoke(ImReflect::ImInput_t, const char* label, int& value, ImSettings& settings, ImResponse& response) {
-//	ImGui::Text(label);
-//	ImGui::InputInt(label, &value);
-//}
-//
-//static_assert(svh::is_tag_invocable<ImReflect::ImInput_t, const char*, int&, ImReflect::ImSettings&, ImReflect::ImResponse&>::value, "Transform does not have tag_invoke for ImInput_t");
-
 #define IMGUI_SAMPLE_CODE(x) \
 ImGui::Text(#x); \
 x
@@ -711,6 +623,115 @@ config.push_member<&MyTypes::int_one>()
 		ImGui::Text("int_one is now a slider between 0 and 10\nint_two is now an input between -50 and 50\nOutput:");
 		ImReflect::Input("my_struct", my_struct, config);
 
+	}
+
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
+// Custom implementation Test
+// Writing a tag_invoke implementation for a custom type that IMReflect will find.
+// ========================================
+
+struct vec3 {
+	float x = 0, y = 0, z = 0;
+};
+
+/* Type Settings are optional if you want to add more customization */
+template<>
+struct ImReflect::type_settings<vec3> : ImRequired<vec3> {
+private:
+	bool _as_color = false;
+public:
+	// If vec3 needs to be rendered as a color picker
+	type_settings<vec3>& as_color(const bool v = true) { _as_color = v; RETURN_THIS_T(vec3); }
+	bool is_color() { return _as_color; }
+};
+
+/* ImRefelct will find this function at compile time when it encounters an vec3 */
+void tag_invoke(ImReflect::ImInput_t, const char* label, vec3& value, ImSettings& settings, ImResponse& response) {
+	/* Get the vec3 settings and response */
+	auto& vec3_settings = settings.get<vec3>();
+	auto& vec3_response = response.get<vec3>();
+
+	const bool render_as_color = vec3_settings.is_color();
+
+	bool changed = false;
+	if (render_as_color) {
+		changed = ImGui::ColorEdit3(label, &value.x);
+	} else {
+		changed = ImGui::InputFloat3(label, &value.x);
+	}
+	if (changed) vec3_response.changed();
+
+	/* Check hovered, activated, etc*/
+	ImReflect::Detail::check_input_states(vec3_response);
+}
+
+static void implementation_test() {
+	ImGui::SeparatorText("Custom Implementation");
+	ImGui::PushID("custom_implementation");
+	ImGui::Indent();
+
+
+	ImGui::Text("Custom vec3 type - default");
+	HelpMarker("You can write a custom tag_invoke implementation for your types, ImReflect will find it at compile time.");
+	{
+		ImGui::PushID("vec3 default");
+		const std::string code = R"(struct vec3 {
+	float x = 0, y = 0, z = 0;
+};
+
+// Type Settings
+template<>
+struct ImReflect::type_settings<vec3> : ImRequired<vec3> {
+private:
+	bool _as_color = false;
+public:
+	// If vec3 needs to be rendered as a color picker
+	type_settings<vec3>& as_color(const bool v = true) { _as_color = v; RETURN_THIS_T(vec3); }
+	bool is_color() { return _as_color; }
+};
+
+// Custom tag_invoke implementation
+void tag_invoke(ImReflect::ImInput_t, const char* label, vec3& value, ImSettings& settings, ImResponse& response) {
+	// implementation...
+}
+)";
+		static vec3 my_vec3;
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("Output:");
+		ImReflect::Input("my_vec3", my_vec3);
+
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Custom vec3 type - as color");
+	HelpMarker("You can use type settings in your custom implementation to modify behavior.");
+	{
+		ImGui::PushID("vec3 color");
+
+		const std::string code = R"(ImSettings config;
+config.push<vec3>()
+	.as_color()
+.pop();
+
+ImReflect::Input("my_vec3", my_vec3, config);)";
+
+		ImSettings config;
+		config.push<vec3>()
+			.as_color()
+			.pop();
+
+		static vec3 my_vec3;
+		IMGUI_SAMPLE_MULTI_CODE(code);
+		ImGui::Text("Output:");
+		ImReflect::Input("my vec3", my_vec3, config);
+
+		ImGui::PopID();
 	}
 
 	ImGui::Unindent();
@@ -1937,6 +1958,12 @@ namespace svh {
 			// Result Test
 			result_test();
 
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Custom Implementation")) {
+
+			// Custom Implementation test
+			implementation_test();
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("String")) {

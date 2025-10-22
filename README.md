@@ -225,17 +225,18 @@ if (response.get_member<&GameSettings::volume>().is_changed()) {
 Add support for your own types using tag invoke:
 
 ```cpp
-struct Transform {
-    vec3 position, rotation, scale;
-    std::string name = "Foo";
+struct vec3 {
+	float x = 0, y = 0, z = 0;
 };
 
-void tag_invoke(ImReflect::ImInput_t, const char* label, Transform& value, ImSettings& settings, ImResponse& response) {
-    ImGui::SeparatorText(label);
-    ImGui::Text(value.name.c_str());
-    ImGui::InputFloat3("Position", &value.position.x);
-    ImGui::InputFloat3("Rotation", &value.rotation.x);
-    ImGui::InputFloat3("Scale", &value.scale.x);
+void tag_invoke(ImReflect::ImInput_t, const char* label, vec3& value, ImSettings& settings, ImResponse& response) {
+	auto& vec3_response = response.get<vec3>();
+
+	bool changed = ImGui::InputFloat3(label, &value.x);
+	if (changed) vec3_response.changed();
+
+	/* Check hovered, activated, etc*/
+	ImReflect::Detail::check_input_states(vec3_response);
 }
 ```
 
@@ -245,43 +246,48 @@ Add configurable settings for your custom types:
 
 ```cpp
 template<>
-struct ImReflect::type_settings<Transform> : ImSettings {
+struct ImReflect::type_settings<vec3> : ImRequired<vec3> {
 private:
-    bool _show_name = true;
-
+	bool _as_color = false;
 public:
-    type_settings<Transform>& show_name(bool value) { 
-        _show_name = value; 
-        RETURN_THIS_T(Transform); 
-    }
-    
-    bool get_show_name() const { return _show_name; }
+	// If vec3 needs to be rendered as a color picker
+	type_settings<vec3>& as_color(const bool v = true) { _as_color = v; RETURN_THIS_T(vec3); }
+	bool is_color() { return _as_color; }
 };
 
-void tag_invoke(ImReflect::ImInput_t, const char* label, Transform& value, ImSettings& settings, ImResponse& response) {
-    auto& transform_settings = settings.get<Transform>();
-    
-    ImGui::SeparatorText(label);
-    if (transform_settings.get_show_name()) {
-        ImGui::InputText("Name", &value.name);
-    }
-    // ... rest of implementation
+void tag_invoke(ImReflect::ImInput_t, const char* label, vec3& value, ImSettings& settings, ImResponse& response) {
+	/* Get the vec3 settings and response */
+	auto& vec3_settings = settings.get<vec3>();
+	auto& vec3_response = response.get<vec3>();
+
+	const bool render_as_color = vec3_settings.is_color();
+
+	bool changed = false;
+	if (render_as_color) {
+		changed = ImGui::ColorEdit3(label, &value.x);
+	} else {
+		changed = ImGui::InputFloat3(label, &value.x);
+	}
+	if (changed) vec3_response.changed();
+
+	/* Check hovered, activated, etc*/
+	ImReflect::Detail::check_input_states(vec3_response);
 }
 
 // Usage
-auto config = ImSettings();
-config.push()
-    .show_name(false)
-.pop();
+ImSettings config;
+config.push<vec3>()
+		.as_color()
+	.pop();
 
-static Transform t;
-ImReflect::Input("My Transform", t, config);
+static vec3 my_vec3;
+ImReflect::Input("my vec3", my_vec3, config);
 ```
 
 **Requirements for custom settings:**
 - Use `template<>` specialization
 - Define as `ImReflect::type_settings<YOUR_TYPE>`
-- Inherit from `ImSettings`
+- Inherit from `ImRequired`
 - Return `type_settings<YOUR_TYPE>&` from setters for chaining
 
 ### Overriding Built-in Types

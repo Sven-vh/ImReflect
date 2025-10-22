@@ -27,10 +27,13 @@ namespace ImReflect {
 
 	//TODO: consider making ImResponse a class and also inherit from required.
 	// This will make every ImSettings paramter typed.
+	template<typename T>
+	struct ImRequired : svh::scope<type_settings>, ImReflect::Detail::required<T> {};
+
 	using ImSettings = svh::scope<type_settings>;
 
 	template<class T, class ENABLE>
-	struct type_settings : ImSettings, ImReflect::Detail::required<T> {};
+	struct type_settings : ImRequired<T> {};
 
 	/* RESPONSES */
 	template<class T>
@@ -196,6 +199,7 @@ namespace ImReflect {
 	}
 }
 
+template<typename T>
+using ImRequired = ImReflect::ImRequired<T>;
 using ImSettings = ImReflect::ImSettings;
-
 using ImResponse = ImReflect::ImResponse;
