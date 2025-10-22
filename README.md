@@ -346,8 +346,10 @@ This includes: `ImReflect_entry.hpp`, `ImReflect_helper.hpp`, `ImReflect_primiti
 ### Dependencies
 
 - **[ImGui](https://github.com/ocornut/imgui)** - You need to include this separately
+	- [imgui_stdlib](https://github.com/ocornut/imgui/tree/master/misc/cpp) - for ``std::string``
 - **[magic_enum](https://github.com/Neargye/magic_enum)** - Included in single header
 - **[visit_struct](https://github.com/cbeck88/visit_struct)** - Included in single header
+- **C++ 17**
 
 ## Documentation
 
