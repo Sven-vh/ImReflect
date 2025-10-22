@@ -452,51 +452,81 @@ IMGUI_REFLECT(MyStruct, a, b, c))";
 // ========================================
 // Nested Test
 // ========================================
+struct Foo {
+	int a;
+	float b;
+	bool c;
+};
+IMGUI_REFLECT(Foo, a, b, c)
 
 struct Bar {
 	int x;
 	float y;
 	bool z;
+	Foo foo;
 };
-IMGUI_REFLECT(Bar, x, y, z)
+IMGUI_REFLECT(Bar, x, y, z, foo)
 
-struct Foo {
-	int a;
-	float b;
-	bool c;
-	Bar bar;
-};
-IMGUI_REFLECT(Foo, a, b, c, bar)
 
 static void nested_reflection_test() {
 	ImGui::SeparatorText("Nested Struct / Class Reflection");
 	ImGui::PushID("nested reflection");
 	ImGui::Indent();
 
-	static Foo foo;
+	static Bar bar;
 
 	ImGui::Text("Nested Structs");
 	HelpMarker("You need to define the ``IMGUI_REFLECT`` macro for each struct, this determines what is reflected");
 	{
-		const std::string code = R"(struct Bar {
-	int x;
-	float y;
-	bool z;
-};
-IMGUI_REFLECT(Bar, x, y, z)
-
-struct Foo {
+		const std::string code = R"(struct Foo {
 	int a;
 	float b;
 	bool c;
-	Bar bar;
 };
-IMGUI_REFLECT(Foo, a, b, c, bar))";
+IMGUI_REFLECT(Foo, a, b, c)
+
+struct Bar {
+	int x;
+	float y;
+	bool z;
+	Foo foo;
+};
+IMGUI_REFLECT(Bar, x, y, z, foo)";
 
 		IMGUI_SAMPLE_MULTI_CODE(code);
 
 		ImGui::Text("Output:");
-		ImReflect::Input("foo", foo);
+		ImReflect::Input("foo", bar);
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Nested Structs - pushing");
+	HelpMarker("Push setting inside another struct.");
+	{
+		auto config = ImSettings();
+		config.push<Foo>()
+					.push<int>()
+						.min(0)
+						.max(10)
+						.as_slider()
+					.pop()
+				.pop();
+			
+		const std::string code = R"(auto config = ImSettings();
+config.push<Bar>()
+		.push<Foo>()
+			.push<int>()
+				.min(0)
+				.max(10)
+				.as_slider()
+			.pop() // int
+		.pop() // Foo
+	.pop(); // Bar)";
+		IMGUI_SAMPLE_MULTI_CODE(code);
+
+		ImGui::Text("Output:");
+		ImReflect::Input("bar", bar, config);
 	}
 
 	ImGui::Unindent();
