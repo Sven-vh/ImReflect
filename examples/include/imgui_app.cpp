@@ -171,7 +171,7 @@ static void format_test() {
 	{
 		auto config = ImSettings();
 		config.push<float>()
-			.format("%.3f")
+			.format("%.10f")
 			.pop();
 		ImReflect::Input("my_float##format", my_float, config);
 	}
