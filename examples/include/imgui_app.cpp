@@ -2112,8 +2112,5 @@ namespace svh {
 		}
 
 		ImGui::EndTabBar();
-
-		static std::vector<std::map<std::string, std::pair<int, bool>>> my_container;
-		ImReflect::Input("my container", my_container);
 	}
 }

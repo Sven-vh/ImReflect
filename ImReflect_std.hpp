@@ -1051,7 +1051,7 @@ namespace ImReflect {
 					}
 				}
 
-				if (!is_dropdown) ImGui::Unindent();
+				//if (!is_dropdown) ImGui::Unindent();
 			}
 
 			if (is_dropdown && is_open) {
