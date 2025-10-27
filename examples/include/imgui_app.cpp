@@ -1893,6 +1893,269 @@ static void variant_test() {
 }
 
 // ========================================
+// Complex Object Test
+// ========================================
+static void complex_object_test() {
+	ImGui::SeparatorText("Complex Test");
+	ImGui::PushID("Complex Test");
+
+	ImGui::Text("std::map<std::string, std::deque<std::tuple<std::vector<std::pair<std::string, std::tuple<int, bool, double>>>, std::array<std::list<std::set<std::string>>, 4>, std::map<int, std::vector<std::optional<std::string>>>>>>; ");
+	HelpMarker("Complex nested object test");
+
+	using crazy =
+		std::map<
+		std::string,
+		std::deque<
+		std::tuple<
+		std::vector<std::pair<std::string, std::tuple<int, bool, double>>>,
+		std::array<std::list<std::set<std::string>>, 4>,
+		std::map<int, std::vector<std::optional<std::string>>>
+		>
+		>
+		>;
+
+	static crazy my_crazy_variable = []() {
+		crazy result;
+
+		// ========== Entry 1: "player_data" ==========
+		{
+			std::deque<std::tuple<
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>>,
+				std::array<std::list<std::set<std::string>>, 4>,
+				std::map<int, std::vector<std::optional<std::string>>>
+				>> player_deque;
+
+			// First tuple in deque
+			{
+				// Vector of pairs: name -> (score, alive, multiplier)
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>> vec1 = {
+					{"Alice", {1500, true, 2.5}},
+					{"Bob", {2300, true, 1.8}},
+					{"Charlie", {950, false, 0.0}},
+					{"Diana", {3100, true, 3.2}}
+				};
+
+				// Array of 4 lists of sets
+				std::array<std::list<std::set<std::string>>, 4> arr1;
+				arr1[0] = { {"sword", "shield", "potion"} };
+				arr1[1] = { {"first_kill", "level_10"}, {"speedrun", "pacifist"} };
+				arr1[2] = { {"forest", "cave", "town"}, {"mountain", "desert"} };
+				arr1[3] = { {"main_quest_1", "side_quest_3"} };
+
+				// Map: player_id -> messages
+				std::map<int, std::vector<std::optional<std::string>>> map1;
+				map1[1001] = { std::string("Welcome!"), std::string("Good luck!"), std::nullopt };
+				map1[1002] = { std::string("Hello there"), std::nullopt, std::string("Goodbye") };
+				map1[1003] = { std::nullopt, std::string("Achievement unlocked!") };
+
+				player_deque.push_back(std::make_tuple(vec1, arr1, map1));
+			}
+
+			// Second tuple in deque
+			{
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>> vec2 = {
+					{"Eve", {4200, true, 4.0}},
+					{"Frank", {1800, true, 2.1}}
+				};
+
+				std::array<std::list<std::set<std::string>>, 4> arr2;
+				arr2[0] = { {"axe", "bow"} };
+				arr2[1] = { {"hunter"} };
+				arr2[2] = { {"plains"} };
+				arr2[3] = { {"tutorial_complete"} };
+
+				std::map<int, std::vector<std::optional<std::string>>> map2;
+				map2[2001] = { std::string("Level up!"), std::string("Nice work") };
+				map2[2002] = { std::nullopt };
+
+				player_deque.push_back(std::make_tuple(vec2, arr2, map2));
+			}
+
+			result["player_data"] = player_deque;
+		}
+
+		// ========== Entry 2: "game_state" ==========
+		{
+			std::deque<std::tuple<
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>>,
+				std::array<std::list<std::set<std::string>>, 4>,
+				std::map<int, std::vector<std::optional<std::string>>>
+				>> game_deque;
+
+			{
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>> vec = {
+					{"current_level", {5, true, 1.5}},
+					{"boss_defeated", {1, true, 10.0}},
+					{"secrets_found", {7, false, 2.0}}
+				};
+
+				std::array<std::list<std::set<std::string>>, 4> arr;
+				arr[0] = { {"checkpoint_1", "checkpoint_2", "checkpoint_3"} };
+				arr[1] = { {"unlocked_hard_mode"}, {"found_easter_egg"} };
+				arr[2] = { {"dungeon_1", "dungeon_2"} };
+				arr[3] = { {"game_completed"} };
+
+				std::map<int, std::vector<std::optional<std::string>>> map;
+				map[9001] = { std::string("Game saved"), std::string("Continue?"), std::nullopt };
+				map[9002] = { std::string("Boss battle started!") };
+
+				game_deque.push_back(std::make_tuple(vec, arr, map));
+			}
+
+			result["game_state"] = game_deque;
+		}
+
+		// ========== Entry 3: "inventory_system" ==========
+		{
+			std::deque<std::tuple<
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>>,
+				std::array<std::list<std::set<std::string>>, 4>,
+				std::map<int, std::vector<std::optional<std::string>>>
+				>> inv_deque;
+
+			// First tuple
+			{
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>> vec1 = {
+					{"health_potions", {10, true, 1.0}},
+					{"mana_potions", {5, true, 1.0}},
+					{"gold_coins", {999, true, 1.0}},
+					{"rare_gems", {3, false, 5.0}}
+				};
+
+				std::array<std::list<std::set<std::string>>, 4> arr1;
+				arr1[0] = { {"consumable", "stackable"} };
+				arr1[1] = { {"common", "rare"}, {"legendary"} };
+				arr1[2] = { {"vendor_1", "vendor_2", "vendor_3"} };
+				arr1[3] = { {"tradeable", "sellable", "droppable"} };
+
+				std::map<int, std::vector<std::optional<std::string>>> map1;
+				map1[101] = { std::string("Inventory full!"), std::nullopt };
+				map1[102] = { std::string("Item acquired"), std::string("Check your bag") };
+				map1[103] = { std::nullopt, std::nullopt, std::string("Trade complete") };
+
+				inv_deque.push_back(std::make_tuple(vec1, arr1, map1));
+			}
+
+			// Second tuple
+			{
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>> vec2 = {
+					{"enchanted_sword", {1, true, 100.0}},
+					{"magic_staff", {1, true, 85.5}}
+				};
+
+				std::array<std::list<std::set<std::string>>, 4> arr2;
+				arr2[0] = { {"weapon", "enchanted"} };
+				arr2[1] = { {"epic"} };
+				arr2[2] = { {"blacksmith"} };
+				arr2[3] = { {"upgradeable"} };
+
+				std::map<int, std::vector<std::optional<std::string>>> map2;
+				map2[201] = { std::string("Weapon equipped") };
+				map2[202] = { std::string("Damage increased!") };
+
+				inv_deque.push_back(std::make_tuple(vec2, arr2, map2));
+			}
+
+			result["inventory_system"] = inv_deque;
+		}
+
+		// ========== Entry 4: "network_stats" ==========
+		{
+			std::deque<std::tuple<
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>>,
+				std::array<std::list<std::set<std::string>>, 4>,
+				std::map<int, std::vector<std::optional<std::string>>>
+				>> net_deque;
+
+			{
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>> vec = {
+					{"ping_ms", {45, true, 1.0}},
+					{"packet_loss", {2, false, 0.5}},
+					{"bandwidth_mbps", {100, true, 1.0}},
+					{"players_online", {1247, true, 1.0}}
+				};
+
+				std::array<std::list<std::set<std::string>>, 4> arr;
+				arr[0] = { {"server_1", "server_2", "server_3"} };
+				arr[1] = { {"NA", "EU"}, {"ASIA"} };
+				arr[2] = { {"tcp", "udp"} };
+				arr[3] = { {"connected", "stable"} };
+
+				std::map<int, std::vector<std::optional<std::string>>> map;
+				map[5001] = { std::string("Connection stable"), std::nullopt };
+				map[5002] = { std::nullopt, std::string("Lag detected") };
+				map[5003] = { std::string("Reconnecting..."), std::nullopt, std::string("Success") };
+
+				net_deque.push_back(std::make_tuple(vec, arr, map));
+			}
+
+			result["network_stats"] = net_deque;
+		}
+
+		// ========== Entry 5: "achievement_tracker" ==========
+		{
+			std::deque<std::tuple<
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>>,
+				std::array<std::list<std::set<std::string>>, 4>,
+				std::map<int, std::vector<std::optional<std::string>>>
+				>> ach_deque;
+
+			// First tuple
+			{
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>> vec1 = {
+					{"total_achievements", {50, true, 1.0}},
+					{"unlocked", {23, true, 1.0}},
+					{"hidden_found", {5, false, 2.0}},
+					{"completion_rate", {46, true, 1.0}}
+				};
+
+				std::array<std::list<std::set<std::string>>, 4> arr1;
+				arr1[0] = { {"bronze", "silver", "gold", "platinum"} };
+				arr1[1] = { {"combat", "exploration"}, {"social", "crafting"} };
+				arr1[2] = { {"easy", "medium", "hard", "impossible"} };
+				arr1[3] = { {"unlocked", "locked", "secret"} };
+
+				std::map<int, std::vector<std::optional<std::string>>> map1;
+				map1[7001] = { std::string("Achievement unlocked!"), std::string("Congratulations") };
+				map1[7002] = { std::string("Progress: 80%"), std::nullopt };
+				map1[7003] = { std::nullopt, std::nullopt, std::string("New achievement available") };
+
+				ach_deque.push_back(std::make_tuple(vec1, arr1, map1));
+			}
+
+			// Second tuple
+			{
+				std::vector<std::pair<std::string, std::tuple<int, bool, double>>> vec2 = {
+					{"speedrun_time", {3600, true, 1.5}},
+					{"deaths", {127, false, 1.0}}
+				};
+
+				std::array<std::list<std::set<std::string>>, 4> arr2;
+				arr2[0] = { {"timed", "ranked"} };
+				arr2[1] = { {"competitive"} };
+				arr2[2] = { {"leaderboard"} };
+				arr2[3] = { {"verified"} };
+
+				std::map<int, std::vector<std::optional<std::string>>> map2;
+				map2[7101] = { std::string("World record!"), std::string("Amazing!") };
+				map2[7102] = { std::string("Keep trying") };
+
+				ach_deque.push_back(std::make_tuple(vec2, arr2, map2));
+			}
+
+			result["achievement_tracker"] = ach_deque;
+		}
+
+		return result;
+		}();
+
+	// Use with ImReflect
+	ImReflect::Input("my_crazy_variable", my_crazy_variable);
+
+	ImGui::PopID();
+}
+
+// ========================================
 // Main
 // ========================================
 namespace svh {
@@ -2108,6 +2371,11 @@ namespace svh {
 		if (ImGui::BeginTabItem("Variant")) {
 			// Variant test
 			variant_test();
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Complex Object")) {
+			// Complex Object test
+			complex_object_test();
 			ImGui::EndTabItem();
 		}
 
