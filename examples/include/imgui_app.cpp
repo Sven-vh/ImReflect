@@ -506,13 +506,13 @@ IMGUI_REFLECT(Bar, x, y, z, foo)";
 	{
 		auto config = ImSettings();
 		config.push<Foo>()
-					.push<int>()
-						.min(0)
-						.max(10)
-						.as_slider()
-					.pop()
-				.pop();
-			
+			.push<int>()
+			.min(0)
+			.max(10)
+			.as_slider()
+			.pop()
+			.pop();
+
 		const std::string code = R"(auto config = ImSettings();
 config.push<Bar>()
 		.push<Foo>()
@@ -2112,5 +2112,8 @@ namespace svh {
 		}
 
 		ImGui::EndTabBar();
+
+		static std::vector<std::map<std::string, std::pair<int, bool>>> my_container;
+		ImReflect::Input("my container", my_container);
 	}
 }

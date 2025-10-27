@@ -13,10 +13,19 @@ namespace ImReflect::Detail {
 #define RETURN_THIS return static_cast<type_settings<T>&>(*this)
 #define RETURN_THIS_T(...) return static_cast<type_settings<__VA_ARGS__>&>(*this)
 
-	/* Simple RAII ID */
+	/* Simple RAII */
 	struct scope_id {
 		scope_id(const char* id) { ImGui::PushID(id); }
+		scope_id(const int id) { ImGui::PushID(id); }
 		~scope_id() { ImGui::PopID(); }
+	};
+
+	struct scope_indent {
+		float width = 0.0f;
+		scope_indent(float _width = 0.0f) : width(_width) {
+			ImGui::Indent(width);
+		}
+		~scope_indent() { ImGui::Unindent(width); }
 	};
 
 	void text_label(const std::string& text) {

@@ -770,7 +770,8 @@ namespace ImReflect {
 				/*  Iterate through items */
 				int i = 0;
 				for (auto it = value.begin(); it != value.end(); ++it, ++i) {
-					ImGui::PushID(i);
+					const auto item_id = Detail::scope_id(i);
+					const auto indent = Detail::scope_indent();
 
 					bool right_clicked = false;
 
@@ -853,7 +854,6 @@ namespace ImReflect {
 								vec_response.changed();
 								vec_response.erased_index(i);
 								ImGui::EndPopup();
-								ImGui::PopID();
 								break;
 							}
 						} else {
@@ -874,6 +874,8 @@ namespace ImReflect {
 									value.insert(std::next(it), *it);
 								}
 								vec_response.changed();
+								ImGui::EndPopup();
+								break;
 							}
 						} else {
 							ImGui::BeginDisabled();
@@ -937,6 +939,8 @@ namespace ImReflect {
 											vec_response.inserted_index(0);
 										}
 										vec_response.changed();
+										ImGui::EndPopup();
+										break;
 									}
 								} else {
 									ImGui::OpenPopup(pop_up_id);
@@ -947,7 +951,7 @@ namespace ImReflect {
 									auto next_it = std::next(it);
 									if (vec_settings.is_pop_up_on_insert()) {
 										insert_item = next_it;
-										ImGui::OpenPopup("add_item_popup");
+										ImGui::OpenPopup(pop_up_id);
 									} else {
 										/*value.insert(next_it, T());
 										vec_response.changed();*/
@@ -962,9 +966,11 @@ namespace ImReflect {
 											vec_response.inserted_index(0);
 										}
 										vec_response.changed();
+										ImGui::EndPopup();
+										break;
 									}
 								} else {
-									ImGui::OpenPopup("add_item_popup");
+									ImGui::OpenPopup(pop_up_id);
 								}
 							}
 							ImGui::Separator();
@@ -989,7 +995,6 @@ namespace ImReflect {
 								value.clear();
 								vec_response.changed();
 								ImGui::EndPopup();
-								ImGui::PopID();
 								break;
 							}
 						} else {
@@ -1002,9 +1007,6 @@ namespace ImReflect {
 
 						ImGui::EndPopup();
 					}
-
-
-					ImGui::PopID();
 				}
 
 				/*  Add item */
@@ -1015,24 +1017,24 @@ namespace ImReflect {
 
 						if (ImGui::MenuItem("Add new item")) {
 							if (insert_item != value.end()) {
-								if constexpr (traits::has_push_back) {
-									value.push_back(temp_value);
-									vec_response.inserted_index(value.size() - 1);
-								} else if constexpr (traits::has_insert) {
+								if constexpr (traits::has_insert) {
 									value.insert(insert_item, temp_value);
+									vec_response.inserted_index(value.size() - 1);
+								} else if constexpr (traits::has_push_back) {
+									value.push_back(temp_value);
 									vec_response.inserted_index(value.size() - 1);
 								} else if constexpr (traits::push_front) {
 									value.push_front(temp_value);
 									vec_response.inserted_index(0);
 								}
 							} else {
-								if constexpr (traits::has_push_back) {
-									value.push_back(temp_value);
-									vec_response.inserted_index(value.size() - 1);
-								} else if constexpr (traits::has_insert) {
+								if constexpr (traits::has_insert) {
 									value.insert(value.end(), temp_value);
 									vec_response.inserted_index(value.size() - 1);
-								} else if constexpr (traits::push_front) {
+								} else if constexpr (traits::has_push_back) {
+									value.push_back(temp_value);
+									vec_response.inserted_index(value.size() - 1);
+								} else  if constexpr (traits::push_front) {
 									value.push_front(temp_value);
 									vec_response.inserted_index(0);
 								}
@@ -1494,10 +1496,12 @@ namespace ImReflect {
 				const auto& key = it->first;
 				auto& val = it->second;
 
+
 				auto pair = std::tie(key, val);
 
 				const std::string item_label = std::string("##map_item_") + std::to_string(i);
 				const auto item_id = Detail::scope_id(item_label.c_str());
+				ImGui::Indent();
 
 				ImGui::Text("==");
 
@@ -1543,6 +1547,8 @@ namespace ImReflect {
 					}
 					ImGui::EndPopup();
 				}
+
+				ImGui::Unindent();
 
 				++i;
 			}
