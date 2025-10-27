@@ -380,7 +380,7 @@ namespace ImReflect {
 		const bool is_grid = tuple_settings.is_grid();
 		const bool use_min_width = tuple_settings.has_min_width();
 
-		ImGuiTableFlags flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings;
+		ImGuiTableFlags flags = ImGuiTableFlags_Resizable | ImGuiTableFlags_NoSavedSettings /*| ImGuiTableFlags_Borders*/;
 		if (use_min_width) flags |= ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_NoKeepColumnsVisible;
 
 		constexpr auto tuple_size = sizeof...(Ts);
@@ -392,7 +392,9 @@ namespace ImReflect {
 		}
 
 		/*  Table rendering */
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, Detail::TUPLE_ITEM_SPACING);
+		auto item_spacing = ImGui::GetStyle().ItemSpacing;
+		item_spacing.x = Detail::TUPLE_ITEM_SPACING.x;
+		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, item_spacing);
 		if (is_grid) {
 			ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, Detail::TUPLE_CELL_GRID_PADDING);
 		} else {
