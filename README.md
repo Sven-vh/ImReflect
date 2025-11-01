@@ -335,20 +335,14 @@ Includes all dependencies except ImGui.
 
 ### Option 2: Multiple Headers
 
-Clone the repository and include the main header:
-
-```cpp
-#include 
-```
-
-This includes: `ImReflect_entry.hpp`, `ImReflect_helper.hpp`, `ImReflect_primitives.hpp`, `ImReflect_std.hpp`, and external dependencies.
+Clone the repository and include the main headers: `ImReflect_entry.hpp`, `ImReflect_helper.hpp`, `ImReflect_primitives.hpp`, `ImReflect_std.hpp`, and external dependencies.
 
 ### Dependencies
 
-- **[ImGui](https://github.com/ocornut/imgui)** - You need to include this separately
-	- [imgui_stdlib](https://github.com/ocornut/imgui/tree/master/misc/cpp) - for ``std::string``
 - **[magic_enum](https://github.com/Neargye/magic_enum)** - Included in single header
 - **[visit_struct](https://github.com/cbeck88/visit_struct)** - Included in single header
+- **[ImGui](https://github.com/ocornut/imgui)** - You need to include this separately
+	- [imgui_stdlib](https://github.com/ocornut/imgui/tree/master/misc/cpp) - for ``std::string``
 - **C++ 17**
 
 ## Documentation
