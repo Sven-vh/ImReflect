@@ -1513,7 +1513,7 @@ namespace ImReflect {
 				}
 
 				ImGui::SameLine();
-				map_settings.push<std::tuple>().same_line(true);
+				map_settings.template push<std::tuple>().same_line(true);
 				ImReflect::Input(item_label.c_str(), pair, map_settings, map_response);
 
 				/*  Context menu */
