@@ -28,7 +28,7 @@ namespace ImReflect::Detail {
 		~scope_indent() { ImGui::Unindent(width); }
 	};
 
-	void text_label(const std::string& text) {
+	inline void text_label(const std::string& text) {
 		size_t pos = text.find("##");
 		if (pos != std::string::npos) {
 			ImGui::TextUnformatted(text.c_str(), text.c_str() + pos);
@@ -37,7 +37,7 @@ namespace ImReflect::Detail {
 		}
 	}
 
-	float multiline_text_height(std::size_t line_height) {
+	inline float multiline_text_height(std::size_t line_height) {
 		const auto& ctx = *ImGui::GetCurrentContext();
 		return ctx.FontSize * line_height + ctx.Style.FramePadding.y * 2.0f;
 	}
@@ -57,7 +57,7 @@ namespace ImReflect::Detail {
 		if (ImGui::IsItemFocused()) response.focused();
 	}
 
-	void imgui_tooltip(const char* tooltip) {
+	inline void imgui_tooltip(const char* tooltip) {
 		if (tooltip && tooltip[0] != '\0' && ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
 			ImGui::SetTooltip("%s", tooltip);
 		}
