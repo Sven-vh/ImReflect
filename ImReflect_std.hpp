@@ -5,6 +5,7 @@
 #include "ImReflect_helper.hpp"
 
 #include <extern/magic_enum/magic_enum.hpp>
+#include <extern/svh/scope.hpp>
 
 #include <type_traits>
 #include <algorithm>
