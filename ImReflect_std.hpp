@@ -1742,7 +1742,7 @@ namespace ImReflect {
 
 		const std::string combo_label = std::string("##variant_type_");
 
-		if (type_count <= 1) {
+		if constexpr (type_count <= 1) {
 			ImGui::TextDisabled(type_names[0]);
 			Detail::imgui_tooltip("Variant has only one type, cannot change type");
 		} else {

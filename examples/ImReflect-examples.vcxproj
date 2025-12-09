@@ -98,6 +98,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\ImReflect_entry.hpp" />
+    <ClInclude Include="..\ImReflect_macro.hpp" />
     <ClInclude Include="..\ImReflect_primitives.hpp" />
     <ClInclude Include="..\ImReflect.hpp" />
     <ClInclude Include="..\ImReflect_helper.hpp" />

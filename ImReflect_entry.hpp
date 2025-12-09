@@ -4,20 +4,9 @@
 #include <extern/svh/tag_invoke.hpp>
 #include <extern/visit_struct/visit_struct.hpp>
 
-/*
-Define this underneath your class or struct with the appropriate member variables 
-Example:
-struct MyStruct {
-	int a;
-	float b;
-	std::string c;
-};
-IMGUI_REFLECT(MyStruct, a, b, c)
-*/
-#define IMGUI_REFLECT(T, ...) \
-VISITABLE_STRUCT_IN_CONTEXT(ImReflect::Detail::ImContext, T, __VA_ARGS__);
+#include "ImReflect_macro.hpp"
 
-struct global_tag {};
+struct ImReflect_global_tag {};
 
 namespace ImReflect {
 
@@ -54,16 +43,13 @@ namespace ImReflect {
 	struct type_response : /* ImResponse is inherited in required */ ImReflect::Detail::required_response<T> {};
 
 	/* Tags for the tag_invoke input functions */
-	struct ImInput_t : global_tag { /* Public Tag */ };
+	struct ImInput_t : ImReflect_global_tag { /* Public Tag */ };
 	inline constexpr ImInput_t input{};
 
 	namespace Detail {
 
 		struct ImInputLib_t { /* Library only tag */ };
 		inline constexpr ImInputLib_t input_lib{};
-
-		/* Context for visit_struct */
-		struct ImContext {};
 
 		/* Forward declare */
 		template<typename T>
