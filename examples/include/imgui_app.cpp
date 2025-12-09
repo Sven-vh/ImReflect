@@ -1598,6 +1598,16 @@ static void set_test() {
 		ImReflect::Input("my_set_const", my_set_const);
 		ImGui::PopID();
 	}
+	/* Empty set */
+	ImGui::NewLine();
+	ImGui::Text("Empty set");
+	HelpMarker("An empty set to start with");
+	{
+		ImGui::PushID("empty set");
+		static std::set<int> empty_set;
+		ImReflect::Input("empty_set", empty_set);
+		ImGui::PopID();
+	}
 	ImGui::Unindent();
 	ImGui::PopID();
 }

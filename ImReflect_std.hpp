@@ -649,7 +649,6 @@ namespace ImReflect {
 			static auto insert_item = value.end();
 
 			ImReflect::Detail::text_label(label);
-			ImGui::SameLine();
 			size_t item_count = 0;
 			if constexpr (has_size) {
 				item_count = value.size();
@@ -657,6 +656,7 @@ namespace ImReflect {
 			}
 
 			const auto disabled_plus_button = []() {
+				ImGui::SameLine();
 				ImGui::BeginDisabled();
 				ImGui::Button("+");
 				ImGui::EndDisabled();
@@ -670,6 +670,7 @@ namespace ImReflect {
 			/*  Add button */
 			if constexpr (can_insert) {
 				if (vec_settings.is_insertable()) {
+					ImGui::SameLine();
 					if (ImGui::Button("+")) {
 						if (vec_settings.is_pop_up_on_insert()) {
 							insert_item = value.end();
@@ -699,9 +700,8 @@ namespace ImReflect {
 				disabled_plus_button();
 			}
 
-			ImGui::SameLine();
-
 			const auto disabled_minus_button = []() {
+				ImGui::SameLine();
 				ImGui::BeginDisabled();
 				ImGui::Button("-");
 				ImGui::EndDisabled();
@@ -716,6 +716,7 @@ namespace ImReflect {
 			if constexpr (can_remove) {
 				if (vec_settings.is_removable()) {
 					if (item_count > 0 || traits::has_pop_front) {
+						ImGui::SameLine();
 						if (ImGui::Button("-")) {
 							if constexpr (traits::has_erase) {
 								auto it = value.end();
