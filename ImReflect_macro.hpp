@@ -1,4 +1,5 @@
 #pragma once
+#include <extern/visit_struct/visit_struct.hpp>
 
 /*
 Define this underneath your class or struct with the appropriate member variables
