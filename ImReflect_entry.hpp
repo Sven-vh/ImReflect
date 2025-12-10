@@ -59,7 +59,8 @@ namespace ImReflect {
 		void imgui_input_visit_field(const char* label, T& value, ImSettings& settings, ImResponse& response) {
 			constexpr bool is_const = std::is_const_v<T>;
 			ImGui::PushID(label);
-			if(label != "") ImGui::SeparatorText(label);
+            const bool empty = std::string(label).empty();
+			if(!empty) ImGui::SeparatorText(label);
 			if constexpr (is_const) {
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
 					ImGui::SetTooltip("Const object");
