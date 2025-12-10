@@ -66,7 +66,7 @@ namespace ImReflect {
 					ImGui::SetTooltip("Const object");
 				}
 			}
-			ImGui::Indent();
+            if (!empty) ImGui::Indent();
 			visit_struct::context<ImContext>::for_each(value,
 				[&](const char* name, auto& field) {
 					ImGui::PushID(name);
@@ -75,7 +75,7 @@ namespace ImReflect {
 					InputImpl(name, field, member_settings, member_response); // recurse
 					ImGui::PopID();
 				});
-			ImGui::Unindent();
+            if (!empty) ImGui::Unindent();
 			ImGui::PopID();
 		}
 
