@@ -51,6 +51,12 @@ namespace ImReflect {
 		struct ImInputLib_t { /* Library only tag */ };
 		inline constexpr ImInputLib_t input_lib{};
 
+		template <typename T>
+		inline constexpr bool has_imreflect_input_v = 
+			svh::is_tag_invocable_v<ImInput_t, const char*, T&, ImSettings&, ImResponse&> || 
+			svh::is_tag_invocable_v<ImInputLib_t, const char*, T&, ImSettings&, ImResponse&> ||
+            visit_struct::traits::is_visitable<std::remove_cv_t<T>, ImContext>::value;
+
 		/* Forward declare */
 		template<typename T>
 		void InputImpl(const char* label, T& value, ImSettings& settings, ImResponse& response);
