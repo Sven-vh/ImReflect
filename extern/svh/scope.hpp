@@ -504,7 +504,7 @@ namespace svh {
 		/// </summary>
 		/// <param name="indent">Indentation level</param>
 		void debug_log(int indent = 0) const {
-			std::string prefix(indent, '==');
+			std::string prefix(indent * 2, '=');
 			for (const auto& pair : children) {
 				const auto& key = pair.first;
 				const auto& child = pair.second;
