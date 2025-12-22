@@ -32,7 +32,7 @@ ImReflect::Input("Settings", settings);
 - 🎨 **Extensible** - Add your own types without modifying the library
 - 📄 **Single header** - Drop in and go
 
-**[📖 All Types](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings)** | **[📦 Download Latest Release](https://github.com/Sven-vh/ImReflect/releases)**
+**[📖 All Types](https://github.com/Sven-vh/ImReflect/wiki/Type-Settings)** | **[📦 Download Latest Release](https://github.com/Sven-vh/ImReflect/blob/main/single_header/ImReflect.hpp)**
 
 ---
 
@@ -40,7 +40,7 @@ ImReflect::Input("Settings", settings);
 
 ### 1. Installation
 
-Download the single header from [releases](https://github.com/Sven-vh/ImReflect/releases):
+Download the single header from the [single_header](https://github.com/Sven-vh/ImReflect/blob/main/single_header/ImReflect.hpp) folder:
 
 ```cpp
 #include "ImReflect.hpp"
