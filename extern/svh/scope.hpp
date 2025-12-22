@@ -554,7 +554,7 @@ namespace svh {
 		bool has_parent() const { return parent != nullptr; }
 
 		template<class T>
-		constexpr std::type_index get_type_key() const { return std::type_index{ typeid(std::decay_t<T>) }; }
+		std::type_index get_type_key() const { return std::type_index{ typeid(std::decay_t<T>) }; }
 
 		template<class T>
 		BaseTemplate<T>& emplace_new() {
