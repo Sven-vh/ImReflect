@@ -1,8 +1,9 @@
 name: Generate Single Header
 
 on:
-  release:
-    types: [created]
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -27,8 +28,16 @@ jobs:
         run: |
           python3 scripts/generate_single_header.py
 
-      - name: Upload to release
-        if: github.event_name == 'release'
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ./single_header/ImReflect.hpp
+      - name: Check for changes
+        id: verify_diff
+        run: |
+          git diff --quiet single_header/ && echo "changed=false" >> $GITHUB_OUTPUT || echo "changed=true" >> $GITHUB_OUTPUT
+
+      - name: Commit and push changes
+        if: steps.verify_diff.outputs.changed == 'true'
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add single_header/
+          git diff --staged --quiet || git commit -m "chore: auto-generate single header [skip ci]"
+          git push
