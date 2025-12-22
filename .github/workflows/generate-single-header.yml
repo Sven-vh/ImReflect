@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - main
+    paths:
+      - '*.hpp'                              # Root .hpp files
+      - 'scripts/generate_single_header.py'  # Generation script
+      - 'extern/**'                          # External dependencies
   workflow_dispatch:
 
 permissions:
