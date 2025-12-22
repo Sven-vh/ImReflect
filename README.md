@@ -325,7 +325,7 @@ Check the console for the missing type. If you think it should be supported, [op
 
 ### Option 1: Single Header (Recommended)
 
-Download `ImReflect.hpp` from [releases](https://github.com/Sven-vh/ImReflect/releases):
+Download [``ImReflect.hpp``](https://github.com/Sven-vh/ImReflect/blob/main/single_header/ImReflect.hpp) from the ``single_header`` folder. (auto updated/generated when pushed to main)
 
 ```cpp
 #include "ImReflect.hpp"
@@ -335,7 +335,7 @@ Includes all dependencies except ImGui.
 
 ### Option 2: Multiple Headers
 
-Clone the repository and include the main headers: `ImReflect_entry.hpp`, `ImReflect_helper.hpp`, `ImReflect_primitives.hpp`, `ImReflect_std.hpp`, and external dependencies.
+Clone the repository and include the main headers: `ImReflect.hpp`, `ImReflect_entry.hpp`, `ImReflect_helper.hpp`, `ImReflect_macro.hpp`, `ImReflect_primitives.hpp`, `ImReflect_std.hpp`, and external dependencies.
 
 ### Dependencies
 
