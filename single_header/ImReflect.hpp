@@ -3154,7 +3154,7 @@ namespace ImReflect {
 
 	namespace Detail {
 
-		struct ImInputLib_t { /* Library only tag */ };
+		struct ImInputLib_t : ImReflect_global_tag { /* Library only tag */ };
 		inline constexpr ImInputLib_t input_lib{};
 
 		template <typename T>
@@ -3215,13 +3215,13 @@ namespace ImReflect {
 			if constexpr (svh::is_tag_invocable_v<ImInput_t, const char*, T&, ImSettings&, ImResponse&>) {
 				tag_invoke(input, label, value, type_settings, type_response);
 			}
-			/* Try tag_invoke with default library implementations */
-			else if constexpr (svh::is_tag_invocable_v<ImInputLib_t, const char*, T&, ImSettings&, ImResponse&>) {
-				tag_invoke(input_lib, label, value, type_settings, type_response);
-			}
 			/* If type is reflected */
 			else if constexpr (visit_struct::traits::is_visitable<std::remove_cv_t<T>, ImContext>::value) {
 				imgui_input_visit_field(label, value, type_settings, type_response);
+			}
+			/* Try tag_invoke with default library implementations */
+			else if constexpr (svh::is_tag_invocable_v<ImInputLib_t, const char*, T&, ImSettings&, ImResponse&>) {
+				tag_invoke(input_lib, label, value, type_settings, type_response);
 			} else {
 				//TODO: add link to documentation
 				static_assert(svh::always_false<T>::value, "ImReflect Error: No suitable Input implementation found for type T");
