@@ -76,19 +76,6 @@ namespace ImReflect::Detail {
 		const bool& is_dropdown() const { return _dropdown; };
 	};
 
-	/// <summary>
-	/// Whether or not to put a newline between label and input field
-	/// </summary>
-	/// <typeparam name="T"></typeparam>
-	template<typename T>
-	struct same_line_mixin {
-	private:
-		bool _same_line = false;
-	public:
-		type_settings<T>& same_line(const bool v = true) { _same_line = v; RETURN_THIS; }
-		const bool& on_same_line() const { return _same_line; };
-	};
-
 	enum class TupleRenderMode {
 		Line,
 		Grid
@@ -415,7 +402,6 @@ namespace ImReflect {
 
 	template<>
 	struct type_settings<std_tuple> : ImRequired<std_tuple>,
-		ImReflect::Detail::same_line_mixin<std_tuple>,
 		ImReflect::Detail::dropdown<std_tuple>,
 		ImReflect::Detail::line_mixin<std_tuple>,
 		ImReflect::Detail::grid_mixin<std_tuple> {
@@ -438,7 +424,6 @@ namespace ImReflect {
 
 	template<>
 	struct type_settings<std_pair> : ImRequired<std_pair>,
-		ImReflect::Detail::same_line_mixin<std_pair>,
 		ImReflect::Detail::dropdown<std_pair>,
 		ImReflect::Detail::line_mixin<std_pair>,
 		ImReflect::Detail::grid_mixin<std_pair> {

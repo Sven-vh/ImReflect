@@ -863,6 +863,77 @@ config.push<std::pair>()
 		ImGui::PopID();
 	}
 
+	ImGui::NewLine();
+
+	ImGui::Text("Same line");
+	HelpMarker("Put members on the same line");
+	{
+		ImGui::PushID("same line");
+
+		ImSettings config;
+		config.push_member<&MyTypes::int_one>()
+			.same_line()
+			.pop()
+			.push_member<&MyTypes::float_one>()
+			.same_line()
+			.pop()
+			.push_member<&MyTypes::bool_one>()
+			.same_line()
+			.pop();
+
+		const std::string code = R"(ImSettings config;
+config.push_member<&MyTypes::int_one>()
+	.same_line()
+.pop()
+.push_member<&MyTypes::float_one>()
+	.same_line()
+.pop()
+.push_member<&MyTypes::bool_one>()
+	.same_line()
+.pop();)";
+		IMGUI_SAMPLE_MULTI_CODE(code);
+
+		ImReflect::Input("same_line", my_struct, config);
+
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("Separator");
+	HelpMarker("Add a separator between members");
+	{
+		ImGui::PushID("separator");
+
+		ImSettings config;
+		config.push_member<&MyTypes::int_two>()
+			.separator()
+			.pop()
+			.push_member<&MyTypes::float_two>()
+			.separator()
+			.pop()
+			.push_member<&MyTypes::bool_two>()
+			.separator()
+			.pop();
+
+
+		const std::string code = R"(ImSettings config;
+config.push_member<&MyTypes::int_two>()
+	.separator()
+.pop()
+.push_member<&MyTypes::float_two>()
+	.separator()
+.pop()
+.push_member<&MyTypes::bool_two>()
+	.separator()
+.pop();)";
+		IMGUI_SAMPLE_MULTI_CODE(code);
+
+		ImReflect::Input("separator", my_struct, config);
+
+		ImGui::PopID();
+	}
+
 	ImGui::Unindent();
 	ImGui::PopID();
 }

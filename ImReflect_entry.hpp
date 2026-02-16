@@ -52,10 +52,10 @@ namespace ImReflect {
 		inline constexpr ImInputLib_t input_lib{};
 
 		template <typename T>
-		inline constexpr bool has_imreflect_input_v = 
-			svh::is_tag_invocable_v<ImInput_t, const char*, T&, ImSettings&, ImResponse&> || 
+		inline constexpr bool has_imreflect_input_v =
+			svh::is_tag_invocable_v<ImInput_t, const char*, T&, ImSettings&, ImResponse&> ||
 			svh::is_tag_invocable_v<ImInputLib_t, const char*, T&, ImSettings&, ImResponse&> ||
-            visit_struct::traits::is_visitable<std::remove_cv_t<T>, ImContext>::value;
+			visit_struct::traits::is_visitable<std::remove_cv_t<T>, ImContext>::value;
 
 		/* Forward declare */
 		template<typename T>
@@ -65,14 +65,14 @@ namespace ImReflect {
 		void imgui_input_visit_field(const char* label, T& value, ImSettings& settings, ImResponse& response) {
 			constexpr bool is_const = std::is_const_v<T>;
 			ImGui::PushID(label);
-            const bool empty = std::string(label).empty();
-			if(!empty) ImGui::SeparatorText(label);
+			const bool empty = std::string(label).empty();
+			if (!empty) ImGui::SeparatorText(label);
 			if constexpr (is_const) {
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
 					ImGui::SetTooltip("Const object");
 				}
 			}
-            if (!empty) ImGui::Indent();
+			if (!empty) ImGui::Indent();
 			visit_struct::context<ImContext>::for_each(value,
 				[&](const char* name, auto& field) {
 					ImGui::PushID(name);
@@ -81,7 +81,7 @@ namespace ImReflect {
 					InputImpl(name, field, member_settings, member_response); // recurse
 					ImGui::PopID();
 				});
-            if (!empty) ImGui::Unindent();
+			if (!empty) ImGui::Unindent();
 			ImGui::PopID();
 		}
 
@@ -95,6 +95,8 @@ namespace ImReflect {
 			static_assert(std::is_base_of_v<ImReflect::Detail::required<svh::simplify_t<T>>, std::remove_reference_t<decltype(type_settings)>>,
 				"ImReflect Error: TypeSettings specialization class must inherit from ImReflect::Detail::required<T>.");
 
+			const bool same_line = type_settings.on_same_line();
+			const bool separator = type_settings.has_separator();
 			const bool disabled = type_settings.is_disabled();
 			if (disabled) {
 				ImGui::BeginDisabled();
@@ -123,6 +125,12 @@ namespace ImReflect {
 
 			if (disabled) {
 				ImGui::EndDisabled();
+			}
+			if (same_line) {
+				ImGui::SameLine();
+			}
+			if (separator) {
+				ImGui::Separator();
 			}
 		}
 	}

@@ -87,9 +87,27 @@ namespace ImReflect::Detail {
 		bool has_min_width() const { return _min_width > 0.0f; }
 	};
 
+	template<typename T>
+	struct same_line_mixin {
+	private:
+		bool _same_line = false;
+	public:
+		type_settings<T>& same_line(bool v = true) { _same_line = v; RETURN_THIS; }
+		bool on_same_line() const { return _same_line; }
+	};
+
+	template<typename T>
+	struct separator_mixin {
+	private:
+		bool _separator = false;
+	public:
+		type_settings<T>& separator(bool v = true) { _separator = v; RETURN_THIS; }
+		bool has_separator() const { return _separator; }
+	};
+
 	/* Required marker */
 	template<typename T>
-	struct required : disabled<T>, min_width_mixin<T> {
+	struct required : disabled<T>, min_width_mixin<T>, same_line_mixin<T>, separator_mixin<T> {
 
 	};
 
