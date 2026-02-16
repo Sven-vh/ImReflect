@@ -3161,7 +3161,7 @@ namespace ImReflect {
 		inline constexpr bool has_imreflect_input_v =
 			svh::is_tag_invocable_v<ImInput_t, const char*, T&, ImSettings&, ImResponse&> ||
 			svh::is_tag_invocable_v<ImInputLib_t, const char*, T&, ImSettings&, ImResponse&> ||
-            visit_struct::traits::is_visitable<std::remove_cv_t<T>, ImContext>::value;
+			visit_struct::traits::is_visitable<std::remove_cv_t<T>, ImContext>::value;
 
 		/* Forward declare */
 		template<typename T>
@@ -3171,14 +3171,14 @@ namespace ImReflect {
 		void imgui_input_visit_field(const char* label, T& value, ImSettings& settings, ImResponse& response) {
 			constexpr bool is_const = std::is_const_v<T>;
 			ImGui::PushID(label);
-            const bool empty = std::string(label).empty();
-			if(!empty) ImGui::SeparatorText(label);
+			const bool empty = std::string(label).empty();
+			if (!empty) ImGui::SeparatorText(label);
 			if constexpr (is_const) {
 				if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
 					ImGui::SetTooltip("Const object");
 				}
 			}
-            if (!empty) ImGui::Indent();
+			if (!empty) ImGui::Indent();
 			visit_struct::context<ImContext>::for_each(value,
 				[&](const char* name, auto& field) {
 					ImGui::PushID(name);
@@ -3187,7 +3187,7 @@ namespace ImReflect {
 					InputImpl(name, field, member_settings, member_response); // recurse
 					ImGui::PopID();
 				});
-            if (!empty) ImGui::Unindent();
+			if (!empty) ImGui::Unindent();
 			ImGui::PopID();
 		}
 
@@ -3201,6 +3201,8 @@ namespace ImReflect {
 			static_assert(std::is_base_of_v<ImReflect::Detail::required<svh::simplify_t<T>>, std::remove_reference_t<decltype(type_settings)>>,
 				"ImReflect Error: TypeSettings specialization class must inherit from ImReflect::Detail::required<T>.");
 
+			const bool same_line = type_settings.on_same_line();
+			const bool separator = type_settings.has_separator();
 			const bool disabled = type_settings.is_disabled();
 			if (disabled) {
 				ImGui::BeginDisabled();
@@ -3229,6 +3231,12 @@ namespace ImReflect {
 
 			if (disabled) {
 				ImGui::EndDisabled();
+			}
+			if (same_line) {
+				ImGui::SameLine();
+			}
+			if (separator) {
+				ImGui::Separator();
 			}
 		}
 	}
@@ -3402,9 +3410,27 @@ namespace ImReflect::Detail {
 		bool has_min_width() const { return _min_width > 0.0f; }
 	};
 
+	template<typename T>
+	struct same_line_mixin {
+	private:
+		bool _same_line = false;
+	public:
+		type_settings<T>& same_line(bool v = true) { _same_line = v; RETURN_THIS; }
+		bool on_same_line() const { return _same_line; }
+	};
+
+	template<typename T>
+	struct separator_mixin {
+	private:
+		bool _separator = false;
+	public:
+		type_settings<T>& separator(bool v = true) { _separator = v; RETURN_THIS; }
+		bool has_separator() const { return _separator; }
+	};
+
 	/* Required marker */
 	template<typename T>
-	struct required : disabled<T>, min_width_mixin<T> {
+	struct required : disabled<T>, min_width_mixin<T>, same_line_mixin<T>, separator_mixin<T> {
 
 	};
 
@@ -4246,19 +4272,6 @@ namespace ImReflect::Detail {
 		const bool& is_dropdown() const { return _dropdown; };
 	};
 
-	/// <summary>
-	/// Whether or not to put a newline between label and input field
-	/// </summary>
-	/// <typeparam name="T"></typeparam>
-	template<typename T>
-	struct same_line_mixin {
-	private:
-		bool _same_line = false;
-	public:
-		type_settings<T>& same_line(const bool v = true) { _same_line = v; RETURN_THIS; }
-		const bool& on_same_line() const { return _same_line; };
-	};
-
 	enum class TupleRenderMode {
 		Line,
 		Grid
@@ -4585,7 +4598,6 @@ namespace ImReflect {
 
 	template<>
 	struct type_settings<std_tuple> : ImRequired<std_tuple>,
-		ImReflect::Detail::same_line_mixin<std_tuple>,
 		ImReflect::Detail::dropdown<std_tuple>,
 		ImReflect::Detail::line_mixin<std_tuple>,
 		ImReflect::Detail::grid_mixin<std_tuple> {
@@ -4608,7 +4620,6 @@ namespace ImReflect {
 
 	template<>
 	struct type_settings<std_pair> : ImRequired<std_pair>,
-		ImReflect::Detail::same_line_mixin<std_pair>,
 		ImReflect::Detail::dropdown<std_pair>,
 		ImReflect::Detail::line_mixin<std_pair>,
 		ImReflect::Detail::grid_mixin<std_pair> {
