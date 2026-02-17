@@ -3181,10 +3181,13 @@ namespace ImReflect {
 			if (!empty) ImGui::Indent();
 			visit_struct::context<ImContext>::for_each(value,
 				[&](const char* name, auto& field) {
-					ImGui::PushID(name);
 					auto& member_settings = settings.get_member(value, field);
 					auto& member_response = response.get_member(value, field);
-					InputImpl(name, field, member_settings, member_response); // recurse
+
+					std::string label = member_settings.has_label() ? member_settings.get_label() : name;
+
+					ImGui::PushID(name);
+					InputImpl(label.c_str(), field, member_settings, member_response); // recurse
 					ImGui::PopID();
 				});
 			if (!empty) ImGui::Unindent();
@@ -3428,9 +3431,21 @@ namespace ImReflect::Detail {
 		bool has_separator() const { return _separator; }
 	};
 
+	/* Only works when pusing members */
+	template<typename T>
+	struct label_mixin {
+	private:
+		std::string _label;
+	public:
+		/* Only works when pusing members */
+		type_settings<T>& label(const std::string& label) { _label = label; RETURN_THIS; }
+		const std::string& get_label() const { return _label; }
+		bool has_label() const { return !_label.empty(); }
+	};
+
 	/* Required marker */
 	template<typename T>
-	struct required : disabled<T>, min_width_mixin<T>, same_line_mixin<T>, separator_mixin<T> {
+	struct required : disabled<T>, min_width_mixin<T>, same_line_mixin<T>, separator_mixin<T>, label_mixin<T> {
 
 	};
 
