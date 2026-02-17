@@ -105,9 +105,21 @@ namespace ImReflect::Detail {
 		bool has_separator() const { return _separator; }
 	};
 
+	/* Only works when pusing members */
+	template<typename T>
+	struct label_mixin {
+	private:
+		std::string _label;
+	public:
+		/* Only works when pusing members */
+		type_settings<T>& label(const std::string& label) { _label = label; RETURN_THIS; }
+		const std::string& get_label() const { return _label; }
+		bool has_label() const { return !_label.empty(); }
+	};
+
 	/* Required marker */
 	template<typename T>
-	struct required : disabled<T>, min_width_mixin<T>, same_line_mixin<T>, separator_mixin<T> {
+	struct required : disabled<T>, min_width_mixin<T>, same_line_mixin<T>, separator_mixin<T>, label_mixin<T> {
 
 	};
 

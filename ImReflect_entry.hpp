@@ -75,10 +75,13 @@ namespace ImReflect {
 			if (!empty) ImGui::Indent();
 			visit_struct::context<ImContext>::for_each(value,
 				[&](const char* name, auto& field) {
-					ImGui::PushID(name);
 					auto& member_settings = settings.get_member(value, field);
 					auto& member_response = response.get_member(value, field);
-					InputImpl(name, field, member_settings, member_response); // recurse
+
+					std::string label = member_settings.has_label() ? member_settings.get_label() : name;
+
+					ImGui::PushID(name);
+					InputImpl(label.c_str(), field, member_settings, member_response); // recurse
 					ImGui::PopID();
 				});
 			if (!empty) ImGui::Unindent();

@@ -655,6 +655,38 @@ config.push_member<&MyTypes::int_one>()
 
 	}
 
+	ImGui::NewLine();
+
+	ImGui::Text("Custom Labels");
+	HelpMarker("You can define custom labels for types and member variables");
+	{
+		ImSettings config;
+		config.push_member<&MyTypes::int_one>()
+			.label("My Int One")
+			.pop()
+			.push_member<&MyTypes::int_two>()
+			.label("My Int Two")
+			.pop()
+			.push<float>()
+			.label("A Float value")
+			.pop();
+
+		const std::string code = R"(ImSettings config;
+config.push_member<&MyTypes::int_one>()
+	.label("My Int One")
+.pop()
+.push_member<&MyTypes::int_two>()
+	.label("My Int Two")
+.pop()
+.push<float>()
+	.label("A Float value")
+.pop();)";
+		IMGUI_SAMPLE_MULTI_CODE(code);
+
+		ImGui::Text("Custom labels for int_one, int_two and all floats\nOutput:");
+		ImReflect::Input("my_struct", my_struct, config);
+	}
+
 	ImGui::Unindent();
 	ImGui::PopID();
 }
