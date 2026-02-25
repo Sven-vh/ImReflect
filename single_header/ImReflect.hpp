@@ -3106,13 +3106,33 @@ IMGUI_REFLECT(MyStruct, a, b, c)
 #define IMGUI_REFLECT(T, ...) \
 VISITABLE_STRUCT_IN_CONTEXT(ImReflect::Detail::ImContext, T, __VA_ARGS__);
 
+struct ImReflect_global_tag {};
+
 namespace ImReflect {
-	namespace Detail {
-		struct ImContext {};
-	}
+    namespace Detail {
+        struct ImContext {};
+    }
+
+    struct ImInput_t : ImReflect_global_tag {};
+    inline constexpr ImInput_t input{};
+
+    /* forward declare */
+    template<class T, class ENABLE = void>
+    struct type_settings;
+
+    template<class T>
+    struct type_response;
 }
 
-struct ImReflect_global_tag {};
+/* forward declare */
+namespace svh {
+	template<template<class> class BaseTemplate>
+	struct scope;
+}
+
+/* forward declare */
+using ImSettings = svh::scope<ImReflect::type_settings>;
+using ImResponse = svh::scope<ImReflect::type_response>;
 
 namespace ImReflect {
 
@@ -3147,10 +3167,6 @@ namespace ImReflect {
 
 	template<class T>
 	struct type_response : /* ImResponse is inherited in required */ ImReflect::Detail::required_response<T> {};
-
-	/* Tags for the tag_invoke input functions */
-	struct ImInput_t : ImReflect_global_tag { /* Public Tag */ };
-	inline constexpr ImInput_t input{};
 
 	namespace Detail {
 
@@ -3347,11 +3363,28 @@ namespace ImReflect::Detail {
 	};
 
 	struct scope_indent {
-		float width = 0.0f;
+		const float width = 0.0f;
 		scope_indent(float _width = 0.0f) : width(_width) {
 			ImGui::Indent(width);
 		}
 		~scope_indent() { ImGui::Unindent(width); }
+	};
+
+	struct scope_disabled {
+        const bool disabled = false;
+		scope_disabled(bool _disabled = true) : disabled(_disabled) {
+			if (disabled) ImGui::BeginDisabled();
+        }
+		~scope_disabled() {
+            if (disabled) ImGui::EndDisabled();
+		}
+    };
+
+	struct scope_style {
+        const ImGuiStyleVar_ var;
+        const float value;
+        scope_style(ImGuiStyleVar_ _var, float _value) : var(_var), value(_value) { ImGui::PushStyleVar(var, value); }
+        ~scope_style() { ImGui::PopStyleVar(); }
 	};
 
 	inline void text_label(const std::string& text) {
