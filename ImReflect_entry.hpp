@@ -6,8 +6,6 @@
 
 #include "ImReflect_macro.hpp"
 
-struct ImReflect_global_tag {};
-
 namespace ImReflect {
 
 	/* Forward declare */
@@ -41,10 +39,6 @@ namespace ImReflect {
 
 	template<class T>
 	struct type_response : /* ImResponse is inherited in required */ ImReflect::Detail::required_response<T> {};
-
-	/* Tags for the tag_invoke input functions */
-	struct ImInput_t : ImReflect_global_tag { /* Public Tag */ };
-	inline constexpr ImInput_t input{};
 
 	namespace Detail {
 

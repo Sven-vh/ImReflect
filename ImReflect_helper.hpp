@@ -21,11 +21,28 @@ namespace ImReflect::Detail {
 	};
 
 	struct scope_indent {
-		float width = 0.0f;
+		const float width = 0.0f;
 		scope_indent(float _width = 0.0f) : width(_width) {
 			ImGui::Indent(width);
 		}
 		~scope_indent() { ImGui::Unindent(width); }
+	};
+
+	struct scope_disabled {
+        const bool disabled = false;
+		scope_disabled(bool _disabled = true) : disabled(_disabled) {
+			if (disabled) ImGui::BeginDisabled();
+        }
+		~scope_disabled() {
+            if (disabled) ImGui::EndDisabled();
+		}
+    };
+
+	struct scope_style {
+        const ImGuiStyleVar_ var;
+        const float value;
+        scope_style(ImGuiStyleVar_ _var, float _value) : var(_var), value(_value) { ImGui::PushStyleVar(var, value); }
+        ~scope_style() { ImGui::PopStyleVar(); }
 	};
 
 	inline void text_label(const std::string& text) {
