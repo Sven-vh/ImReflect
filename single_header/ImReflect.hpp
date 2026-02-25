@@ -5698,9 +5698,6 @@ namespace ImReflect {
 				disabled_plus_button();
 			}
 
-
-			ImGui::SameLine();
-
 			const auto disabled_minus_button = []() {
 				ImGui::BeginDisabled();
 				ImGui::Button("-");
@@ -5714,13 +5711,17 @@ namespace ImReflect {
 
 			/*  Remove button */
 			if constexpr (allow_remove && can_remove) {
-				if (!value.empty() && ImGui::Button("-")) {
-					auto it = value.end();
-					--it;
-					value.erase(it);
-					map_response.changed();
+                if (!value.empty()) {
+                    ImGui::SameLine();
+					if (ImGui::Button("-")) {
+						auto it = value.end();
+						--it;
+						value.erase(it);
+						map_response.changed();
+					}
 				}
 			} else {
+                ImGui::SameLine();
 				disabled_minus_button();
 			}
 
@@ -5743,7 +5744,7 @@ namespace ImReflect {
 				}
 
 				ImGui::SameLine();
-				map_settings.template push<std::tuple>().same_line(true);
+				//map_settings.template push<std::tuple>().same_line(true);
 				ImReflect::Input(item_label.c_str(), pair, map_settings, map_response);
 
 				/*  Context menu */
