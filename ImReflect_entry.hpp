@@ -17,10 +17,6 @@ namespace ImReflect {
 		struct required_response;
 	}
 
-	/* SETTINGS */
-	template<class T, class ENABLE = void>
-	struct type_settings; /* Forward declare */
-
 	//TODO: consider making ImResponse a class and also inherit from required.
 	// This will make every ImSettings paramter typed.
 	template<typename T>
