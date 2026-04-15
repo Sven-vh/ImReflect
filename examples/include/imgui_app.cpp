@@ -2006,6 +2006,75 @@ static void variant_test() {
 }
 
 // ========================================
+// std::function
+// ========================================
+static void function_test() {
+	ImGui::SeparatorText("std::function Test");
+	ImGui::PushID("function_test");
+	ImGui::Indent();
+
+	ImGui::Text("std::function<void()>");
+	HelpMarker("A simple function with no parameters");
+	{
+		static std::function<void()> my_function = []() { printf("Hello from std::function!\n"); };
+		ImGui::PushID("function");
+		ImReflect::Input("my_function", my_function);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("std::function with parameters");
+	HelpMarker("A function that takes parameters, you can edit the parameters and call the function to see the output in console");
+	{
+		static std::function<void(int, bool, float)> my_function_with_params = [](int a, bool b, float c) {
+			printf("Function with params called! a: %d, b: %s, c: %.2f\n", a, b ? "true" : "false", c);
+			};
+		ImGui::PushID("function with params");
+		ImReflect::Input("my_function_with_params", my_function_with_params);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("std::function with return value");
+	HelpMarker("A function that takes parameters and returns a value, you can edit the parameters, call the function and see the return value in console");
+	{
+		static std::function<std::string(const std::string&)> my_function_with_return = [](const std::string& name) {
+			std::string greeting = "Hello, " + name + "!";
+			printf("Function with return called! name: %s, returning: %s\n", name.c_str(), greeting.c_str());
+			return greeting;
+		};
+		ImGui::PushID("function with return");
+		ImReflect::Input("my_function_with_return", my_function_with_return);
+		ImGui::PopID();
+	}
+
+	ImGui::NewLine();
+
+	ImGui::Text("std::function with complex signature");
+	HelpMarker("A function that takes complex parameters and returns a complex value, you can edit the parameters, call the function and see the return value in console");
+	{
+		using ComplexFunctionType = std::function<std::map<std::string, int>(const std::vector<std::pair<int, std::string>>& input)>;
+		static ComplexFunctionType my_complex_function = [](const std::vector<std::pair<int, std::string>>& input) {
+			std::map<std::string, int> result;
+			for (const auto& pair : input) {
+				result[pair.second] = pair.first;
+			}
+			printf("Complex function called! Returning map with %zu entries\n", result.size());
+			return result;
+		};
+		ImGui::PushID("complex function");
+		ImReflect::Input("my_complex_function", my_complex_function);
+		ImGui::PopID();
+	}
+
+
+	ImGui::Unindent();
+	ImGui::PopID();
+}
+
+// ========================================
 // Complex Object Test
 // ========================================
 static void complex_object_test() {
@@ -2484,6 +2553,11 @@ namespace svh {
 		if (ImGui::BeginTabItem("Variant")) {
 			// Variant test
 			variant_test();
+			ImGui::EndTabItem();
+		}
+		if (ImGui::BeginTabItem("Function")) {
+			// Function test
+			function_test();
 			ImGui::EndTabItem();
 		}
 		if (ImGui::BeginTabItem("Complex Object")) {

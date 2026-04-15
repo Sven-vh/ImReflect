@@ -1772,7 +1772,158 @@ namespace ImReflect {
 		}
 	}
 
+	/* ========================= std::function ========================= */
+	struct std_function {};
 
+	template<>
+	struct type_settings<std_function> : ImRequired<std_function>,
+		ImReflect::Detail::resettable_mixin<std_function> {
+	};
+
+	template<>
+	struct type_response<std_function> : ImReflect::Detail::required_response<std_function> {
+	};
+
+	namespace Detail {
+		/* Primary: non-void return */
+		template<typename Ret, bool IsVoid = std::is_void_v<Ret>>
+		struct FnReturnStore {
+			Ret  value{};
+			bool has_value = false;
+		};
+
+		/* Partial spec: void return — no value member at all */
+		template<typename Ret>
+		struct FnReturnStore<Ret, true> {
+			bool has_value = false;
+		};
+	}
+
+	template<typename Ret, typename... Args>
+	void tag_invoke(Detail::ImInputLib_t, const char*, std::function<Ret(Args...)>& value, ImSettings& settings, ImResponse& response) {
+		auto& fn_settings = settings.get<std_function>();
+		auto& fn_response = response.get<std_function>();
+
+		constexpr bool has_args = sizeof...(Args) > 0;
+		constexpr bool all_default_ctor = (std::is_default_constructible_v<std::decay_t<Args>> && ...);
+		constexpr bool is_void_return = std::is_void_v<Ret>;
+		constexpr bool return_is_displayable = !is_void_return && std::is_default_constructible_v<Ret>;
+
+		const std::string final_label = std::string("Call") + (has_args ? "()..." : "()");
+
+		/* Per-instantiation statics — same pattern as static T temp_value{} in vector */
+		static std::tuple<std::decay_t<Args>...> s_temp_args{};
+		static Detail::FnReturnStore<Ret> s_return{};
+
+		const bool has_target = static_cast<bool>(value);
+
+		/* --- Call button --- */
+		const auto call_popup_id = ImGui::GetID("fn_call_popup");
+
+		if (!has_target) {
+			ImGui::BeginDisabled();
+			ImGui::Button(final_label.c_str());
+			ImGui::EndDisabled();
+			Detail::imgui_tooltip("No callable target assigned");
+		} else if constexpr (!has_args) {
+			/* Zero args — call immediately, no popup needed */
+			if (ImGui::Button(final_label.c_str())) {
+				if constexpr (is_void_return) {
+					value();
+				} else if constexpr (return_is_displayable) {
+					s_return.value = value();
+					s_return.has_value = true;
+				}
+				fn_response.changed();
+			}
+		} else if constexpr (all_default_ctor) {
+			if (ImGui::Button(final_label.c_str())) {
+				ImGui::OpenPopup(call_popup_id);
+			}
+			Detail::imgui_tooltip("Set arguments and call the function");
+		} else {
+			ImGui::BeginDisabled();
+			ImGui::Button(final_label.c_str());
+			ImGui::EndDisabled();
+			Detail::imgui_tooltip("Cannot call: one or more argument types are not default constructible");
+		}
+
+		/* --- Inline return value display (zero-arg case only) --- */
+		if constexpr (return_is_displayable) {
+			if (s_return.has_value) {
+				ImGui::SameLine();
+				ImGui::Text("=>");
+				ImGui::SameLine();
+				ImGui::BeginDisabled();
+				ImReflect::Input("##fn_return_inline", s_return.value, fn_settings, fn_response);
+				ImGui::EndDisabled();
+			}
+		}
+
+		/* --- Argument popup (same structure as vector add_item_popup) --- */
+		if constexpr (has_args && all_default_ctor) {
+			if (ImGui::BeginPopupEx(call_popup_id, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoSavedSettings)) {
+
+				/* Return value from last call */
+				if constexpr (return_is_displayable) {
+					if (s_return.has_value) {
+						ImGui::Text("Last return:");
+						ImGui::SameLine();
+						ImGui::BeginDisabled();
+						ImReflect::Input("##fn_return_popup", s_return.value, fn_settings, fn_response);
+						ImGui::EndDisabled();
+						ImGui::Separator();
+					}
+				}
+
+				/* One input field per argument, labelled "Arg 0", "Arg 1", ... */
+				{
+					int arg_idx = 0;
+					std::apply([&](auto&... arg) {
+						([&] {
+							const std::string arg_label = "Arg " + std::to_string(arg_idx++);
+							ImGui::PushID(arg_idx);
+							ImReflect::Input(arg_label.c_str(), arg, fn_settings, fn_response);
+							ImGui::PopID();
+							}(), ...);
+						}, s_temp_args);
+				}
+
+				ImGui::Separator();
+
+				/* Call */
+				if (ImGui::MenuItem("Call")) {
+					if constexpr (is_void_return) {
+						std::apply(value, s_temp_args);
+					} else if constexpr (return_is_displayable) {
+						s_return.value = std::apply(value, s_temp_args);
+						s_return.has_value = true;
+					}
+					fn_response.changed();
+					s_temp_args = {};           /* reset args, same as temp_value = T{} in vector */
+					ImGui::CloseCurrentPopup();
+				}
+
+				/* Cancel — reset args, close popup */
+				if (ImGui::MenuItem("Cancel")) {
+					s_temp_args = {};
+					ImGui::CloseCurrentPopup();
+				}
+
+				ImGui::EndPopup();
+			}
+		}
+
+		/* --- Optional clear button (opt-in via .resettable(true)) --- */
+		if (fn_settings.is_resettable() && has_target) {
+			ImGui::SameLine();
+			if (ImGui::SmallButton("X")) {
+				value = nullptr;
+				fn_response.changed();
+			}
+			Detail::imgui_tooltip("Clear the stored callable");
+		}
+	}
 }
 
 /* ========================= Category registration ========================= */
