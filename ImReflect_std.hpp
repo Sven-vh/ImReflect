@@ -1800,7 +1800,7 @@ namespace ImReflect {
 	}
 
 	template<typename Ret, typename... Args>
-	void tag_invoke(Detail::ImInputLib_t, const char*, std::function<Ret(Args...)>& value, ImSettings& settings, ImResponse& response) {
+	void tag_invoke(Detail::ImInputLib_t, const char* label, std::function<Ret(Args...)>& value, ImSettings& settings, ImResponse& response) {
 		auto& fn_settings = settings.get<std_function>();
 		auto& fn_response = response.get<std_function>();
 
@@ -1809,7 +1809,7 @@ namespace ImReflect {
 		constexpr bool is_void_return = std::is_void_v<Ret>;
 		constexpr bool return_is_displayable = !is_void_return && std::is_default_constructible_v<Ret>;
 
-		const std::string final_label = std::string("Call") + (has_args ? "()..." : "()");
+		const std::string final_label = std::string(label) + (has_args ? "()..." : "()");
 
 		/* Per-instantiation statics — same pattern as static T temp_value{} in vector */
 		static std::tuple<std::decay_t<Args>...> s_temp_args{};
