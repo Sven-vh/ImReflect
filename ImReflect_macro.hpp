@@ -15,6 +15,9 @@ IMGUI_REFLECT(MyStruct, a, b, c)
 #define IMGUI_REFLECT(T, ...) \
 VISITABLE_STRUCT_IN_CONTEXT(ImReflect::Detail::ImContext, T, __VA_ARGS__);
 
+#define IMGUI_REFLECT_TEMPLATE(TPARAMS, T, TARGS, ...) \
+VISITABLE_TEMPLATE_STRUCT_IN_CONTEXT(ImReflect::Detail::ImContext, TPARAMS, T, TARGS, __VA_ARGS__);
+
 struct ImReflect_global_tag {};
 
 namespace ImReflect {
